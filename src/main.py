@@ -20,6 +20,8 @@ vad_speech_margin_init = 16000 # The number of samples (normally 16000 for 1s) o
 vad_threshold = 0.1 #VAD set so low purely to prevent wasting time trying to understand silence. Tune manually if wanted.
 vad_aggressiveness = 3 # 0-3, least to most aggressive at filtering noise
 
+detected_speech_wav_path = "testoutput.wav"
+
 audio_system = PyAudio()
 
 vad = webrtcvad.Vad(vad_aggressiveness)
@@ -83,14 +85,30 @@ while True:
 
 			print("Sending Audio")
 			# TODO: Send to STT
-			with wave.open('testoutput.wav', 'wb') as wf:
+			with wave.open(detected_speech_wav_path, 'wb') as wf:
 				wf.setnchannels(channels)
 				wf.setsampwidth(audio_system.get_sample_size(paInt16))
 				wf.setframerate(sample_rate)
 				wf.writeframes(b''.join(speech_buffer))
-			
-			print("Waiting for wakeword:")
 
+# STT ########################################################
+			from faster_whisper import WhisperModel
+
+			stt_model = "base.en"
+
+			print(f"Loading Model: {stt_model}")
+			model = WhisperModel(stt_model, device="cpu")
+
+			print(f"Loaded Model: {stt_model}")
+
+			segments, info = model.transcribe(detected_speech_wav_path, beam_size=5)
+
+			print("Transcribing...")
+			spoken_words = ""
+			for segment in segments:
+				spoken_words += segment.text
+			print("Transcribed.")
+			print(spoken_words)
 
 # TTS ########################################################
 
@@ -101,6 +119,3 @@ tts_model = f"{tts_data_dir}/en_US-lessac-high.onnx" # If this is a path, it wil
 
 subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_data_dir} --download-dir {tts_data_dir} --model {tts_model} --output_file {tts_data_dir}/test.wav', stdout=subprocess.PIPE, shell=True)
 
-
-#STT
-stt_model = "base.en"
