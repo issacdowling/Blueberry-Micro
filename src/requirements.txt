@@ -10,3 +10,5 @@ webrtcvad
 faster-whisper
 #TTS
 piper-tts
+
+#Install pipewire-alsa too, or aplay won't work

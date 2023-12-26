@@ -3,6 +3,7 @@ import subprocess
 import sys
 from time import time
 import requests
+import json
 
 # Device controls ##############################################
 devices = []
@@ -82,6 +83,10 @@ while True:
 		confidence = prediction[model_name]
 		## Upon detection:
 		if confidence >= 0.5:
+
+			#Play recording sound (eventually probably use an actual library):
+			subprocess.call(f'aplay resources/audio/listening.wav', stdout=subprocess.PIPE, shell=True)
+
 			### Feeds silence for "4 seconds" to OpenWakeWord so that it doesn't lead to repeat activations
 			### See for yourself: https://github.com/dscripka/openWakeWord/issues/37
 			### Don't disable or it will lead to approximately 2 hours and 23 minutes of confusion.
@@ -101,6 +106,9 @@ while True:
 						vad_speech_margin = vad_speech_margin_init
 					else:
 						vad_speech_margin -= 320
+
+			#Play stopped recording sound (eventually probably use an actual library):
+			subprocess.call(f'aplay resources/audio/stoplistening.wav', stdout=subprocess.PIPE, shell=True)
 
 			print("Sending Audio")
 			# TODO: Send to STT
@@ -169,8 +177,9 @@ while True:
 # TTS ########################################################
 
 ## Test TTS by speaking on launch
-speech_text = "Blueberry is starting up"
-tts_data_dir = "tts_data"
-tts_model = f"{tts_data_dir}/en_US-lessac-high.onnx" # If this is a path, it will be loaded directly, but if it's just the name, it will redownload every time. https://github.com/rhasspy/piper to download.
+					speech_text = f"Turning {spoken_device_name} {spoken_state}" # Sample speech, will be better
+					tts_data_dir = "tts_data"
+					tts_model = f"{tts_data_dir}/en_US-lessac-high.onnx" # If this is a path, it will be loaded directly, but if it's just the name, it will redownload every time. https://github.com/rhasspy/piper to download.
 
-subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_data_dir} --download-dir {tts_data_dir} --model {tts_model} --output_file {tts_data_dir}/test.wav', stdout=subprocess.PIPE, shell=True)
+					subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_data_dir} --download-dir {tts_data_dir} --model {tts_model} --output_file {tts_data_dir}/test.wav', stdout=subprocess.PIPE, shell=True)
+					subprocess.call(f'aplay {tts_data_dir}/test.wav', stdout=subprocess.PIPE, shell=True)
