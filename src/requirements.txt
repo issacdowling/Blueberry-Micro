@@ -11,4 +11,4 @@ faster-whisper
 #TTS
 piper-tts
 
-#Install pipewire-alsa too, or aplay won't work
+#Install pipewire-alsa too, or aplay won't work, and alsa-utils for aplay to exist at all
