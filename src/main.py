@@ -18,7 +18,20 @@ class WledDevice:
 
 	def off(self):
 		requests.post(f"http://{self.ip_address}/win&T=0")
-
+class TasmotaDevice:
+    def __init__(self, friendly_name, ip_address):
+        self.friendly_name = friendly_name
+        self.ip_address = ip_address
+        self.request_uri = f"http://{self.ip_address}"
+        if(self.ip_address.endswith("/cm")):
+            self.request_uri += "?"
+        else:
+            self.request_uri += "&"
+        devices.append(self)
+    def on(self):
+        requests.get(f"{self.request_uri}cmnd=Power%201")
+    def off(self):
+        requests.get(f"{self.request_uri}cmnd=Power%200")
 # TODO: File to define devices instead
 door_light = WledDevice("Name", "IP")
 bedside_light = WledDevice("Name", "IP")
