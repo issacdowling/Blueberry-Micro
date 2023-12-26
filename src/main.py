@@ -20,6 +20,7 @@ class WledDevice:
 
 # TODO: File to define devices instead
 door_light = WledDevice("NAME", "IP")
+bedside_light = WledDevice("NAME", "IP")
 
 # Wakeword ########################################################
 from openwakeword import Model
@@ -127,7 +128,6 @@ while True:
 				raw_spoken_words += segment.text
 			print("Transcribed.")
 			print(raw_spoken_words)
-
 # Intent Recognition ###########################################
 			# Remove special characters from text, make lowercase, split into list, remove the initial space character
 			import re 
@@ -137,7 +137,6 @@ while True:
 			print(list_of_spoken_words)
 
 			setKeyWords = ["set", "make", "turn"]
-			devices = ["light", "fan", "heater"]
 			stateKeyWords = ["on", "off"]
 			#Special case for "play" or "search" keywords for media and web queries:
 			if list_of_spoken_words[0] == "play":
@@ -147,9 +146,20 @@ while True:
 
 			#Check if we're setting the state of something
 			elif list_of_spoken_words[0] in setKeyWords:
-				if (len(set(list_of_spoken_words).intersection(devices)) > 0) and (len(set(list_of_spoken_words).intersection(stateKeyWords)) > 0):
-					print(f"Turning {set(list_of_spoken_words).intersection(devices)} {set(list_of_spoken_words).intersection(stateKeyWords)}" )
-					door_light.on()
+				# If the name of a device and a state were both spoken, apply that state to that device
+				if (len(set(list_of_spoken_words).intersection([device.friendly_name.lower() for device in devices])) == 1) and (len(set(list_of_spoken_words).intersection(stateKeyWords)) == 1):
+					spoken_state = list(set(list_of_spoken_words).intersection(stateKeyWords))[0]
+					spoken_device_name = list(set(list_of_spoken_words).intersection([device.friendly_name.lower() for device in devices]))[0]
+
+					print(f"Turning {set(list_of_spoken_words).intersection([device.friendly_name.lower() for device in devices])} {set(list_of_spoken_words).intersection(stateKeyWords)}" )
+					for device in devices:
+						if device.friendly_name.lower() == spoken_device_name:
+							if spoken_state == "on":
+								device.on()
+							elif spoken_state == "off":
+								device.off()
+					print()
+
 
 # TTS ########################################################
 
