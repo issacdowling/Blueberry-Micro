@@ -1,4 +1,11 @@
 
+# Wakeword
+openwakeword
+pyaudio #install portaudio (portaudio on Arch, portaudio-devel on Fedora, portaudio19-dev on Debian), use pipewire-jack, not jack
+websocket-client
+webrtcvad
+
+
 #STT
 faster-whisper
 #TTS
