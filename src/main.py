@@ -2,6 +2,24 @@
 import subprocess
 import sys
 from time import time
+import requests
+
+# Device controls ##############################################
+devices = []
+class WledDevice:
+	def __init__(self,friendly_name, ip_address):
+		self.friendly_name = friendly_name
+		self.ip_address = ip_address
+		devices.append(self)
+
+	def on(self):
+		requests.post(f"http://{self.ip_address}/win&T=1")
+
+	def off(self):
+		requests.post(f"http://{self.ip_address}/win&T=0")
+
+# TODO: File to define devices instead
+door_light = WledDevice("NAME", "IP")
 
 # Wakeword ########################################################
 from openwakeword import Model
@@ -14,7 +32,7 @@ import wave
 channels = 1 # Mono since stereo would be a waste of data
 sample_rate = 16000 # Required by OpenWakeWord
 frame_size = 1280 # This value chosen because oww recommends 80ms frames, 16000/1280 = 12.5, 1000/12.5 = 80ms
-speech_buffer_length = 32000 # 2s of audio buffer at 16khz
+speech_buffer_length = 1000 # 2s of audio buffer at 16khz was the default, testing out smaller to make intent recognition easier while still not cutting any text out.
 vad_speech_margin_init = 16000 # The number of samples (normally 16000 for 1s) of "Not Speech" before the recording stops
 
 vad_threshold = 0.1 #VAD set so low purely to prevent wasting time trying to understand silence. Tune manually if wanted.
@@ -104,11 +122,34 @@ while True:
 			segments, info = model.transcribe(detected_speech_wav_path, beam_size=5)
 
 			print("Transcribing...")
-			spoken_words = ""
+			raw_spoken_words = ""
 			for segment in segments:
-				spoken_words += segment.text
+				raw_spoken_words += segment.text
 			print("Transcribed.")
-			print(spoken_words)
+			print(raw_spoken_words)
+
+# Intent Recognition ###########################################
+			# Remove special characters from text, make lowercase, split into list, remove the initial space character
+			import re 
+			list_of_spoken_words = re.sub('[^A-Za-z0-9 ]+', "", raw_spoken_words).lower().split(" ")
+			list_of_spoken_words.pop(0)
+
+			print(list_of_spoken_words)
+
+			setKeyWords = ["set", "make", "turn"]
+			devices = ["light", "fan", "heater"]
+			stateKeyWords = ["on", "off"]
+			#Special case for "play" or "search" keywords for media and web queries:
+			if list_of_spoken_words[0] == "play":
+				pass
+			elif list_of_spoken_words[0] == "search":
+				pass
+
+			#Check if we're setting the state of something
+			elif list_of_spoken_words[0] in setKeyWords:
+				if (len(set(list_of_spoken_words).intersection(devices)) > 0) and (len(set(list_of_spoken_words).intersection(stateKeyWords)) > 0):
+					print(f"Turning {set(list_of_spoken_words).intersection(devices)} {set(list_of_spoken_words).intersection(stateKeyWords)}" )
+					door_light.on()
 
 # TTS ########################################################
 
@@ -118,4 +159,3 @@ tts_data_dir = "tts_data"
 tts_model = f"{tts_data_dir}/en_US-lessac-high.onnx" # If this is a path, it will be loaded directly, but if it's just the name, it will redownload every time. https://github.com/rhasspy/piper to download.
 
 subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_data_dir} --download-dir {tts_data_dir} --model {tts_model} --output_file {tts_data_dir}/test.wav', stdout=subprocess.PIPE, shell=True)
-
