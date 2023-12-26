@@ -6,3 +6,4 @@ tts_data/test.wav
 testoutput.wav
 
 ww_data/personal_wakewords/*
+!ww_data/personal_wakewords/put_your_models_here
