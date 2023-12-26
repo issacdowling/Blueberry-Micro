@@ -19,8 +19,8 @@ class WledDevice:
 		requests.post(f"http://{self.ip_address}/win&T=0")
 
 # TODO: File to define devices instead
-door_light = WledDevice("NAME", "IP")
-bedside_light = WledDevice("NAME", "IP")
+door_light = WledDevice("Name", "IP")
+bedside_light = WledDevice("Name", "IP")
 
 # Wakeword ########################################################
 from openwakeword import Model
@@ -54,7 +54,7 @@ for device_index in range(total_devices):
 print(f"Found pipewire at index {mic_index}")
 
 ## Eventually get this list from the server
-enabled_wakewords = ["weather"]
+enabled_wakewords = ["weather", "ww_data/personal_wakewords/50000-50000blueberry.tflite"] #breaks if not ran from /src
 
 ## TODO: Add automatically downloading "personal wakewords" from configuration server and enabling them
 print("Opening Mic")
@@ -137,7 +137,10 @@ while True:
 			print(list_of_spoken_words)
 
 			setKeyWords = ["set", "make", "turn"]
-			stateKeyWords = ["on", "off"]
+			stateBoolKeywords = ["on", "off"]
+			stateBrightnessKeywords = ["brightness"]
+			stateColourKeywords = ["colour", "color"] #This is bad, eventually a big list of colours should be put here, with conversions to RGB for applying to lights.
+			stateKeyWords = stateBoolKeywords + stateBrightnessKeywords + stateColourKeywords
 			#Special case for "play" or "search" keywords for media and web queries:
 			if list_of_spoken_words[0] == "play":
 				pass
@@ -147,18 +150,20 @@ while True:
 			#Check if we're setting the state of something
 			elif list_of_spoken_words[0] in setKeyWords:
 				# If the name of a device and a state were both spoken, apply that state to that device
+				# TODO: Support more than just on/off
 				if (len(set(list_of_spoken_words).intersection([device.friendly_name.lower() for device in devices])) == 1) and (len(set(list_of_spoken_words).intersection(stateKeyWords)) == 1):
+					# Get the spoken state and name out of the lists of all potential options
 					spoken_state = list(set(list_of_spoken_words).intersection(stateKeyWords))[0]
 					spoken_device_name = list(set(list_of_spoken_words).intersection([device.friendly_name.lower() for device in devices]))[0]
 
-					print(f"Turning {set(list_of_spoken_words).intersection([device.friendly_name.lower() for device in devices])} {set(list_of_spoken_words).intersection(stateKeyWords)}" )
+					#Actually perform changing the state
+					print(f"Turning {spoken_device_name} {spoken_state}" )
 					for device in devices:
 						if device.friendly_name.lower() == spoken_device_name:
 							if spoken_state == "on":
 								device.on()
 							elif spoken_state == "off":
 								device.off()
-					print()
 
 
 # TTS ########################################################
