@@ -42,6 +42,35 @@ class TasmotaDevice:
 door_light = WledDevice("Name", "IP")
 bedside_light = WledDevice("Name", "IP")
 
+
+## Load faster-whisper #######################
+
+from faster_whisper import WhisperModel
+
+stt_model = "base.en"
+
+print(f"Loading Model: {stt_model}")
+model = WhisperModel(stt_model, device="cpu")
+
+print(f"Loaded Model: {stt_model}")
+
+## Load Piper ###############################
+
+tts_data_dir = "tts_data"
+tts_model = f"{tts_data_dir}/en_US-lessac-high.onnx" # If this is a path, it will be loaded directly, but if it's just the name, it will redownload every time. https://github.com/rhasspy/piper to download.
+
+## Load intent parser #######################
+setKeyWords = ["set", "make", "turn"]
+stateBoolKeywords = ["on", "off"]
+stateBrightnessKeywords = ["brightness"]
+
+### Colour list: 
+with open("resources/keywords/colours.json", 'r') as colours_json_file:
+	colours_json = json.load(colours_json_file)
+coloursKeywords = list(colours_json["rgb"].keys())
+
+stateKeyWords = stateBoolKeywords + stateBrightnessKeywords + coloursKeywords
+
 ## Load OpenWakeword #######################
 from openwakeword import Model
 from pyaudio import PyAudio, paInt16
@@ -78,39 +107,12 @@ enabled_wakewords = ["weather", "ww_data/personal_wakewords/50000-50000blueberry
 
 ## TODO: Add automatically downloading "personal wakewords" from configuration server and enabling them
 
-
-## Load faster-whisper #######################
-
-from faster_whisper import WhisperModel
-
-stt_model = "base.en"
-
-print(f"Loading Model: {stt_model}")
-model = WhisperModel(stt_model, device="cpu")
-
-print(f"Loaded Model: {stt_model}")
-
-## Load Piper ###############################
-
-tts_data_dir = "tts_data"
-tts_model = f"{tts_data_dir}/en_US-lessac-high.onnx" # If this is a path, it will be loaded directly, but if it's just the name, it will redownload every time. https://github.com/rhasspy/piper to download.
-
-## Load intent parser #######################
-setKeyWords = ["set", "make", "turn"]
-stateBoolKeywords = ["on", "off"]
-stateBrightnessKeywords = ["brightness"]
-
-# Colour list: 
-with open("resources/keywords/colours.json", 'r') as colours_json_file:
-	colours_json = json.load(colours_json_file)
-coloursKeywords = list(colours_json["rgb"].keys())
-
-stateKeyWords = stateBoolKeywords + stateBrightnessKeywords + coloursKeywords
-
-## Detection loop
-
+## Open Mic:
 print("Opening Mic")
 mic_stream = audio_system.open(format=paInt16, channels=channels, rate=sample_rate, input=True, frames_per_buffer=frame_size, input_device_index=mic_index)
+
+
+## Detection loop
 
 oww = Model(wakeword_models=enabled_wakewords, vad_threshold=vad_threshold, inference_framework = "tflite")
 speech_buffer = []
