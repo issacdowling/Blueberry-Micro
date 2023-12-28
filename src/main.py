@@ -18,6 +18,10 @@ class WledDevice:
 
 	def off(self):
 		requests.post(f"http://{self.ip_address}/win&T=0")
+
+	def setColour(self,rgb_list):
+		requests.post(f"http://{self.ip_address}/win&R={rgb_list[0]}&G={rgb_list[1]}&B={rgb_list[2]}")
+
 class TasmotaDevice:
     def __init__(self, friendly_name, ip_address):
         self.friendly_name = friendly_name
@@ -149,6 +153,7 @@ while True:
 				raw_spoken_words += segment.text
 			print("Transcribed.")
 			print(raw_spoken_words)
+
 # Intent Recognition ###########################################
 			# Remove special characters from text, make lowercase, split into list, remove the initial space character
 			import re 
@@ -160,8 +165,15 @@ while True:
 			setKeyWords = ["set", "make", "turn"]
 			stateBoolKeywords = ["on", "off"]
 			stateBrightnessKeywords = ["brightness"]
-			stateColourKeywords = ["colour", "color"] #This is bad, eventually a big list of colours should be put here, with conversions to RGB for applying to lights.
-			stateKeyWords = stateBoolKeywords + stateBrightnessKeywords + stateColourKeywords
+			
+			# Colour list: 
+			with open("resources/keywords/colours.json", 'r') as colours_json_file:
+				colours_json = json.load(colours_json_file)
+			coloursKeywords = list(colours_json["rgb"].keys())
+
+			stateKeyWords = stateBoolKeywords + stateBrightnessKeywords + coloursKeywords
+
+
 			#Special case for "play" or "search" keywords for media and web queries:
 			if list_of_spoken_words[0] == "play":
 				pass
@@ -170,21 +182,27 @@ while True:
 
 			#Check if we're setting the state of something
 			elif list_of_spoken_words[0] in setKeyWords:
-				# If the name of a device and a state were both spoken, apply that state to that device
+				# Check if the name of a device and a state were both spoken
 				# TODO: Support more than just on/off
 				if (len(set(list_of_spoken_words).intersection([device.friendly_name.lower() for device in devices])) == 1) and (len(set(list_of_spoken_words).intersection(stateKeyWords)) == 1):
 					# Get the spoken state and name out of the lists of all potential options
 					spoken_state = list(set(list_of_spoken_words).intersection(stateKeyWords))[0]
 					spoken_device_name = list(set(list_of_spoken_words).intersection([device.friendly_name.lower() for device in devices]))[0]
 
-					#Actually perform changing the state
+					# Match case not used because colours / brightness make it less good
 					print(f"Turning {spoken_device_name} {spoken_state}" )
 					for device in devices:
 						if device.friendly_name.lower() == spoken_device_name:
+							#Boolean
 							if spoken_state == "on":
 								device.on()
 							elif spoken_state == "off":
 								device.off()
+							# Colours / custom states
+							elif spoken_state in coloursKeywords:
+								device.setColour(colours_json["rgb"][spoken_state])
+
+
 
 
 # TTS ########################################################
