@@ -104,8 +104,11 @@ print(f"Found pipewire at index {mic_index}")
 
 ## TODO: Eventually get this list from the server
 enabled_wakewords = ["weather", "ww_data/personal_wakewords/50000-50000blueberry.tflite"] #breaks if not ran from /src
-
 ## TODO: Add automatically downloading "personal wakewords" from configuration server and enabling them
+
+### Load OpenWakeWord model
+oww = Model(wakeword_models=enabled_wakewords, vad_threshold=vad_threshold, inference_framework = "tflite")
+speech_buffer = []
 
 ## Open Mic:
 print("Opening Mic")
@@ -114,8 +117,7 @@ mic_stream = audio_system.open(format=paInt16, channels=channels, rate=sample_ra
 
 ## Detection loop
 
-oww = Model(wakeword_models=enabled_wakewords, vad_threshold=vad_threshold, inference_framework = "tflite")
-speech_buffer = []
+
 
 print("Waiting for wakeword:")
 while True:
@@ -124,7 +126,7 @@ while True:
 	current_frame = np.frombuffer(mic_stream.read(frame_size), dtype=np.int16)
 	speech_buffer.extend(current_frame)
 
-	## Cut the buffer to 2s while just doing prediction
+	## Cut the buffer to buffer length while just doing prediction
 	if len(speech_buffer) > speech_buffer_length:
 		speech_buffer = speech_buffer[-speech_buffer_length:]
 
