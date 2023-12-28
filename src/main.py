@@ -5,7 +5,9 @@ from time import time
 import requests
 import json
 
-# Device controls ##############################################
+# Load everything ##############################################
+
+## Define Devices #######################
 devices = []
 class WledDevice:
 	def __init__(self,friendly_name, ip_address):
@@ -40,7 +42,7 @@ class TasmotaDevice:
 door_light = WledDevice("Name", "IP")
 bedside_light = WledDevice("Name", "IP")
 
-# Wakeword ########################################################
+## Load OpenWakeword #######################
 from openwakeword import Model
 from pyaudio import PyAudio, paInt16
 import numpy as np
@@ -71,15 +73,45 @@ for device_index in range(total_devices):
 		mic_index = audio_system.get_device_info_by_host_api_device_index(0, device_index).get("index")
 print(f"Found pipewire at index {mic_index}")
 
-## Eventually get this list from the server
+## TODO: Eventually get this list from the server
 enabled_wakewords = ["weather", "ww_data/personal_wakewords/50000-50000blueberry.tflite"] #breaks if not ran from /src
 
 ## TODO: Add automatically downloading "personal wakewords" from configuration server and enabling them
+
+
+## Load faster-whisper #######################
+
+from faster_whisper import WhisperModel
+
+stt_model = "base.en"
+
+print(f"Loading Model: {stt_model}")
+model = WhisperModel(stt_model, device="cpu")
+
+print(f"Loaded Model: {stt_model}")
+
+## Load Piper ###############################
+
+tts_data_dir = "tts_data"
+tts_model = f"{tts_data_dir}/en_US-lessac-high.onnx" # If this is a path, it will be loaded directly, but if it's just the name, it will redownload every time. https://github.com/rhasspy/piper to download.
+
+## Load intent parser #######################
+setKeyWords = ["set", "make", "turn"]
+stateBoolKeywords = ["on", "off"]
+stateBrightnessKeywords = ["brightness"]
+
+# Colour list: 
+with open("resources/keywords/colours.json", 'r') as colours_json_file:
+	colours_json = json.load(colours_json_file)
+coloursKeywords = list(colours_json["rgb"].keys())
+
+stateKeyWords = stateBoolKeywords + stateBrightnessKeywords + coloursKeywords
+
+## Detection loop
+
 print("Opening Mic")
 mic_stream = audio_system.open(format=paInt16, channels=channels, rate=sample_rate, input=True, frames_per_buffer=frame_size, input_device_index=mic_index)
 
-
-## Detection loop
 oww = Model(wakeword_models=enabled_wakewords, vad_threshold=vad_threshold, inference_framework = "tflite")
 speech_buffer = []
 
@@ -127,8 +159,7 @@ while True:
 			#Play stopped recording sound (eventually probably use an actual library):
 			subprocess.call(f'aplay resources/audio/stoplistening.wav', stdout=subprocess.PIPE, shell=True)
 
-			print("Sending Audio")
-			# TODO: Send to STT
+			print("Saving Audio")
 			with wave.open(detected_speech_wav_path, 'wb') as wf:
 				wf.setnchannels(channels)
 				wf.setsampwidth(audio_system.get_sample_size(paInt16))
@@ -136,15 +167,7 @@ while True:
 				wf.writeframes(b''.join(speech_buffer))
 
 # STT ########################################################
-			from faster_whisper import WhisperModel
-
-			stt_model = "base.en"
-
-			print(f"Loading Model: {stt_model}")
-			model = WhisperModel(stt_model, device="cpu")
-
-			print(f"Loaded Model: {stt_model}")
-
+			# TODO: Send audio to STT directly rather than using a file for it. Still record audio to /dev/shm for option to replay
 			segments, info = model.transcribe(detected_speech_wav_path, beam_size=5)
 
 			print("Transcribing...")
@@ -162,18 +185,6 @@ while True:
 
 			print(list_of_spoken_words)
 
-			setKeyWords = ["set", "make", "turn"]
-			stateBoolKeywords = ["on", "off"]
-			stateBrightnessKeywords = ["brightness"]
-			
-			# Colour list: 
-			with open("resources/keywords/colours.json", 'r') as colours_json_file:
-				colours_json = json.load(colours_json_file)
-			coloursKeywords = list(colours_json["rgb"].keys())
-
-			stateKeyWords = stateBoolKeywords + stateBrightnessKeywords + coloursKeywords
-
-
 			#Special case for "play" or "search" keywords for media and web queries:
 			if list_of_spoken_words[0] == "play":
 				pass
@@ -183,7 +194,7 @@ while True:
 			#Check if we're setting the state of something
 			elif list_of_spoken_words[0] in setKeyWords:
 				# Check if the name of a device and a state were both spoken
-				# TODO: Support more than just on/off
+				# TODO: Figure out a more generic way to handle device states, and devices that only support certain states
 				if (len(set(list_of_spoken_words).intersection([device.friendly_name.lower() for device in devices])) == 1) and (len(set(list_of_spoken_words).intersection(stateKeyWords)) == 1):
 					# Get the spoken state and name out of the lists of all potential options
 					spoken_state = list(set(list_of_spoken_words).intersection(stateKeyWords))[0]
@@ -202,15 +213,9 @@ while True:
 							elif spoken_state in coloursKeywords:
 								device.setColour(colours_json["rgb"][spoken_state])
 
-
-
-
 # TTS ########################################################
 
-## Test TTS by speaking on launch
 					speech_text = f"Turning {spoken_device_name} {spoken_state}" # Sample speech, will be better
-					tts_data_dir = "tts_data"
-					tts_model = f"{tts_data_dir}/en_US-lessac-high.onnx" # If this is a path, it will be loaded directly, but if it's just the name, it will redownload every time. https://github.com/rhasspy/piper to download.
 
 					subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_data_dir} --download-dir {tts_data_dir} --model {tts_model} --output_file {tts_data_dir}/test.wav', stdout=subprocess.PIPE, shell=True)
 					subprocess.call(f'aplay {tts_data_dir}/test.wav', stdout=subprocess.PIPE, shell=True)
