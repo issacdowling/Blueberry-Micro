@@ -1,0 +1,26 @@
+{
+  "wled" : {
+    "device_id" : {
+      "friendly_name" : "Name",
+      "IP" : "x.x.x.x"
+    },
+    "device_id2" : {
+      "friendly_name" : "Name",
+      "IP" : "x.x.x.x"
+    }
+
+  },
+  "tasmota" : {
+    "device_id" : {
+      "friendly_name" : "Name",
+      "IP" : "x.x.x.x"
+    },
+    "device_id2" : {
+      "friendly_name" : "Name",
+      "IP" : "x.x.x.x"
+    }
+
+  }
+  
+}
+

@@ -38,10 +38,20 @@ class TasmotaDevice:
         requests.get(f"{self.request_uri}cmnd=Power%201")
     def off(self):
         requests.get(f"{self.request_uri}cmnd=Power%200")
-# TODO: File to define devices instead
-door_light = WledDevice("Name", "IP")
-bedside_light = WledDevice("Name", "IP")
+# TODO: Fetch file to define devices from server on start
 
+with open("resources/devices.json", 'r') as devices_json_file:
+	devices_json = json.load(devices_json_file)
+
+
+
+## TODO: Do a for device in devices_json and do each category within that instead
+## Instantiate all devices
+for wled_device in devices_json["wled"]:
+	WledDevice(devices_json["wled"][wled_device]["friendly_name"], devices_json["wled"][wled_device]["IP"])
+
+for wled_device in devices_json["tasmota"]:
+	TasmotaDevice(devices_json["tasmota"][wled_device]["friendly_name"], devices_json["tasmota"][wled_device]["IP"])
 
 ## Load faster-whisper #######################
 
@@ -60,7 +70,7 @@ tts_data_dir = "tts_data"
 tts_model = f"{tts_data_dir}/en_US-lessac-high.onnx" # If this is a path, it will be loaded directly, but if it's just the name, it will redownload every time. https://github.com/rhasspy/piper to download.
 
 ## Load intent parser #######################
-setKeyWords = ["set", "make", "turn"]
+setKeyWords = ["set", "make", "makes", "turn"]
 stateBoolKeywords = ["on", "off"]
 stateBrightnessKeywords = ["brightness"]
 
