@@ -65,9 +65,12 @@ model = WhisperModel(stt_model, device="cpu")
 print(f"Loaded Model: {stt_model}")
 
 ## Load Piper ###############################
-
 tts_data_dir = "tts_data"
-tts_model = f"{tts_data_dir}/en_US-lessac-high.onnx" # If this is a path, it will be loaded directly, but if it's just the name, it will redownload every time. https://github.com/rhasspy/piper to download.
+
+def speak(speech_text, tts_model=f"{tts_data_dir}/en_US-lessac-high.onnx", output_audio_path=f"{tts_data_dir}/output_speech.wav", play_speech=True):					
+	subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_data_dir} --download-dir {tts_data_dir} --model {tts_model} --output_file {output_audio_path}', stdout=subprocess.PIPE, shell=True)
+	if play_speech:
+		subprocess.call(f'aplay {output_audio_path}', stdout=subprocess.PIPE, shell=True)
 
 ## Load intent parser #######################
 setKeyWords = ["set", "make", "makes", "turn"]
@@ -229,10 +232,8 @@ while True:
 
 # TTS ########################################################
 
-					speech_text = f"Turning {spoken_device_name} {spoken_state}" # Sample speech, will be better
+					speak(f"Turning {spoken_device_name} {spoken_state}") # Sample speech, will be better
 
-					subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_data_dir} --download-dir {tts_data_dir} --model {tts_model} --output_file {tts_data_dir}/test.wav', stdout=subprocess.PIPE, shell=True)
-					subprocess.call(f'aplay {tts_data_dir}/test.wav', stdout=subprocess.PIPE, shell=True)
 
 
 # Back to beginning
