@@ -50,8 +50,8 @@ with open("resources/devices.json", 'r') as devices_json_file:
 for wled_device in devices_json["wled"]:
 	WledDevice(devices_json["wled"][wled_device]["friendly_name"], devices_json["wled"][wled_device]["IP"])
 
-for wled_device in devices_json["tasmota"]:
-	TasmotaDevice(devices_json["tasmota"][wled_device]["friendly_name"], devices_json["tasmota"][wled_device]["IP"])
+for tasmota_device in devices_json["tasmota"]:
+	TasmotaDevice(devices_json["tasmota"][tasmota_device]["friendly_name"], devices_json["tasmota"][tasmota_device]["IP"])
 
 ## Load faster-whisper #######################
 
