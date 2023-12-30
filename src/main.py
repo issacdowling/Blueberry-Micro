@@ -233,3 +233,7 @@ while True:
 
 					subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_data_dir} --download-dir {tts_data_dir} --model {tts_model} --output_file {tts_data_dir}/test.wav', stdout=subprocess.PIPE, shell=True)
 					subprocess.call(f'aplay {tts_data_dir}/test.wav', stdout=subprocess.PIPE, shell=True)
+
+
+# Back to beginning
+					print("Waiting for wakeword:")
