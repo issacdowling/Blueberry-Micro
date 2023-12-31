@@ -9,3 +9,4 @@ ww_data/personal_wakewords/*
 !ww_data/personal_wakewords/put_your_models_here
 
 resources/devices.json
+config.json
