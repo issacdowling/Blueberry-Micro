@@ -1,0 +1,12 @@
+.venv
+
+src/blueberry/tts_data/*
+!src/blueberry/tts_data/files_related_to_tts_will_go_here
+
+testoutput.wav
+
+src/blueberry/ww_data/personal_wakewords/*
+!src/blueberry/ww_data/personal_wakewords/put_your_models_here
+
+src/blueberry/resources/devices.json
+config.json
