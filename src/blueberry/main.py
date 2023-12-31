@@ -115,7 +115,7 @@ for device_index in range(total_devices):
 print(f"Found pipewire at index {mic_index}")
 
 ## TODO: Eventually get this list from the server
-enabled_wakewords = ["weather", "ww_data/personal_wakewords/50000-50000blueberry.tflite"] #breaks if not ran from /src
+enabled_wakewords = ["weather", "ww_data/personal_wakewords/hey_aura.tflite"] #breaks if not ran from /src
 ## TODO: Add automatically downloading "personal wakewords" from configuration server and enabling them
 
 ### Load OpenWakeWord model
