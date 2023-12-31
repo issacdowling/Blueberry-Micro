@@ -45,16 +45,12 @@ with open("resources/devices.json", 'r') as devices_json_file:
 
 
 
-## TODO: Less code repeating by removing the `for device in devices_json[category]:`
+
 ## Instantiate all devices
-for category in devices_json:
-	match category:
-		case "wled":
-			for device in devices_json[category]:
-				WledDevice(devices_json[category][device]["friendly_name"], devices_json[category][device]["IP"])
-		case "tasmota":
-			for device in devices_json[category]:
-				TasmotaDevice(devices_json[category][device]["friendly_name"], devices_json["tasmota"][device]["IP"])
+for wled_device in devices_json["wled"]:
+	WledDevice(devices_json["wled"][wled_device]["friendly_name"], devices_json["wled"][wled_device]["IP"])
+for tasmota_device in devices_json["tasmota"]:
+	TasmotaDevice(devices_json["tasmota"][tasmota_device]["friendly_name"], devices_json["tasmota"][tasmota_device]["IP"])
 
 ## Load faster-whisper #######################
 
