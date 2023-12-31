@@ -54,7 +54,7 @@ for category in devices_json:
 				WledDevice(devices_json[category][device]["friendly_name"], devices_json[category][device]["IP"])
 		case "tasmota":
 			for device in devices_json[category]:
-				TasmotaDevice(devices_json["tasmota"][device]["friendly_name"], devices_json["tasmota"][device]["IP"])
+				TasmotaDevice(devices_json[category][device]["friendly_name"], devices_json["tasmota"][device]["IP"])
 
 ## Load faster-whisper #######################
 
