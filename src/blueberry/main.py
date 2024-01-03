@@ -70,6 +70,7 @@ tts_data_dir = "tts_data"
 
 def speak(speech_text, tts_model=f"{tts_data_dir}/en_US-lessac-high.onnx", output_audio_path=f"{tts_data_dir}/output_speech.wav", play_speech=True):					
 	subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_data_dir} --download-dir {tts_data_dir} --model {tts_model} --output_file {output_audio_path}', stdout=subprocess.PIPE, shell=True)
+	print(f"Speaking: {speech_text}")
 	if play_speech:
 		subprocess.call(f'aplay {output_audio_path}', stdout=subprocess.PIPE, shell=True)
 
