@@ -244,7 +244,6 @@ while True:
 									if word.isnumeric():
 										how_many_numbers += 1
 										spoken_number = int(word)
-								print(spoken_number)
 								if how_many_numbers == 1 and "percent" in list_of_spoken_words:
 									device.setPercentage(spoken_number)
 
