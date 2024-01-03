@@ -24,6 +24,7 @@ class WledDevice:
 	def setColour(self,rgb_list):
 		requests.post(f"http://{self.ip_address}/win&R={rgb_list[0]}&G={rgb_list[1]}&B={rgb_list[2]}")
 
+	# TODO: Change percentage based on the current limit
 	def setPercentage(self,percentage):
 		requests.post(f"http://{self.ip_address}/win&A={int(percentage*2.55)}")
 
@@ -189,17 +190,26 @@ while True:
 			raw_spoken_words = ""
 			for segment in segments:
 				raw_spoken_words += segment.text
-			print("Transcribed.")
-			print(raw_spoken_words)
+			print("Transcribed words:", raw_spoken_words)
 
-# Intent Recognition ###########################################
-			# Remove special characters from text, make lowercase, split into list, remove the initial space character
-			import re 
-			list_of_spoken_words = re.sub('[^A-Za-z0-9 ]+', "", raw_spoken_words).lower().split(" ")
+# Word preprocessing ###########################################
+			list_of_spoken_words = raw_spoken_words.split(" ")
+
+			for word in list_of_spoken_words:
+				if "%" in word:
+					list_of_spoken_words.append("percent")
+
+			# Remove special characters from text, make lowercase, split into list
+			import re
+			for index, word in enumerate(list_of_spoken_words):
+				list_of_spoken_words[index] = re.sub('[^A-Za-z0-9 ]+', "", word).lower()
+
+			## Remove empty first character
 			list_of_spoken_words.pop(0)
 
-			print(list_of_spoken_words)
+			print("Cleaned up words:", list_of_spoken_words)
 
+# Intent Recognition ###########################################
 			#Special case for "play" or "search" keywords for media and web queries:
 			if list_of_spoken_words[0] == "play":
 				pass
@@ -231,12 +241,11 @@ while True:
 							elif spoken_state in statePercentKeywords:
 								how_many_numbers = 0
 								for word in list_of_spoken_words:
-									print(word)
 									if word.isnumeric():
 										how_many_numbers += 1
 										spoken_number = int(word)
 								print(spoken_number)
-								if how_many_numbers == 1 and "percent" or "percentage" or "%" in list_of_spoken_words:
+								if how_many_numbers == 1 and "percent" in list_of_spoken_words:
 									device.setPercentage(spoken_number)
 
 # TTS ########################################################
