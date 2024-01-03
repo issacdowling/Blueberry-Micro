@@ -58,7 +58,7 @@ for tasmota_device in devices_json["tasmota"]:
 
 from faster_whisper import WhisperModel
 
-stt_model = "base.en"
+stt_model = "small.en"
 
 print(f"Loading Model: {stt_model}")
 model = WhisperModel(stt_model, device="cpu")
@@ -74,6 +74,7 @@ def speak(speech_text, tts_model=f"{tts_data_dir}/en_US-lessac-high.onnx", outpu
 		subprocess.call(f'aplay {output_audio_path}', stdout=subprocess.PIPE, shell=True)
 
 ## Load intent parser #######################
+getKeyWords = ["get", "what", "whats"]
 setKeyWords = ["set", "make", "makes", "turn"]
 stateBoolKeywords = ["on", "off"]
 stateBrightnessKeywords = ["brightness"]
@@ -129,6 +130,10 @@ speech_buffer = []
 print("Opening Mic")
 mic_stream = audio_system.open(format=paInt16, channels=channels, rate=sample_rate, input=True, frames_per_buffer=frame_size, input_device_index=mic_index)
 
+## Load cores:
+
+### Time / Date
+from datetime import datetime
 
 ## Detection loop
 print("Waiting for wakeword:")
@@ -210,8 +215,10 @@ while True:
 			print("Cleaned up words:", list_of_spoken_words)
 
 # Intent Recognition ###########################################
+			if len(list_of_spoken_words) == 0:
+				speak("I didn't pick up any words")
 			#Special case for "play" or "search" keywords for media and web queries:
-			if list_of_spoken_words[0] == "play":
+			elif list_of_spoken_words[0] == "play":
 				pass
 			elif list_of_spoken_words[0] == "search":
 				pass
@@ -220,6 +227,8 @@ while True:
 			elif list_of_spoken_words[0] in setKeyWords:
 				# Check if the name of a device and a state were both spoken
 				# TODO: Figure out a more generic way to handle device states, and devices that only support certain states
+				# TODO: Split this into checking the list of devices(tm) and the list of other settable things which will come from cores,
+				# 		  and split into two different decision trees from there.
 				if (len(set(list_of_spoken_words).intersection([device.friendly_name.lower() for device in devices])) == 1) and (len(set(list_of_spoken_words).intersection(stateKeyWords)) == 1):
 					# Get the spoken state and name out of the lists of all potential options
 					spoken_state = list(set(list_of_spoken_words).intersection(stateKeyWords))[0]
@@ -247,10 +256,32 @@ while True:
 								if how_many_numbers == 1 and "percent" in list_of_spoken_words:
 									device.setPercentage(spoken_number)
 
-# TTS ########################################################
 
 					speak(f"Turning {spoken_device_name} {spoken_state}") # Sample speech, will be better
 
+			#Check if we're getting the state of something
+			elif list_of_spoken_words[0] in getKeyWords:
+				## Get the time 
+				if "time" in list_of_spoken_words:
+					now = datetime.now()
+					if now.strftime('%p') == "PM":
+							apm = "PM"
+					else:
+							apm = "PM"
+					speak(f"The time is {now.strftime('%I')}:{now.strftime('%M')} {apm}")
+				## Get the date
+				elif "date" in list_of_spoken_words or "day" in list_of_spoken_words or "today" in list_of_spoken_words:
+					months = [" January ", " February ", " March ", " April ", " May ", " June ", " July ", " August ", " September ", " October ", " November ", " December "]
+					weekdays = [" Monday ", " Tuesday ", " Wednesday ", " Thursday ", " Friday ", " Saturday ", " Sunday "]
+					dayNum = datetime.now().day
+					month = months[(datetime.now().month)-1]
+					weekday = weekdays[datetime.today().weekday()]
+					speak(f"Today, it's {weekday} the {dayNum} of {month}")
+				## Get the weather (TODO: Make less basic, allow location configuration rather than 10 10)
+				elif "weather" in list_of_spoken_words or "hot" in list_of_spoken_words or "cold" in list_of_spoken_words:
+					weather = requests.get(f'https://api.open-meteo.com/v1/forecast?latitude=10&longitude=10&current=temperature_2m,is_day,weathercode').json()
+					speak(f'Right now, its {weather["current"]["temperature_2m"]} degrees')
+
 
 # Back to beginning
-					print("Waiting for wakeword:")
+			print("Waiting for wakeword:")
