@@ -24,6 +24,9 @@ class WledDevice:
 	def setColour(self,rgb_list):
 		requests.post(f"http://{self.ip_address}/win&R={rgb_list[0]}&G={rgb_list[1]}&B={rgb_list[2]}")
 
+	def setPercentage(self,percentage):
+		requests.post(f"http://{self.ip_address}/win&A={int(percentage*2.55)}")
+
 class TasmotaDevice:
     def __init__(self, friendly_name, ip_address):
         self.friendly_name = friendly_name
@@ -42,8 +45,6 @@ class TasmotaDevice:
 
 with open("resources/devices.json", 'r') as devices_json_file:
 	devices_json = json.load(devices_json_file)
-
-
 
 
 ## Instantiate all devices
@@ -75,13 +76,14 @@ def speak(speech_text, tts_model=f"{tts_data_dir}/en_US-lessac-high.onnx", outpu
 setKeyWords = ["set", "make", "makes", "turn"]
 stateBoolKeywords = ["on", "off"]
 stateBrightnessKeywords = ["brightness"]
+statePercentKeywords = ["percent", "%", "percentage"]
 
 ### Colour list: 
 with open("resources/keywords/colours.json", 'r') as colours_json_file:
 	colours_json = json.load(colours_json_file)
 coloursKeywords = list(colours_json["rgb"].keys())
 
-stateKeyWords = stateBoolKeywords + stateBrightnessKeywords + coloursKeywords
+stateKeyWords = stateBoolKeywords + stateBrightnessKeywords + statePercentKeywords + coloursKeywords
 
 ## Load OpenWakeword #######################
 from openwakeword import Model
@@ -115,7 +117,7 @@ for device_index in range(total_devices):
 print(f"Found pipewire at index {mic_index}")
 
 ## TODO: Eventually get this list from the server
-enabled_wakewords = ["weather", "ww_data/personal_wakewords/hey_aura.tflite"] #breaks if not ran from /src
+enabled_wakewords = ["weather", "ww_data/personal_wakewords/50000-50000blueberry.tflite"] #breaks if not ran from /src
 ## TODO: Add automatically downloading "personal wakewords" from configuration server and enabling them
 
 ### Load OpenWakeWord model
@@ -128,9 +130,6 @@ mic_stream = audio_system.open(format=paInt16, channels=channels, rate=sample_ra
 
 
 ## Detection loop
-
-
-
 print("Waiting for wakeword:")
 while True:
 
@@ -228,11 +227,21 @@ while True:
 							# Colours / custom states
 							elif spoken_state in coloursKeywords:
 								device.setColour(colours_json["rgb"][spoken_state])
+							# Set percentage of device (normally brightness, but could be anything else)
+							elif spoken_state in statePercentKeywords:
+								how_many_numbers = 0
+								for word in list_of_spoken_words:
+									print(word)
+									if word.isnumeric():
+										how_many_numbers += 1
+										spoken_number = int(word)
+								print(spoken_number)
+								if how_many_numbers == 1 and "percent" or "percentage" or "%" in list_of_spoken_words:
+									device.setPercentage(spoken_number)
 
 # TTS ########################################################
 
 					speak(f"Turning {spoken_device_name} {spoken_state}") # Sample speech, will be better
-
 
 
 # Back to beginning
