@@ -210,15 +210,16 @@ while True:
 			import re
 			spoken_words = re.sub('[^A-Za-z0-9 ]+', "", spoken_words).lower()
 
+			spoken_words_list = list_of_spoken_words.split(" ")
 			print("Cleaned up words:", spoken_words)
 
 # Intent Recognition ###########################################
 			if len(spoken_words) == 0:
 				speak("I didn't hear any words, could you repeat that?")
 			#Special case for "play" or "search" keywords for media and web queries:
-			elif list_of_spoken_words[0] == "play":
+			elif spoken_words_list[0] == "play":
 				pass
-			elif list_of_spoken_words[0] == "search":
+			elif spoken_words_list[0] == "search":
 				pass
 
 			#Check if we're setting the state of something
