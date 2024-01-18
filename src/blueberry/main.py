@@ -201,7 +201,7 @@ while True:
 # Word preprocessing ###########################################
 			raw_spoken_words_list = raw_spoken_words.split(" ")
 
-			spoken_words = raw_spoken_words
+			spoken_words = raw_spoken_words[1:]
 
 			# TODO: For x in list of words to replace, do this, to allow future additions
 			spoken_words.replace("%", " percent")
@@ -213,8 +213,8 @@ while True:
 			print("Cleaned up words:", spoken_words)
 
 # Intent Recognition ###########################################
-			if len(list_of_spoken_words) == 0:
-				speak("I didn't pick up any words")
+			if len(spoken_words) == 0:
+				speak("I didn't hear any words, could you repeat that?")
 			#Special case for "play" or "search" keywords for media and web queries:
 			elif list_of_spoken_words[0] == "play":
 				pass
