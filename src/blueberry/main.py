@@ -206,15 +206,11 @@ while True:
 			# TODO: For x in list of words to replace, do this, to allow future additions
 			spoken_words.replace("%", " percent")
 
-			# Remove special characters from text, make lowercase, split into list
+			# Remove special characters from text, make lowercase
 			import re
-			for index, word in enumerate(list_of_spoken_words):
-				list_of_spoken_words[index] = re.sub('[^A-Za-z0-9 ]+', "", word).lower()
+			spoken_words = re.sub('[^A-Za-z0-9 ]+', "", spoken_words).lower()
 
-			## Remove empty first character
-			list_of_spoken_words.pop(0)
-
-			print("Cleaned up words:", list_of_spoken_words)
+			print("Cleaned up words:", spoken_words)
 
 # Intent Recognition ###########################################
 			if len(list_of_spoken_words) == 0:
