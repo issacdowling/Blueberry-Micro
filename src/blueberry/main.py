@@ -199,11 +199,12 @@ while True:
 			print("Transcribed words:", raw_spoken_words)
 
 # Word preprocessing ###########################################
-			list_of_spoken_words = raw_spoken_words.split(" ")
+			raw_spoken_words_list = raw_spoken_words.split(" ")
 
-			for word in list_of_spoken_words:
-				if "%" in word:
-					list_of_spoken_words.append("percent")
+			spoken_words = raw_spoken_words
+
+			# TODO: For x in list of words to replace, do this, to allow future additions
+			spoken_words.replace("%", " percent")
 
 			# Remove special characters from text, make lowercase, split into list
 			import re
