@@ -210,7 +210,7 @@ while True:
 			import re
 			spoken_words = re.sub('[^A-Za-z0-9 ]+', "", spoken_words).lower()
 
-			spoken_words_list = list_of_spoken_words.split(" ")
+			spoken_words_list = spoken_words.split(" ")
 			print("Cleaned up words:", spoken_words)
 
 # Intent Recognition ###########################################
@@ -223,7 +223,7 @@ while True:
 				pass
 
 			#Check if we're setting the state of something
-			elif list_of_spoken_words[0] in setKeyWords:
+			elif [word for word in setKeyWords if(word in spoken_words)]:
 				# Check if the name of a device and a state were both spoken
 				# TODO: Figure out a more generic way to handle device states, and devices that only support certain states
 				# TODO: Split this into checking the list of devices(tm) and the list of other settable things which will come from cores,
