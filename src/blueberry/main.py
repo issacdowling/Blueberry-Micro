@@ -75,11 +75,11 @@ def speak(speech_text, tts_model=f"{tts_data_dir}/en_US-lessac-high.onnx", outpu
 		subprocess.call(f'aplay {output_audio_path}', stdout=subprocess.PIPE, shell=True)
 
 ## Load intent parser #######################
-getKeyWords = ["get", "what", "whats"]
-setKeyWords = ["set", "make", "makes", "turn"]
-stateBoolKeywords = ["on", "off"]
-stateBrightnessKeywords = ["brightness"]
-statePercentKeywords = ["percent", "%", "percentage"]
+get_keyphrases = ["get", "what", "whats"]
+set_keyphrases = ["set", "make", "makes", "turn"]
+state_bool_keyphrases = ["on", "off"]
+state_brightness_keyphrases = ["brightness"]
+state_percentage_keyphrases = ["percent", "%", "percentage"]
 
 ### Colour list: 
 with open("resources/keywords/colours.json", 'r') as colours_json_file:
@@ -223,7 +223,7 @@ while True:
 				pass
 
 			#Check if we're setting the state of something
-			elif [word for word in setKeyWords if(word in spoken_words)]:
+			elif [phrase for phrase in set_keyphrases if(phrase in spoken_words)]:
 				# Check if the name of a device and a state were both spoken
 				# TODO: Figure out a more generic way to handle device states, and devices that only support certain states
 				# TODO: Split this into checking the list of devices(tm) and the list of other settable things which will come from cores,
