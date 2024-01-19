@@ -282,7 +282,7 @@ while True:
             speak(f"Turning {device.friendly_name} {spoken_state}") # Sample speech, will be better
 
       #Check if we're getting the state of something
-      elif list_of_spoken_words[0] in getKeyWords:
+      elif getSpeechMatches(get_keyphrases):
         ## Get the time 
         if "time" in list_of_spoken_words:
           now = datetime.now()
