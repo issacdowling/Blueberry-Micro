@@ -29,19 +29,19 @@ class WledDevice:
 		requests.post(f"http://{self.ip_address}/win&A={int(percentage*2.55)}")
 
 class TasmotaDevice:
-    def __init__(self, friendly_name, ip_address):
-        self.friendly_name = friendly_name
-        self.ip_address = ip_address
-        self.request_uri = f"http://{self.ip_address}"
-        if(self.ip_address.endswith("/cm")):
-            self.request_uri += "?"
-        else:
-            self.request_uri += "&"
-        devices.append(self)
-    def on(self):
-        requests.get(f"{self.request_uri}cmnd=Power%201")
-    def off(self):
-        requests.get(f"{self.request_uri}cmnd=Power%200")
+		def __init__(self, friendly_name, ip_address):
+				self.friendly_name = friendly_name
+				self.ip_address = ip_address
+				self.request_uri = f"http://{self.ip_address}"
+				if(self.ip_address.endswith("/cm")):
+						self.request_uri += "?"
+				else:
+						self.request_uri += "&"
+				devices.append(self)
+		def on(self):
+				requests.get(f"{self.request_uri}cmnd=Power%201")
+		def off(self):
+				requests.get(f"{self.request_uri}cmnd=Power%200")
 # TODO: Fetch file to define devices from server on start
 
 with open("resources/devices.json", 'r') as devices_json_file:
@@ -84,9 +84,9 @@ state_percentage_keyphrases = ["percent", "%", "percentage"]
 ### Colour list: 
 with open("resources/keywords/colours.json", 'r') as colours_json_file:
 	colours_json = json.load(colours_json_file)
-coloursKeywords = list(colours_json["rgb"].keys())
+state_colour_keyphrases = list(colours_json["rgb"].keys())
 
-stateKeyWords = stateBoolKeywords + stateBrightnessKeywords + statePercentKeywords + coloursKeywords
+state_keyphrases = state_bool_keyphrases + state_brightness_keyphrases + state_percentage_keyphrases + state_colour_keyphrases
 
 ## Load OpenWakeword #######################
 from openwakeword import Model
@@ -204,7 +204,7 @@ while True:
 			spoken_words = raw_spoken_words[1:]
 
 			# TODO: For x in list of words to replace, do this, to allow future additions
-			spoken_words.replace("%", " percent")
+			spoken_words = spoken_words.replace("%", " percent")
 
 			# Remove special characters from text, make lowercase
 			import re
@@ -228,35 +228,52 @@ while True:
 				# TODO: Figure out a more generic way to handle device states, and devices that only support certain states
 				# TODO: Split this into checking the list of devices(tm) and the list of other settable things which will come from cores,
 				# 		  and split into two different decision trees from there.
-				if (len(set(list_of_spoken_words).intersection([device.friendly_name.lower() for device in devices])) == 1) and (len(set(list_of_spoken_words).intersection(stateKeyWords)) == 1):
+				if [device for device in devices if(device.friendly_name.lower() in spoken_words)] and [state for state in state_keyphrases if(state in spoken_words)]:
 					# Get the spoken state and name out of the lists of all potential options
-					spoken_state = list(set(list_of_spoken_words).intersection(stateKeyWords))[0]
-					spoken_device_name = list(set(list_of_spoken_words).intersection([device.friendly_name.lower() for device in devices]))[0]
+					spoken_states = [state for state in state_keyphrases if(state in spoken_words)]
+					spoken_devices = [device for device in devices if(device.friendly_name.lower() in spoken_words)]
+					# If there's a mismatch in states and devices spoken, alert user and gracefully give up
+					if len(spoken_states) != len(spoken_devices):
+						speak("You mentioned a different number of devices and settings for them. Could you repeat that?")
+					else:
+						# # TODO: Align the order of mentioned devices and states (just enumerating over this would get their order in the keyphrases list, not the spoken words)
+						# ordered_devices = []
+						# for spoken_devices in spoken_words:
+						# 	if device.friendly_name.lower() in spoken_words and device.friendly_name.lower() not in ordered_devices:
+						# 		ordered_devices.append(device)
+						# ordered_states = []
+						# for spoken_states in spoken_words:
+						# 	if state in spoken_words and state not in ordered_states:
+						# 		ordered_states.append(state)
+						
+						# print(ordered_devices,ordered_states)
+						# Apply the states
+						for index, device in enumerate(spoken_devices):
+							spoken_state = spoken_states[index]
 
-					# Match case not used because colours / brightness make it less good
-					print(f"Turning {spoken_device_name} {spoken_state}" )
-					for device in devices:
-						if device.friendly_name.lower() == spoken_device_name:
+							# Match case not used because colours / brightness make it less good
+							print(f"Turning {device.friendly_name} {spoken_state}" )
 							#Boolean
-							if spoken_state == "on":
+							if spoken_states[0] == "on":
 								device.on()
-							elif spoken_state == "off":
+							elif spoken_states[0] == "off":
 								device.off()
+								print(device.friendly_name)
 							# Colours / custom states
-							elif spoken_state in coloursKeywords:
+							elif spoken_state in state_colour_keyphrases:
 								device.setColour(colours_json["rgb"][spoken_state])
 							# Set percentage of device (normally brightness, but could be anything else)
-							elif spoken_state in statePercentKeywords:
+							elif spoken_state in state_percentage_keyphrases:
 								how_many_numbers = 0
-								for word in list_of_spoken_words:
+								for word in spoken_words_list:
 									if word.isnumeric():
 										how_many_numbers += 1
 										spoken_number = int(word)
-								if how_many_numbers == 1 and "percent" in list_of_spoken_words:
+								if how_many_numbers == 1 and "percent" in spoken_words_list:
 									device.setPercentage(spoken_number)
 
 
-					speak(f"Turning {spoken_device_name} {spoken_state}") # Sample speech, will be better
+							speak(f"Turning {device.friendly_name} {spoken_state}") # Sample speech, will be better
 
 			#Check if we're getting the state of something
 			elif list_of_spoken_words[0] in getKeyWords:
