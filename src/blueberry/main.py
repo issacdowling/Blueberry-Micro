@@ -148,7 +148,11 @@ def getSpeechMatches(match_item,device_check=False, check_string=False):
       matches.sort(key=lambda device: check_string.find(device.friendly_name.lower()))
       return(matches)
   elif type(match_item) is str:
-    if match_item in check_string:
+    # This converts the string into a list so that we only get whole word matches
+    # Otherwise, "what's 8 times 12" would count as valid for checking the "time"
+    # TODO: In the list section, check if phrases are only a single word, and use this logic
+    # if so, otherwise use the current checking logic.
+    if match_item in check_string.split(" "):
       return(match_item)
     else:
       return("")
@@ -290,7 +294,7 @@ while True:
       #Check if we're getting the state of something
       elif getSpeechMatches(get_keyphrases):
         ## Get the time 
-        if "time" in list_of_spoken_words:
+        if getSpeechMatches("time"):
           now = datetime.now()
           if now.strftime('%p') == "PM":
               apm = "PM"
