@@ -253,17 +253,7 @@ while True:
           if len(spoken_states) != len(spoken_devices):
             speak("You mentioned a different number of devices and settings for them. Could you repeat that?")
           else:
-            # # TODO: Align the order of mentioned devices and states (just enumerating over this would get their order in the keyphrases list, not the spoken words)
-            # ordered_devices = []
-            # for spoken_devices in spoken_words:
-            # 	if device.friendly_name.lower() in spoken_words and device.friendly_name.lower() not in ordered_devices:
-            # 		ordered_devices.append(device)
-            # ordered_states = []
-            # for spoken_states in spoken_words:
-            # 	if state in spoken_words and state not in ordered_states:
-            # 		ordered_states.append(state)
-            
-            # print(ordered_devices,ordered_states)
+
             # Apply the states
             for index, device in enumerate(spoken_devices):
               spoken_state = spoken_states[index]
