@@ -249,38 +249,37 @@ while True:
           # Get the spoken state and name out of the lists of all potential options
           spoken_states = getSpeechMatches(state_keyphrases)
           spoken_devices = getSpeechMatches(devices, True)
-          # If there's a mismatch in states and devices spoken, alert user and gracefully give up
-          if len(spoken_states) != len(spoken_devices):
-            speak("You mentioned a different number of devices and settings for them. Could you repeat that?")
-          else:
 
-            # Apply the states
-            for index, device in enumerate(spoken_devices):
+          # Apply the states
+          for index, device in enumerate(spoken_devices):
+            # This should mean that if only one state was spoken, it'll repeat for all mentioned devices
+            try:
               spoken_state = spoken_states[index]
+            except IndexError:
+              pass
 
-              # Match case not used because colours / brightness make it less good
-              print(f"Turning {device.friendly_name} {spoken_state}" )
-              #Boolean
-              if spoken_states[0] == "on":
-                device.on()
-              elif spoken_states[0] == "off":
-                device.off()
-                print(device.friendly_name)
-              # Colours / custom states
-              elif spoken_state in state_colour_keyphrases:
-                device.setColour(colours_json["rgb"][spoken_state])
-              # Set percentage of device (normally brightness, but could be anything else)
-              elif spoken_state in state_percentage_keyphrases:
-                how_many_numbers = 0
-                for word in spoken_words_list:
-                  if word.isnumeric():
-                    how_many_numbers += 1
-                    spoken_number = int(word)
-                if how_many_numbers == 1 and "percent" in spoken_words_list:
-                  device.setPercentage(spoken_number)
+            # Match case not used because colours / brightness make it less good
+            print(f"Turning {device.friendly_name} {spoken_state}" )
+            #Boolean
+            if spoken_states[0] == "on":
+              device.on()
+            elif spoken_states[0] == "off":
+              device.off()
+              print(device.friendly_name)
+            # Colours / custom states
+            elif spoken_state in state_colour_keyphrases:
+              device.setColour(colours_json["rgb"][spoken_state])
+            # Set percentage of device (normally brightness, but could be anything else)
+            elif spoken_state in state_percentage_keyphrases:
+              how_many_numbers = 0
+              for word in spoken_words_list:
+                if word.isnumeric():
+                  how_many_numbers += 1
+                  spoken_number = int(word)
+              if how_many_numbers == 1 and "percent" in spoken_words_list:
+                device.setPercentage(spoken_number)
 
-
-              speak(f"Turning {device.friendly_name} {spoken_state}") # Sample speech, will be better
+            speak(f"Turning {device.friendly_name} {spoken_state}") # Sample speech, will be better
 
       #Check if we're getting the state of something
       elif list_of_spoken_words[0] in getKeyWords:
