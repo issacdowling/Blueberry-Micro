@@ -77,6 +77,8 @@ def speak(speech_text, tts_model=f"{tts_data_dir}/en_US-lessac-high.onnx", outpu
 ## Load intent parser #######################
 get_keyphrases = ["get", "what", "whats"]
 set_keyphrases = ["set", "make", "makes", "turn"]
+date_keyphrases = ["date", "day", "today"]
+weather_keyphrases = ["weather", "hot", "cold", "temperature"]
 state_bool_keyphrases = ["on", "off"]
 state_brightness_keyphrases = ["brightness"]
 state_percentage_keyphrases = ["percent", "%", "percentage"]
@@ -302,7 +304,7 @@ while True:
               apm = "PM"
           speak(f"The time is {now.strftime('%I')}:{now.strftime('%M')} {apm}")
         ## Get the date
-        elif "date" in list_of_spoken_words or "day" in list_of_spoken_words or "today" in list_of_spoken_words:
+        elif getSpeechMatches(date_keyphrases):
           months = [" January ", " February ", " March ", " April ", " May ", " June ", " July ", " August ", " September ", " October ", " November ", " December "]
           weekdays = [" Monday ", " Tuesday ", " Wednesday ", " Thursday ", " Friday ", " Saturday ", " Sunday "]
           dayNum = datetime.now().day
@@ -310,7 +312,7 @@ while True:
           weekday = weekdays[datetime.today().weekday()]
           speak(f"Today, it's {weekday} the {dayNum} of {month}")
         ## Get the weather (TODO: Make less basic, allow location configuration rather than 10 10)
-        elif "weather" in list_of_spoken_words or "hot" in list_of_spoken_words or "cold" in list_of_spoken_words:
+        elif getSpeechMatches(weather_keyphrases):
           weather = requests.get(f'https://api.open-meteo.com/v1/forecast?latitude=10&longitude=10&current=temperature_2m,is_day,weathercode').json()
           speak(f'Right now, its {weather["current"]["temperature_2m"]} degrees')
 
