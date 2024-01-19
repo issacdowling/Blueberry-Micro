@@ -134,18 +134,24 @@ mic_stream = audio_system.open(format=paInt16, channels=channels, rate=sample_ra
 ## Load Intent Parser:
 
 ### Define function for checking matches between a string and lists, then ordering them
-def getSpeechMatches(match_list,device_check=False, check_string=False):
+def getSpeechMatches(match_item,device_check=False, check_string=False):
   if not check_string:
     check_string = spoken_words
 
-  if not device_check:
-    matches = [phrase for phrase in match_list if(phrase in check_string)]
-    matches.sort(key=lambda phrase: check_string.find(phrase))
-    return(matches)
-  else:
-    matches = [device for device in match_list if(device.friendly_name.lower() in check_string)]
-    matches.sort(key=lambda device: check_string.find(device.friendly_name.lower()))
-    return(matches)
+  if type(match_item) is list:
+    if not device_check:
+      matches = [phrase for phrase in match_item if(phrase in check_string)]
+      matches.sort(key=lambda phrase: check_string.find(phrase))
+      return(matches)
+    else:
+      matches = [device for device in match_item if(device.friendly_name.lower() in check_string)]
+      matches.sort(key=lambda device: check_string.find(device.friendly_name.lower()))
+      return(matches)
+  elif type(match_item) is str:
+    if match_item in check_string:
+      return(match_item)
+    else:
+      return("")
 
 ## Load cores:
 
