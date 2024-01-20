@@ -273,9 +273,9 @@ while True:
             # Match case not used because colours / brightness make it less good
             print(f"Turning {device.friendly_name} {spoken_state}" )
             #Boolean
-            if spoken_states[0] == "on":
+            if spoken_state == "on":
               device.on()
-            elif spoken_states[0] == "off":
+            elif spoken_state == "off":
               device.off()
               print(device.friendly_name)
             # Colours / custom states
