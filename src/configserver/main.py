@@ -15,7 +15,7 @@ with open('config.json') as f:
 async def handle_config(request):
     uuid = request.match_info.get("uuid")
     print(uuid)
-    return aiohttp.web.Response(body=json.dumps(conf_file))
+    return aiohttp.web.json_response(conf_file)
 
 app = aiohttp.web.Application()
 app.add_routes([aiohttp.web.get('/{uuid}/config',handle_config)])

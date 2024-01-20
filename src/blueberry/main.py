@@ -4,6 +4,9 @@ import sys
 from time import time
 import requests
 import json
+import pathlib
+import os
+import uuid
 
 # Load everything ##############################################
 
@@ -43,10 +46,36 @@ class TasmotaDevice:
     def off(self):
         requests.get(f"{self.request_uri}cmnd=Power%200")
 # TODO: Fetch file to define devices from server on start
+## Initialize the configuration for this instance ##############################
+data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob")
+server_config = None
+if data_path.exists():
+    with open(data_path.joinpath("config.json"),"r") as instance_config_json:
+        instance_config = json.load(instance_config_json)
+    # Attempt to download a device configuration file from the server
+    download = True
+    if instance_config.get("mode") == None or instance_config.get("mode") == "local":
+        download = False
+    if instance_config.get("server_url") == None and download == True:
+        print("Critical error, invalid server_url defined in the instance configuration file. Please correct this.")
+        exit(0)
+    elif download == True:
+        server_config = None
+        config_query_uri = f"{instance_config.get('server_url')}/{instance_config.get('uuid')}/config"
+        print(f"Pulling config from: {config_query_uri}")
+        server_config = requests.get(config_query_uri).json()
+else:
+    # Create configuration directory, add skeleton config file
+    data_path.mkdir()
+    template_config = {"uuid":str(uuid.uuid4()), "mode":"local"}
+    with open(data_path.joinpath("config.json"), 'w') as instance_config:
+        instance_config.write(json.dumps(template_config))
 
 with open("resources/devices.json", 'r') as devices_json_file:
   devices_json = json.load(devices_json_file)
 
+if server_config != None:
+    devices_json = server_config
 
 ## Instantiate all devices
 for wled_device in devices_json["wled"]:
@@ -122,7 +151,7 @@ for device_index in range(total_devices):
 print(f"Found pipewire at index {mic_index}")
 
 ## TODO: Eventually get this list from the server
-enabled_wakewords = ["weather", "ww_data/personal_wakewords/50000-50000blueberry.tflite"] #breaks if not ran from /src
+enabled_wakewords = ["weather", "ww_data/personal_wakewords/hey_aura.tflite"] #breaks if not ran from /src
 ## TODO: Add automatically downloading "personal wakewords" from configuration server and enabling them
 
 ### Load OpenWakeWord model
