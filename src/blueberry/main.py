@@ -362,7 +362,8 @@ while True:
           speak(f"Today, it's {weekday} the {dayNum} of {month}")
         ## Get the weather (TODO: Make less basic, allow location configuration rather than 10 10)
         elif getSpeechMatches(weather_keyphrases):
-          weather = requests.get(f'https://api.open-meteo.com/v1/forecast?latitude=10&longitude=10&current=temperature_2m,is_day,weathercode').json()
+          location = instance_config["location"]
+          weather = requests.get(f'https://api.open-meteo.com/v1/forecast?latitude={location["lat"]}&longitude={location["long"]}&current=temperature_2m,is_day,weathercode').json()
           speak(f'Right now, its {weather["current"]["temperature_2m"]} degrees')
 
 
