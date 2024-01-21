@@ -50,26 +50,29 @@ class TasmotaDevice:
 data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob")
 server_config = None
 if data_path.exists():
-    with open(data_path.joinpath("config.json"),"r") as instance_config_json:
-        instance_config = json.load(instance_config_json)
-    # Attempt to download a device configuration file from the server
-    download = True
-    if instance_config.get("mode") == None or instance_config.get("mode") == "local":
-        download = False
-    if instance_config.get("server_url") == None and download == True:
-        print("Critical error, invalid server_url defined in the instance configuration file. Please correct this.")
-        exit(0)
-    elif download == True:
-        server_config = None
-        config_query_uri = f"{instance_config.get('server_url')}/{instance_config.get('uuid')}/config"
-        print(f"Pulling config from: {config_query_uri}")
-        server_config = requests.get(config_query_uri).json()
+  print("Loading Config")
+  with open(data_path.joinpath("config.json"),"r") as instance_config_json:
+    instance_config = json.load(instance_config_json)
+  # Attempt to download a device configuration file from the server
+  download = True
+  if instance_config.get("mode") == None or instance_config.get("mode") == "local":
+    download = False
+  if instance_config.get("server_url") == None and download == True:
+    print("Critical error, invalid server_url defined in the instance configuration file. Please correct this.")
+    exit(0)
+  elif download == True:
+    server_config = None
+    config_query_uri = f"{instance_config.get('server_url')}/{instance_config.get('uuid')}/config"
+    print(f"Pulling config from: {config_query_uri}")
+    server_config = requests.get(config_query_uri).json()
 else:
-    # Create configuration directory, add skeleton config file
-    data_path.mkdir()
-    template_config = {"uuid":str(uuid.uuid4()), "mode":"local"}
-    with open(data_path.joinpath("config.json"), 'w') as instance_config:
-        instance_config.write(json.dumps(template_config))
+  # Create configuration directory, add skeleton config file
+  print("Creating Config Directory")
+  data_path.mkdir()
+  template_config = {"instance_name":"Default Name","uuid":str(uuid.uuid4()), "mode":"local", "enabled_pretrained_wakewords": ["weather", "jarvis"],"location":{"lat":10,"long":10}, "stt_model":"base.en", "tts_model":"en_US-lessac-high" }
+  with open(data_path.joinpath("config.json"), 'w') as instance_config:
+      instance_config.write(json.dumps(template_config))
+  instance_config = template_config
 
 with open("resources/devices.json", 'r') as devices_json_file:
   devices_json = json.load(devices_json_file)
@@ -78,6 +81,7 @@ if server_config != None:
     devices_json = server_config
 
 ## Instantiate all devices
+print("Loading Devices")
 for wled_device in devices_json["wled"]:
   WledDevice(devices_json["wled"][wled_device]["friendly_name"], devices_json["wled"][wled_device]["IP"])
 for tasmota_device in devices_json["tasmota"]:
@@ -87,7 +91,7 @@ for tasmota_device in devices_json["tasmota"]:
 
 from faster_whisper import WhisperModel
 
-stt_model = "small.en"
+stt_model = instance_config["stt_model"]
 
 print(f"Loading Model: {stt_model}")
 model = WhisperModel(stt_model, device="cpu")
@@ -95,13 +99,22 @@ model = WhisperModel(stt_model, device="cpu")
 print(f"Loaded Model: {stt_model}")
 
 ## Load Piper ###############################
-tts_data_dir = "tts_data"
+tts_model = instance_config["tts_model"]
 
-def speak(speech_text, tts_model=f"{tts_data_dir}/en_US-lessac-high.onnx", output_audio_path=f"{tts_data_dir}/output_speech.wav", play_speech=True):					
-  subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_data_dir} --download-dir {tts_data_dir} --model {tts_model} --output_file {output_audio_path}', stdout=subprocess.PIPE, shell=True)
+tts_path = data_path.joinpath("tts")
+
+def speak(speech_text, tts_model_path=f"{tts_path}/{tts_model}.onnx", output_audio_path=f"{tts_path}/output_speech.wav", play_speech=True):					
+  subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_path} --download-dir {tts_path} --model {tts_model_path} --output_file {output_audio_path}', stdout=subprocess.PIPE, shell=True)
   print(f"Speaking: {speech_text}")
   if play_speech:
     subprocess.call(f'aplay {output_audio_path}', stdout=subprocess.PIPE, shell=True)
+
+# Create directory and download model if necessary
+if not tts_path.exists():
+  print("Creating TTS Data Directory")
+  tts_path.mkdir()
+  print("Downloading Model")
+  speak("Download",tts_model_path=tts_model, play_speech=False)
 
 ## Load intent parser #######################
 get_keyphrases = ["get", "what", "whats"]
@@ -150,8 +163,15 @@ for device_index in range(total_devices):
     mic_index = audio_system.get_device_info_by_host_api_device_index(0, device_index).get("index")
 print(f"Found pipewire at index {mic_index}")
 
+# Assign and create Wakeword data directory if necessary
+ww_path = data_path.joinpath("ww")
+if not ww_path.exists():
+  print("Creating Wakeword Data Directory")
+  ww_path.mkdir()
+
 ## TODO: Eventually get this list from the server
-enabled_wakewords = ["weather", "ww_data/personal_wakewords/hey_aura.tflite"] #breaks if not ran from /src
+## Loads enabled pretrained models and all .tflite custom models in the wakeword folder
+enabled_wakewords = instance_config["enabled_pretrained_wakewords"] + [str(model) for model in ww_path.glob('*.tflite')]
 ## TODO: Add automatically downloading "personal wakewords" from configuration server and enabling them
 
 ### Load OpenWakeWord model
