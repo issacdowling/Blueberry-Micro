@@ -12,11 +12,21 @@ import uuid
 
 ## Define Devices #######################
 devices = []
-class WledDevice:
-  def __init__(self,friendly_name, ip_address):
-    self.friendly_name = friendly_name
-    self.ip_address = ip_address
-    devices.append(self)
+class BaseDevice:
+    def __init__(self,friendly_name, ip_address):
+        self.friendly_name = friendly_name
+        self.ip_address = ip_address
+        devices.append(self)
+    def on(self):
+        raise NotImplementedError
+    def off(self):
+        raise NotImplementedError
+    def setColour(self,rgb_list):
+        raise NotImplementedError
+    def setPercentage(self,percentage):
+        raise NotImplementedError
+
+class WledDevice(BaseDevice):
 
   def on(self):
     requests.post(f"http://{self.ip_address}/win&T=1")
@@ -31,7 +41,7 @@ class WledDevice:
   def setPercentage(self,percentage):
     requests.post(f"http://{self.ip_address}/win&A={int(percentage*2.55)}")
 
-class TasmotaDevice:
+class TasmotaDevice(BaseDevice):
     def __init__(self, friendly_name, ip_address):
         self.friendly_name = friendly_name
         self.ip_address = ip_address
@@ -321,28 +331,31 @@ while True:
               pass
 
             # Match case not used because colours / brightness make it less good
-            print(f"Turning {device.friendly_name} {spoken_state}" )
-            #Boolean
-            if spoken_state == "on":
-              device.on()
-            elif spoken_state == "off":
-              device.off()
-              print(device.friendly_name)
-            # Colours / custom states
-            elif spoken_state in state_colour_keyphrases:
-              device.setColour(colours_json["rgb"][spoken_state])
-            # Set percentage of device (normally brightness, but could be anything else)
-            elif spoken_state in state_percentage_keyphrases:
-              how_many_numbers = 0
-              for word in spoken_words_list:
-                if word.isnumeric():
-                  how_many_numbers += 1
-                  spoken_number = int(word)
-              if how_many_numbers == 1 and "percent" in spoken_words_list:
-                device.setPercentage(spoken_number)
+            ### Set the state ##################
+            try:
+                print(f"Turning {device.friendly_name} {spoken_state}" )
+                #Boolean
+                if spoken_state == "on":
+                  device.on()
+                elif spoken_state == "off":
+                  device.off()
+                  print(device.friendly_name)
+                # Colours / custom states
+                elif spoken_state in state_colour_keyphrases:
+                  device.setColour(colours_json["rgb"][spoken_state])
+                # Set percentage of device (normally brightness, but could be anything else)
+                elif spoken_state in state_percentage_keyphrases:
+                  how_many_numbers = 0
+                  for word in spoken_words_list:
+                    if word.isnumeric():
+                      how_many_numbers += 1
+                      spoken_number = int(word)
+                  if how_many_numbers == 1 and "percent" in spoken_words_list:
+                    device.setPercentage(spoken_number)
 
-            speak(f"Turning {device.friendly_name} {spoken_state}") # Sample speech, will be better
-
+                speak(f"Turning {device.friendly_name} {spoken_state}") # Sample speech, will be better
+            except NotImplementedError:
+                speak(f"Device {device.friendly_name} does not support that.")
       #Check if we're getting the state of something
       elif getSpeechMatches(get_keyphrases):
         ## Get the time 
