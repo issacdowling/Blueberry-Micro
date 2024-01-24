@@ -79,16 +79,20 @@ else:
   # Create configuration directory, add skeleton config file
   print("Creating Config Directory")
   data_path.mkdir()
-  template_config = {"instance_name":"Default Name","uuid":str(uuid.uuid4()), "mode":"local", "enabled_pretrained_wakewords": ["weather", "jarvis"],"location":{"lat":10,"long":10}, "stt_model":"base.en", "tts_model":"en_US-lessac-high" }
+  template_config = {"instance_name":"Default Name","uuid":str(uuid.uuid4()), "mode":"local", "enabled_pretrained_wakewords": ["weather", "jarvis"],"location":{"lat":10,"long":10}, "stt_model":"base.en", "tts_model":"en_US-lessac-high","devices": {"wled": {},"tasmota":{}}}
   with open(data_path.joinpath("config.json"), 'w') as instance_config:
       instance_config.write(json.dumps(template_config))
   instance_config = template_config
 
-with open("resources/devices.json", 'r') as devices_json_file:
-  devices_json = json.load(devices_json_file)
+
 
 if server_config != None:
     devices_json = server_config
+else:
+    if(instance_config.get("devices") == None):
+        print("Devices configuration not found. Instance configuration malformed. Exiting.")
+        exit(0)
+    devices_json = instance_config.get("devices")
 
 ## Instantiate all devices
 print("Loading Devices")
