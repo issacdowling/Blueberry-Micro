@@ -163,8 +163,6 @@ vad_speech_margin_init = 16000 # The number of samples (normally 16000 for 1s) o
 vad_threshold = 0.1 #VAD set so low purely to prevent wasting time trying to understand silence. Tune manually if wanted.
 vad_aggressiveness = 3 # 0-3, least to most aggressive at filtering noise
 
-detected_speech_wav_path = "testoutput.wav"
-
 audio_system = PyAudio()
 
 vad = webrtcvad.Vad(vad_aggressiveness)
@@ -183,6 +181,7 @@ if not ww_path.exists():
   print("Creating Wakeword Data Directory")
   ww_path.mkdir()
 
+detected_speech_wav_path = str(ww_path.joinpath("detected_speech.wav"))
 ## TODO: Eventually get this list from the server
 ## TODO: Allow certain actions to be performed solely from saying certain wakewords (split into "wake"words and "action"words or something)
 ## Loads enabled pretrained models and all .tflite custom models in the wakeword folder
