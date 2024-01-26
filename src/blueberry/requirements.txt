@@ -5,10 +5,11 @@ pyaudio #install portaudio (portaudio on Arch, portaudio-devel on Fedora, portau
 websocket-client
 webrtcvad
 
-
 #STT
 faster-whisper
 #TTS
 piper-tts
 
-#Install pipewire-alsa too, or aplay won't work, and alsa-utils for aplay to exist at all
+# Audio Playback
+mpv
+#Install (ARCH: pipewire-alsa and mpv)

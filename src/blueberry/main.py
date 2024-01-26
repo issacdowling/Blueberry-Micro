@@ -117,11 +117,13 @@ tts_model = instance_config["tts_model"]
 
 tts_path = data_path.joinpath("tts")
 
-def speak(speech_text, tts_model_path=f"{tts_path}/{tts_model}.onnx", output_audio_path=f"{tts_path}/output_speech.wav", play_speech=True):					
+output_speech_wav_path = tts_path.joinpath("output_speech.wav")
+#The path must be converted to a string rather than a posixpath or it breaks python-mpv
+def speak(speech_text, tts_model_path=f"{tts_path}/{tts_model}.onnx", output_audio_path=str(output_speech_wav_path), play_speech=True):					
   subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_path} --download-dir {tts_path} --model {tts_model_path} --output_file {output_audio_path}', stdout=subprocess.PIPE, shell=True)
   print(f"Speaking: {speech_text}")
   if play_speech:
-    subprocess.call(f'aplay {output_audio_path}', stdout=subprocess.PIPE, shell=True)
+    audio_playback_system.play(output_audio_path)
 
 # Create directory and download model if necessary
 if not tts_path.exists():
@@ -146,6 +148,11 @@ state_colour_keyphrases = list(colours_json["rgb"].keys())
 
 state_keyphrases = state_bool_keyphrases + state_brightness_keyphrases + state_percentage_keyphrases + state_colour_keyphrases
 
+## Load MPV #####################
+import mpv
+
+audio_playback_system = mpv.MPV()
+
 ## Load OpenWakeword #######################
 from openwakeword import Model
 from pyaudio import PyAudio, paInt16
@@ -163,16 +170,16 @@ vad_speech_margin_init = 16000 # The number of samples (normally 16000 for 1s) o
 vad_threshold = 0.1 #VAD set so low purely to prevent wasting time trying to understand silence. Tune manually if wanted.
 vad_aggressiveness = 3 # 0-3, least to most aggressive at filtering noise
 
-audio_system = PyAudio()
+audio_recording_system = PyAudio()
 
 vad = webrtcvad.Vad(vad_aggressiveness)
 
 ## Find the index for the device named "pipewire" to use Pipewire for resampling of the default device
-audio_system_info = audio_system.get_host_api_info_by_index(0)
-total_devices = audio_system_info.get("deviceCount")
+audio_recording_system_info = audio_recording_system.get_host_api_info_by_index(0)
+total_devices = audio_recording_system_info.get("deviceCount")
 for device_index in range(total_devices):
-  if audio_system.get_device_info_by_host_api_device_index(0, device_index).get("name") == "pipewire":
-    mic_index = audio_system.get_device_info_by_host_api_device_index(0, device_index).get("index")
+  if audio_recording_system.get_device_info_by_host_api_device_index(0, device_index).get("name") == "pipewire":
+    mic_index = audio_recording_system.get_device_info_by_host_api_device_index(0, device_index).get("index")
 print(f"Found pipewire at index {mic_index}")
 
 # Assign and create Wakeword data directory if necessary
@@ -181,6 +188,7 @@ if not ww_path.exists():
   print("Creating Wakeword Data Directory")
   ww_path.mkdir()
 
+#This is turned into a str because otherwise python-mpv and faster-whisper broke
 detected_speech_wav_path = str(ww_path.joinpath("detected_speech.wav"))
 ## TODO: Eventually get this list from the server
 ## TODO: Allow certain actions to be performed solely from saying certain wakewords (split into "wake"words and "action"words or something)
@@ -194,7 +202,7 @@ speech_buffer = []
 
 ## Open Mic:
 print("Opening Mic")
-mic_stream = audio_system.open(format=paInt16, channels=channels, rate=sample_rate, input=True, frames_per_buffer=frame_size, input_device_index=mic_index)
+mic_stream = audio_recording_system.open(format=paInt16, channels=channels, rate=sample_rate, input=True, frames_per_buffer=frame_size, input_device_index=mic_index)
 
 ## Load Intent Parser:
 
@@ -246,8 +254,8 @@ while True:
     ## Upon detection:
     if confidence >= 0.5:
 
-      #Play recording sound (eventually probably use an actual library):
-      subprocess.call(f'aplay resources/audio/listening.wav', stdout=subprocess.PIPE, shell=True)
+      #Play recording sound
+      audio_playback_system.play("resources/audio/listening.wav")
 
       ### Feeds silence for "4 seconds" to OpenWakeWord so that it doesn't lead to repeat activations
       ### See for yourself: https://github.com/dscripka/openWakeWord/issues/37
@@ -275,7 +283,7 @@ while True:
       print("Saving Audio")
       with wave.open(detected_speech_wav_path, 'wb') as wf:
         wf.setnchannels(channels)
-        wf.setsampwidth(audio_system.get_sample_size(paInt16))
+        wf.setsampwidth(audio_recording_system.get_sample_size(paInt16))
         wf.setframerate(sample_rate)
         wf.writeframes(b''.join(speech_buffer))
 
