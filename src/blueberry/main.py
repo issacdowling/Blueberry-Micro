@@ -119,11 +119,13 @@ tts_path = data_path.joinpath("tts")
 
 output_speech_wav_path = tts_path.joinpath("output_speech.wav")
 #The path must be converted to a string rather than a posixpath or it breaks python-mpv
-def speak(speech_text, tts_model_path=f"{tts_path}/{tts_model}.onnx", output_audio_path=str(output_speech_wav_path), play_speech=True):					
+def speak(speech_text, tts_model_path=f"{tts_path}/{tts_model}.onnx", output_audio_path=str(output_speech_wav_path), play_speech=True, blocking=False):					
   subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_path} --download-dir {tts_path} --model {tts_model_path} --output_file {output_audio_path}', stdout=subprocess.PIPE, shell=True)
   print(f"Speaking: {speech_text}")
   if play_speech:
     audio_playback_system.play(output_audio_path)
+    if blocking:
+      audio_playback_system.wait_for_playback()
 
 # Create directory and download model if necessary
 if not tts_path.exists():
