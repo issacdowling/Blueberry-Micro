@@ -279,8 +279,8 @@ while True:
           else:
             vad_speech_margin -= 320
 
-      #Play stopped recording sound (eventually probably use an actual library):
-      subprocess.call(f'aplay resources/audio/stoplistening.wav', stdout=subprocess.PIPE, shell=True)
+      #Play stopped recording sound:
+      audio_playback_system.play("resources/audio/stoplistening.wav")
 
       print("Saving Audio")
       with wave.open(detected_speech_wav_path, 'wb') as wf:
