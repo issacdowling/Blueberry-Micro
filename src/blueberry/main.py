@@ -130,10 +130,13 @@ print(f"Loading Model: {stt_model}")
 if not stt_path.exists():
   print("Creating Speech-To-Text directory")
   stt_path.mkdir()
+# Do this so that unfound models are automatically downloaded, but by default we aren't checking remotely at all, and the
+# STT directory doesn't need to be deleted just to automatically download other models
+try:
+  model = WhisperModel(model_size_or_path=stt_model, device="cpu", download_root=stt_path, local_files_only = True)
+except: #huggingface_hub.utils._errors.LocalEntryNotFoundError (but can't do that here since huggingfacehub not directly imported)
   print(f"Downloading Model: {stt_model}")
   model = WhisperModel(model_size_or_path=stt_model, device="cpu", download_root=stt_path)
-else:
-  model = WhisperModel(model_size_or_path=stt_model, device="cpu", download_root=stt_path, local_files_only = True)
 
 print(f"Loaded Model: {stt_model}")
 
