@@ -320,7 +320,9 @@ while True:
 
 # STT ########################################################
       # TODO: Send audio to STT directly rather than using a file for it. Still record audio to /dev/shm for option to replay
-      segments, info = model.transcribe(detected_speech_wav_path, beam_size=5, condition_on_previous_text=False) #condition_on_previous_text=False reduces hallucinations with no downsides for our short text.
+      # TODO: Figure out why large models (distil and normal) cause this to significantly slow down, where any other model does it instantly
+      # across significantly different tiers of hardware
+      segments, info = model.transcribe(detected_speech_wav_path, beam_size=5, condition_on_previous_text=False) #condition_on_previous_text=False reduces hallucinations and inference time with no downsides for our short text.
 
       print("Transcribing...")
       raw_spoken_words = ""
