@@ -95,12 +95,10 @@ else:
   # Create configuration directory, add skeleton config file
   print("Creating Config Directory")
   data_path.mkdir()
-  template_config = {"instance_name":"Default Name","uuid":str(uuid.uuid4()), "mode":"local", "enabled_pretrained_wakewords": ["weather", "jarvis"],"location":{"lat":10,"long":10}, "stt_model":"base.en", "tts_model":"en_US-lessac-high","devices": {"wled": {},"tasmota":{}}}
+  template_config = {"instance_name":"Default Name","uuid":str(uuid.uuid4()), "mode":"local", "enabled_pretrained_wakewords": ["weather", "jarvis"],"location":{"lat":10,"long":10}, "stt_model":"Systran/faster-distil-whisper-small.en", "tts_model":"en_US-lessac-high","devices": {"wled": {},"tasmota":{}, "http":{}}}
   with open(data_path.joinpath("config.json"), 'w') as instance_config:
       instance_config.write(json.dumps(template_config))
   instance_config = template_config
-
-
 
 if server_config != None:
     devices_json = server_config
@@ -121,12 +119,21 @@ for http_device in devices_json["http"]:
 
 ## Load faster-whisper #######################
 
+from faster_whisper import download_model
 from faster_whisper import WhisperModel
+
+stt_path = data_path.joinpath("stt")
 
 stt_model = instance_config["stt_model"]
 
 print(f"Loading Model: {stt_model}")
-model = WhisperModel(stt_model, device="cpu")
+if not stt_path.exists():
+  print("Creating Speech-To-Text directory")
+  stt_path.mkdir()
+  print(f"Downloading Model: {stt_model}")
+  model = WhisperModel(model_size_or_path=stt_model, device="cpu", download_root=stt_path)
+else:
+  model = WhisperModel(model_size_or_path=stt_model, device="cpu", download_root=stt_path, local_files_only = True)
 
 print(f"Loaded Model: {stt_model}")
 
@@ -310,7 +317,7 @@ while True:
 
 # STT ########################################################
       # TODO: Send audio to STT directly rather than using a file for it. Still record audio to /dev/shm for option to replay
-      segments, info = model.transcribe(detected_speech_wav_path, beam_size=5)
+      segments, info = model.transcribe(detected_speech_wav_path, beam_size=5, condition_on_previous_text=False) #condition_on_previous_text=False reduces hallucinations with no downsides for our short text.
 
       print("Transcribing...")
       raw_spoken_words = ""
