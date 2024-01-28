@@ -55,6 +55,22 @@ class TasmotaDevice(BaseDevice):
         requests.get(f"{self.request_uri}cmnd=Power%201")
     def off(self):
         requests.get(f"{self.request_uri}cmnd=Power%200")
+
+class HTTPDevice(BaseDevice):
+    def __init__(self, friendly_name, on_url, off_url):
+        self.friendly_name = friendly_name
+        self.on_url = on_url
+        self.off_url = off_url
+        devices.append(self)
+    def on(self):
+        if(self.on_url == None):
+            raise NotImplementedError
+        requests.get(self.on_url)
+    def off(self):
+        if(self.off_url == None):
+            raise NotImplementedError
+        requests.get(self.off_url)
+
 # TODO: Fetch file to define devices from server on start
 ## Initialize the configuration for this instance ##############################
 data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob")
@@ -100,6 +116,8 @@ for wled_device in devices_json["wled"]:
   WledDevice(devices_json["wled"][wled_device]["friendly_name"], devices_json["wled"][wled_device]["IP"])
 for tasmota_device in devices_json["tasmota"]:
   TasmotaDevice(devices_json["tasmota"][tasmota_device]["friendly_name"], devices_json["tasmota"][tasmota_device]["IP"])
+for http_device in devices_json["http"]:
+    HTTPDevice(devices_json["http"][http_device]["friendly_name"], devices_json["http"][http_device].get("on_url"), devices_json["http"][http_device].get("off_url"))
 
 ## Load faster-whisper #######################
 
