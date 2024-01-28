@@ -195,6 +195,7 @@ detected_speech_wav_path = str(ww_path.joinpath("detected_speech.wav"))
 ## TODO: Eventually get this list from the server
 ## TODO: Allow certain actions to be performed solely from saying certain wakewords (split into "wake"words and "action"words or something)
 ## Loads enabled pretrained models and all .tflite custom models in the wakeword folder
+print(f"Found these OpenWakeWord Models: {[str(model) for model in ww_path.glob('*.tflite')]}")
 enabled_wakewords = instance_config["enabled_pretrained_wakewords"] + [str(model) for model in ww_path.glob('*.tflite')]
 ## TODO: Add automatically downloading "personal wakewords" from configuration server and enabling them
 
