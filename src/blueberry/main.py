@@ -264,7 +264,6 @@ def getSpeechMatches(match_item,device_check=False, check_string=False):
 ## Function to turn on/off a specific device while listening
 def turnListeningDeviceOnOff(listening=True):
     if(instance_config.get("listening_light") != None):
-        print("stuff")
         listening_light_device = [device for device in devices if device.friendly_name == instance_config.get("listening_light") ][0]
         try:
             if(listening):
@@ -272,10 +271,7 @@ def turnListeningDeviceOnOff(listening=True):
             else:
                 listening_light_device.off()
         except:
-            print("error")
             pass
-    else:
-        print("less stuff")
 
 ## Load cores:
 
