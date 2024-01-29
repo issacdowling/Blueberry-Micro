@@ -261,6 +261,22 @@ def getSpeechMatches(match_item,device_check=False, check_string=False):
     else:
       return("")
 
+## Function to turn on/off a specific device while listening
+def turnListeningDeviceOnOff(listening=True):
+    if(instance_config.get("listening_light") != None):
+        print("stuff")
+        listening_light_device = [device for device in devices if device.friendly_name == instance_config.get("listening_light") ][0]
+        try:
+            if(listening):
+                listening_light_device.on()
+            else:
+                listening_light_device.off()
+        except:
+            print("error")
+            pass
+    else:
+        print("less stuff")
+
 ## Load cores:
 
 ### Time / Date
@@ -287,7 +303,7 @@ while True:
 
       #Play recording sound
       audio_playback_system.play("resources/audio/listening.wav")
-
+      turnListeningDeviceOnOff(True)
       ### Feeds silence for "4 seconds" to OpenWakeWord so that it doesn't lead to repeat activations
       ### See for yourself: https://github.com/dscripka/openWakeWord/issues/37
       ### Don't disable or it will lead to approximately 2 hours and 23 minutes of confusion.
@@ -310,7 +326,7 @@ while True:
 
       #Play stopped recording sound:
       audio_playback_system.play("resources/audio/stoplistening.wav")
-
+      turnListeningDeviceOnOff(False)
       print("Saving Audio")
       with wave.open(detected_speech_wav_path, 'wb') as wf:
         wf.setnchannels(channels)
@@ -329,7 +345,7 @@ while True:
       for segment in segments:
         raw_spoken_words += segment.text
       print("Transcribed words:", raw_spoken_words)
-
+      
 # Word preprocessing ###########################################
       raw_spoken_words_list = raw_spoken_words.split(" ")
 
