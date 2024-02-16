@@ -13,18 +13,22 @@ import uuid
 ## Define Devices #######################
 devices = []
 class BaseDevice:
-    def __init__(self,friendly_name, ip_address):
-        self.friendly_name = friendly_name
-        self.ip_address = ip_address
-        devices.append(self)
-    def on(self):
-        raise NotImplementedError
-    def off(self):
-        raise NotImplementedError
-    def setColour(self,rgb_list):
-        raise NotImplementedError
-    def setPercentage(self,percentage):
-        raise NotImplementedError
+  def __init__(self,friendly_name, ip_address):
+    self.friendly_name = friendly_name
+    self.ip_address = ip_address
+    devices.append(self)
+  def on(self):
+    raise NotImplementedError
+  def off(self):
+    raise NotImplementedError
+  def setColour(self,rgb_list):
+    raise NotImplementedError
+  def setPercentage(self,percentage):
+    raise NotImplementedError
+  def get_state(self):
+    raise NotImplementedError
+  def is_on(self):
+    raise NotImplementedError
 
 class WledDevice(BaseDevice):
 
@@ -41,35 +45,54 @@ class WledDevice(BaseDevice):
   def setPercentage(self,percentage):
     requests.post(f"http://{self.ip_address}/win&A={int(percentage*2.55)}")
 
+  def get_state(self):
+    wled_json_state = requests.get(f"http://{self.ip_address}/json").json()
+    if wled_json_state["state"]["on"] == True:
+      on_off = "on"
+    else:
+      on_off = "off"
+    return on_off
+    
+    ## TODO: Return the whole state, and in a generic format. Right now, just returns whether on or off
+    ## I'm thinking it could return a string which is to be spoken, as this would deal with not having to create
+    ## a generic format that could support all states for all devices.
+
+  def is_on(self):
+    wled_json_state = requests.get(f"http://{self.ip_address}/json").json()
+    if wled_json_state["state"]["on"] == True:
+      return True
+    else:
+      return False
+
 class TasmotaDevice(BaseDevice):
-    def __init__(self, friendly_name, ip_address):
-        self.friendly_name = friendly_name
-        self.ip_address = ip_address
-        self.request_uri = f"http://{self.ip_address}"
-        if(self.ip_address.endswith("/cm")):
-            self.request_uri += "?"
-        else:
-            self.request_uri += "&"
-        devices.append(self)
+  def __init__(self, friendly_name, ip_address):
+    self.friendly_name = friendly_name
+    self.ip_address = ip_address
+    self.request_uri = f"http://{self.ip_address}"
+    if(self.ip_address.endswith("/cm")):
+      self.request_uri += "?"
+    else:
+      self.request_uri += "&"
+    devices.append(self)
     def on(self):
-        requests.get(f"{self.request_uri}cmnd=Power%201")
+      requests.get(f"{self.request_uri}cmnd=Power%201")
     def off(self):
-        requests.get(f"{self.request_uri}cmnd=Power%200")
+      requests.get(f"{self.request_uri}cmnd=Power%200")
 
 class HTTPDevice(BaseDevice):
-    def __init__(self, friendly_name, on_url, off_url):
-        self.friendly_name = friendly_name
-        self.on_url = on_url
-        self.off_url = off_url
-        devices.append(self)
-    def on(self):
-        if(self.on_url == None):
-            raise NotImplementedError
-        requests.get(self.on_url)
+  def __init__(self, friendly_name, on_url, off_url):
+    self.friendly_name = friendly_name
+    self.on_url = on_url
+    self.off_url = off_url
+    devices.append(self)
+  def on(self):
+    if(self.on_url == None):
+      raise NotImplementedError
+    requests.get(self.on_url)
     def off(self):
-        if(self.off_url == None):
-            raise NotImplementedError
-        requests.get(self.off_url)
+      if(self.off_url == None):
+        raise NotImplementedError
+      requests.get(self.off_url)
 
 # TODO: Fetch file to define devices from server on start
 ## Initialize the configuration for this instance ##############################
@@ -163,7 +186,7 @@ if not tts_path.exists():
   speak("Download",tts_model_path=tts_model, play_speech=False)
 
 ## Load intent parser #######################
-get_keyphrases = ["get", "what", "whats"]
+get_keyphrases = ["get", "what", "whats", "is"]
 set_keyphrases = ["set", "make", "makes", "turn"]
 date_keyphrases = ["date", "day", "today"]
 weather_keyphrases = ["weather", "hot", "cold", "temperature"]
@@ -412,10 +435,30 @@ while True:
                 speak(f"Turning {device.friendly_name} {spoken_state}") # Sample speech, will be better
             except NotImplementedError:
                 speak(f"Device {device.friendly_name} does not support that.")
+
+
+
+
       #Check if we're getting the state of something
       elif getSpeechMatches(get_keyphrases):
+        ## Get device state
+        if getSpeechMatches(devices, True):
+          spoken_devices = getSpeechMatches(devices, True)
+          # Get the state of all devices
+          for index, device in enumerate(spoken_devices):
+            try:
+              ## Gets boolean state of device
+              if getSpeechMatches(state_bool_keyphrases):
+                on_off = "on" if device.is_on() == True else "off"
+                speak(f"{device.friendly_name} is {on_off}")
+              else:
+                speak(f"{device.friendly_name} is {device.get_state()}")
+            except NotImplementedError:
+                speak(f"Device {device.friendly_name} does not support that.")
+
+
         ## Get the time 
-        if getSpeechMatches("time"):
+        elif getSpeechMatches("time"):
           now = datetime.now()
           if now.strftime('%p') == "PM":
               apm = "PM"
