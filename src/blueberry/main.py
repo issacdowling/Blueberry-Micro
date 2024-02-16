@@ -10,6 +10,45 @@ import uuid
 
 # Load everything ##############################################
 
+## Initialize the configuration for this instance ##############################
+data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob")
+server_config = None
+if data_path.exists():
+  print("Loading Config")
+  with open(data_path.joinpath("config.json"),"r") as instance_config_json:
+    instance_config = json.load(instance_config_json)
+  # Attempt to download a device configuration file from the server
+  download = True
+  if instance_config.get("mode") == None or instance_config.get("mode") == "local":
+    download = False
+  if instance_config.get("server_url") == None and download == True:
+    print("Critical error, invalid server_url defined in the instance configuration file. Please correct this.")
+    exit(0)
+  elif download == True:
+    server_config = None
+    config_query_uri = f"{instance_config.get('server_url')}/{instance_config.get('uuid')}/config"
+    print(f"Pulling config from: {config_query_uri}")
+    server_config = requests.get(config_query_uri).json()
+else:
+  # Create configuration directory, add skeleton config file
+  print("Creating Config Directory")
+  data_path.mkdir()
+  template_config = {"instance_name":"Default Name","uuid":str(uuid.uuid4()), "mode":"local", "enabled_pretrained_wakewords": ["weather", "jarvis"],"location":{"lat":10,"long":10}, "stt_model":"Systran/faster-distil-whisper-small.en", "tts_model":"en_US-lessac-high","devices": {"wled": {},"tasmota":{}, "http":{}}}
+  with open(data_path.joinpath("config.json"), 'w') as instance_config:
+      instance_config.write(json.dumps(template_config))
+  instance_config = template_config
+
+if server_config != None:
+    devices_json = server_config
+else:
+    if(instance_config.get("devices") == None):
+        print("Devices configuration not found. Instance configuration malformed. Exiting.")
+        exit(0)
+    devices_json = instance_config.get("devices")
+
+## Load Cores
+
+
 ## Define Devices #######################
 devices = []
 class BaseDevice:
@@ -95,41 +134,6 @@ class HTTPDevice(BaseDevice):
       requests.get(self.off_url)
 
 # TODO: Fetch file to define devices from server on start
-## Initialize the configuration for this instance ##############################
-data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob")
-server_config = None
-if data_path.exists():
-  print("Loading Config")
-  with open(data_path.joinpath("config.json"),"r") as instance_config_json:
-    instance_config = json.load(instance_config_json)
-  # Attempt to download a device configuration file from the server
-  download = True
-  if instance_config.get("mode") == None or instance_config.get("mode") == "local":
-    download = False
-  if instance_config.get("server_url") == None and download == True:
-    print("Critical error, invalid server_url defined in the instance configuration file. Please correct this.")
-    exit(0)
-  elif download == True:
-    server_config = None
-    config_query_uri = f"{instance_config.get('server_url')}/{instance_config.get('uuid')}/config"
-    print(f"Pulling config from: {config_query_uri}")
-    server_config = requests.get(config_query_uri).json()
-else:
-  # Create configuration directory, add skeleton config file
-  print("Creating Config Directory")
-  data_path.mkdir()
-  template_config = {"instance_name":"Default Name","uuid":str(uuid.uuid4()), "mode":"local", "enabled_pretrained_wakewords": ["weather", "jarvis"],"location":{"lat":10,"long":10}, "stt_model":"Systran/faster-distil-whisper-small.en", "tts_model":"en_US-lessac-high","devices": {"wled": {},"tasmota":{}, "http":{}}}
-  with open(data_path.joinpath("config.json"), 'w') as instance_config:
-      instance_config.write(json.dumps(template_config))
-  instance_config = template_config
-
-if server_config != None:
-    devices_json = server_config
-else:
-    if(instance_config.get("devices") == None):
-        print("Devices configuration not found. Instance configuration malformed. Exiting.")
-        exit(0)
-    devices_json = instance_config.get("devices")
 
 ## Instantiate all devices
 print("Loading Devices")
