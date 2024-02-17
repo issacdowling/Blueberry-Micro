@@ -33,7 +33,7 @@ else:
   # Create configuration directory, add skeleton config file
   print("Creating Config Directory")
   data_path.mkdir()
-  template_config = {"instance_name":"Default Name","uuid":str(uuid.uuid4()), "mode":"local", "enabled_pretrained_wakewords": ["weather", "jarvis"],"location":{"lat":10,"long":10}, "stt_model":"Systran/faster-distil-whisper-small.en", "tts_model":"en_US-lessac-high","devices": {"wled": {},"tasmota":{}, "http":{}}}
+  template_config = {"instance_name":"Default Name","uuid":str(uuid.uuid4()), "mode":"local", "enabled_pretrained_wakewords": ["weather", "jarvis"],"location":{"lat":10,"long":10}, "stt_model":"Systran/faster-distil-whisper-small.en", "tts_model":"en_US-lessac-high","devices": {"wled": {},"tasmota":{}, "http":{}}, "cores": {}}
   with open(data_path.joinpath("config.json"), 'w') as instance_config:
       instance_config.write(json.dumps(template_config))
   instance_config = template_config
@@ -46,7 +46,44 @@ else:
         exit(0)
     devices_json = instance_config.get("devices")
 
-## Load Cores
+## Load Cores / Device Handlers
+cores = []
+
+class Core:
+  def __init__(self, path):
+    print(f"Loading: {path}")
+
+    self.path = path
+
+    core_run = subprocess.run([core_file, "IDENTIFY"], capture_output=True)
+    core_json = json.loads(core_run.stdout.decode())
+
+    self.name = core_json["name"]
+    self.friendly_name = core_json["friendly_name"]
+    self.is_device_handler = core_json["device_handler"]
+    self.config = instance_config.get("cores").get(self.name)
+
+    cores.append(self)
+
+    if core_json.get("device_handler"):
+      print(f"Loaded Device Handler: {self.name}")
+    else:
+      print(f"Loaded Core: {self.name}")
+
+### Load cores
+core_path = data_path.joinpath("cores")
+
+if not core_path.exists():
+  core_path.mkdir()
+  
+### Get a list of cores in the core directory
+core_files = [str(core) for core in core_path.glob('*bb_core*')]
+
+for core_file in core_files:
+  ## INITs each core, expecting it to return basic info
+  Core(path = core_file)
+  
+print(cores)
 
 
 ## Define Devices #######################
