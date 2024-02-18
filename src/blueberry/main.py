@@ -476,6 +476,9 @@ while True:
                 speak(f"Turning {device.friendly_name} {spoken_state}") # Sample speech, will be better
             except NotImplementedError:
                 speak(f"Device {device.friendly_name} does not support that.")
+        # If attempted to set a device, but to no state, alert the user.
+        elif getSpeechMatches(devices, True) and not getSpeechMatches(state_keyphrases):
+          speak("You mentioned setting a device, but not what to set it to. Could you repeat that?")
 
 
 
