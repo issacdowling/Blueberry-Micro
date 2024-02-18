@@ -89,8 +89,9 @@ print(cores)
 ## Define Devices #######################
 devices = []
 class BaseDevice:
-  def __init__(self,friendly_name, ip_address):
-    self.friendly_name = friendly_name
+  def __init__(self,names,ip_address):
+    self.names = names
+    self.friendly_name = names[0]
     self.ip_address = ip_address
     devices.append(self)
   def on(self):
@@ -141,8 +142,9 @@ class WledDevice(BaseDevice):
       return False
 
 class TasmotaDevice(BaseDevice):
-  def __init__(self, friendly_name, ip_address):
-    self.friendly_name = friendly_name
+  def __init__(self, names, ip_address):
+    self.names = names
+    self.friendly_name = names[0]
     self.ip_address = ip_address
     self.request_uri = f"http://{self.ip_address}"
     if(self.ip_address.endswith("/cm")):
@@ -156,8 +158,9 @@ class TasmotaDevice(BaseDevice):
       requests.get(f"{self.request_uri}cmnd=Power%200")
 
 class HTTPDevice(BaseDevice):
-  def __init__(self, friendly_name, on_url, off_url):
-    self.friendly_name = friendly_name
+  def __init__(self, names, on_url, off_url):
+    self.names = names
+    self.friendly_name = names[0]
     self.on_url = on_url
     self.off_url = off_url
     devices.append(self)
@@ -175,11 +178,11 @@ class HTTPDevice(BaseDevice):
 ## Instantiate all devices
 print("Loading Devices")
 for wled_device in devices_json["wled"]:
-  WledDevice(devices_json["wled"][wled_device]["friendly_name"], devices_json["wled"][wled_device]["IP"])
+  WledDevice(devices_json["wled"][wled_device]["names"], devices_json["wled"][wled_device]["IP"])
 for tasmota_device in devices_json["tasmota"]:
-  TasmotaDevice(devices_json["tasmota"][tasmota_device]["friendly_name"], devices_json["tasmota"][tasmota_device]["IP"])
+  TasmotaDevice(devices_json["tasmota"][tasmota_device]["names"], devices_json["tasmota"][tasmota_device]["IP"])
 for http_device in devices_json["http"]:
-    HTTPDevice(devices_json["http"][http_device]["friendly_name"], devices_json["http"][http_device].get("on_url"), devices_json["http"][http_device].get("off_url"))
+    HTTPDevice(devices_json["http"][http_device]["names"], devices_json["http"][http_device].get("on_url"), devices_json["http"][http_device].get("off_url"))
 
 ## Load faster-whisper #######################
 
@@ -311,10 +314,28 @@ def getSpeechMatches(match_item,device_check=False, check_string=False):
       matches = [phrase for phrase in match_item if(phrase in check_string)]
       matches.sort(key=lambda phrase: check_string.find(phrase))
       return(matches)
+    ## If this is a "device_check", we want to return the actual device object, rather than just the text name of it.
     else:
-      matches = [device for device in match_item if(device.friendly_name.lower() in check_string)]
-      matches.sort(key=lambda device: check_string.find(device.friendly_name.lower()))
-      return(matches)
+      name_matches = []
+      device_matches = []
+
+      ## Firstly, we loop over the devices, get their names, and append the detected names to a list (we cannot order the devices in this step
+      ## since they would get ordered by their appearance in the main devices list, rather than in the spoken words)
+      for device in devices:
+        for name in device.names:
+          if name.lower() in check_string:
+            name_matches.append(name)
+
+      ## Sort these names by their appearance in the spoken text
+      name_matches.sort(key=lambda name: check_string.find(name.lower()))
+
+      ## Go through each spoken device name in the order that it appears, find its matching device, and append it to a list.
+      for name in name_matches:
+        for device in devices:
+          if name in device.names:
+            device_matches.append(device)
+            
+      return(device_matches)
   elif type(match_item) is str:
     # This converts the string into a list so that we only get whole word matches
     # Otherwise, "what's 8 times 12" would count as valid for checking the "time"
@@ -437,10 +458,10 @@ while True:
         # TODO: Figure out a more generic way to handle device states, and devices that only support certain states
         # TODO: Split this into checking the list of devices(tm) and the list of other settable things which will come from cores,
         # 		  and split into two different decision trees from there.
-        if getSpeechMatches(devices, True) and getSpeechMatches(state_keyphrases):
+        if getSpeechMatches(devices, device_check=True) and getSpeechMatches(state_keyphrases):
           # Get the spoken state and name out of the lists of all potential options
           spoken_states = getSpeechMatches(state_keyphrases)
-          spoken_devices = getSpeechMatches(devices, True)
+          spoken_devices = getSpeechMatches(devices, device_check=True)
 
           # Apply the states
           for index, device in enumerate(spoken_devices):
@@ -486,8 +507,8 @@ while True:
       #Check if we're getting the state of something
       elif getSpeechMatches(get_keyphrases):
         ## Get device state
-        if getSpeechMatches(devices, True):
-          spoken_devices = getSpeechMatches(devices, True)
+        if getSpeechMatches(devices, device_check=True):
+          spoken_devices = getSpeechMatches(devices, device_check=True)
           # Get the state of all devices
           for index, device in enumerate(spoken_devices):
             try:
