@@ -199,7 +199,6 @@ for http_device in devices_json["http"]:
 logging.info("Loaded Devices")
 ## Load faster-whisper #######################
 
-from faster_whisper import download_model
 from faster_whisper import WhisperModel
 
 stt_path = data_path.joinpath("stt")
