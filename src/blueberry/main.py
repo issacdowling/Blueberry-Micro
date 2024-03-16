@@ -44,7 +44,7 @@ else:
   logging.debug("Creating Config Directory")
   data_path.mkdir()
   logging.info("Created Config Directory")
-  template_config = {"instance_name":"Default Name","uuid":str(uuid.uuid4()), "mode":"local", "enabled_pretrained_wakewords": ["weather", "jarvis"],"location":{"lat":10,"long":10}, "stt_model":"Systran/faster-distil-whisper-small.en", "tts_model":"en_US-lessac-high","devices": {"wled": {},"tasmota":{}, "http":{}}, "cores": {}}
+  template_config = {"instance_name":"Default Name","uuid":str(uuid.uuid4()), "mode":"local","location":{"lat":10,"long":10}, "stt_model":"Systran/faster-distil-whisper-small.en", "tts_model":"en_US-lessac-high","devices": {"wled": {},"tasmota":{}, "http":{}}, "cores": {}}
   with open(data_path.joinpath("config.json"), 'w') as instance_config:
       instance_config.write(json.dumps(template_config))
   instance_config = template_config
@@ -306,13 +306,21 @@ if not ww_path.exists():
 detected_speech_wav_path = str(ww_path.joinpath("detected_speech.wav"))
 ## TODO: Eventually get this list from the server
 ## TODO: Allow certain actions to be performed solely from saying certain wakewords (split into "wake"words and "action"words or something)
-## Loads enabled pretrained models and all .tflite custom models in the wakeword folder
+## Loads all .tflite custom models in the wakeword folder
 logging.info(f"Found these OpenWakeWord Models: {[str(model) for model in ww_path.glob('*.tflite')]}")
-enabled_wakewords = instance_config["enabled_pretrained_wakewords"] + [str(model) for model in ww_path.glob('*.tflite')]
+enabled_wakewords = [str(model) for model in ww_path.glob('*.tflite')]
 ## TODO: Add automatically downloading "personal wakewords" from configuration server and enabling them
 
 ### Load OpenWakeWord model
-oww = Model(wakeword_models=enabled_wakewords, vad_threshold=vad_threshold, inference_framework = "tflite")
+
+## If melspectrogram not found (first launch), download then continue
+try:
+  oww = Model(wakeword_models=enabled_wakewords, inference_framework = "tflite")
+except ValueError:
+  from openwakeword import utils
+  utils.download_models(["melspectrogram.tflite"])
+  oww = Model(wakeword_models=enabled_wakewords, inference_framework = "tflite")
+
 speech_buffer = []
 
 ## Open Mic:
