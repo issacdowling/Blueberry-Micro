@@ -44,15 +44,15 @@ def play(audio):
 
 async def connect():
 	async with aiomqtt.Client(arguments.host) as client:
-		# await client.subscribe(f"bloob/{arguments.device_id}/tts/finished") # This is for testing, it'll automatically play what the TTS says
-		await client.subscribe(f"bloob/{arguments.device_id}/playback/play")
+		await client.subscribe(f"bloob/{arguments.device_id}/tts/finished") # This is for testing, it'll automatically play what the TTS says
+		# await client.subscribe(f"bloob/{arguments.device_id}/playback/play")
 		async for message in client.messages:
 			try:
 				message_payload = json.loads(message.payload.decode())
 				if(message_payload.get('audio') != None and message_payload.get('id') != None):
-					play(message_payload.get('audio'))
+					play(message_payload["audio"])
 
-					await client.publish(f"bloob/{arguments.device_id}/playback/finished", json.dumps({"id": message_payload.get('id'), "audio":str_encoded}))
+					await client.publish(f"bloob/{arguments.device_id}/playback/finished", json.dumps({"id": message_payload.get('id'), "audio":message_payload["audio"]}))
 			except:
 				print("Error with payload.")
 
