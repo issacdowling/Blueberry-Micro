@@ -8,6 +8,10 @@ import pathlib
 import os
 import uuid
 import logging
+import base64
+
+import paho.mqtt.client as mqtt
+import paho.mqtt.subscribe as mqtt_subscribe
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -198,52 +202,23 @@ for http_device in devices_json["http"]:
 
 logging.info("Loaded Devices")
 ## Load faster-whisper #######################
+stt_mqtt = mqtt.Client()
+stt_mqtt.connect("localhost")
 
-from faster_whisper import WhisperModel
+def transcribe(audio):
+  stt_mqtt.publish("bloob/test/stt/transcribe",json.dumps({"id": "test", "audio": base64.b64encode(audio).decode()}))
+  # This just connects to that topic until a single message is recieved. Maybe could be combined with a loop that checks for a matching ID before retrying if doesn't match.
+  return mqtt_subscribe.simple("bloob/test/stt/finished", hostname = "localhost").payload.decode()
 
-stt_path = data_path.joinpath("stt")
+## Load TTS ###############################
 
-stt_model = instance_config["stt_model"]
+tts_mqtt = mqtt.Client()
+tts_mqtt.connect("localhost")
 
-logging.debug(f"Loading Model: {stt_model}")
-if not stt_path.exists():
-  logging.debug("Creating Speech-To-Text directory")
-  stt_path.mkdir()
-  logging.info("Created Speech-To-Text directory")
-# Do this so that unfound models are automatically downloaded, but by default we aren't checking remotely at all, and the
-# STT directory doesn't need to be deleted just to automatically download other models
-try:
-  model = WhisperModel(model_size_or_path=stt_model, device="cpu", download_root=stt_path, local_files_only = True)
-except: #huggingface_hub.utils._errors.LocalEntryNotFoundError (but can't do that here since huggingfacehub not directly imported)
-  logging.debug(f"Downloading Model: {stt_model}")
-  model = WhisperModel(model_size_or_path=stt_model, device="cpu", download_root=stt_path)
-
-logging.info(f"Loaded Model: {stt_model}")
-
-## Load Piper ###############################
-tts_model = instance_config["tts_model"]
-
-tts_path = data_path.joinpath("tts")
-
-output_speech_wav_path = tts_path.joinpath("output_speech.wav")
 #The path must be converted to a string rather than a posixpath or it breaks python-mpv
-def speak(speech_text, tts_model_path=f"{tts_path}/{tts_model}.onnx", output_audio_path=str(output_speech_wav_path), play_speech=True, blocking=False):					
-  subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_path} --download-dir {tts_path} --model {tts_model_path} --output_file {output_audio_path}', stdout=subprocess.PIPE, shell=True)
-  logging.info(f"Speaking: {speech_text}")
-  if play_speech:
-    audio_playback_system.play(output_audio_path)
-    if blocking:
-      audio_playback_system.wait_for_playback()
-
-# Create directory and download model if necessary
-if not tts_path.exists():
-  logging.debug("Creating TTS Data Directory")
-  tts_path.mkdir()
-  logging.info("Created TTS Data Directory")
-
-  logging.debug("Downloading TTS Model")
-  speak("Download",tts_model_path=tts_model, play_speech=False)
-  logging.debug("Downloaded TTS Model")
+def speak(speech_text, play_speech=True, blocking=False):
+  print("Talk")
+  tts_mqtt.publish("bloob/test/tts/run", json.dumps({"id": "test", "text" :speech_text}))
 
 ## Load intent parser #######################
 get_keyphrases = ["get", "what", "whats", "is"]
@@ -445,16 +420,8 @@ while True:
       logging.info("Saved audio")
 
 # STT ########################################################
-      # TODO: Send audio to STT directly rather than using a file for it. Still record audio to /dev/shm for option to replay
-      # TODO: Figure out why large models (distil and normal) cause this to significantly slow down, where any other model does it instantly
-      # across significantly different tiers of hardware
-      segments, info = model.transcribe(detected_speech_wav_path, beam_size=5, condition_on_previous_text=False) #condition_on_previous_text=False reduces hallucinations and inference time with no downsides for our short text.
-
-      logging.debug("Transcribing...")
-      raw_spoken_words = ""
-      for segment in segments:
-        raw_spoken_words += segment.text
-      logging.info(f"Transcribed words: {raw_spoken_words}")
+      with open(detected_speech_wav_path, 'rb') as wf:
+        raw_spoken_words = transcribe(wf.read())      
       
 # Word preprocessing ###########################################
       raw_spoken_words_list = raw_spoken_words.split(" ")
