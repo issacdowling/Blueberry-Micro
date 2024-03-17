@@ -67,13 +67,15 @@ def transcribe(audio):
   return raw_spoken_words
 
 def on_message(client, _, message):
-  msg_json = json.loads(message.payload.decode())
-
-  with open(transcribed_audio_path,'wb+') as audio_file:
-    #Encoding is like this because the string must first be encoded back into the base64 bytes format, then decoded again, this time as b64, into the original bytes.
-    audio_file.write(base64.b64decode(msg_json["audio"].encode()))
-  
-  transcription = transcribe(str(transcribed_audio_path))
+  try:
+    msg_json = json.loads(message.payload.decode())
+    with open(transcribed_audio_path,'wb+') as audio_file:
+      #Encoding is like this because the string must first be encoded back into the base64 bytes format, then decoded again, this time as b64, into the original bytes.
+      audio_file.write(base64.b64decode(msg_json["audio"].encode()))
+    
+    transcription = transcribe(str(transcribed_audio_path))
+  except KeyError:
+    print("Couldn't find the correct keys in recieved JSON")
 
   stt_mqtt.publish(f"bloob/{arguments.device_id}/stt/finished", json.dumps({"id": msg_json["id"], "text": transcription}))
 
@@ -81,8 +83,8 @@ stt_mqtt = mqtt.Client()
 stt_mqtt.connect(arguments.host, arguments.port)
 stt_mqtt.on_message = on_message
 
-stt_mqtt.subscribe(f"bloob/{arguments.device_id}/tts/finished") # This is for testing, automatically transcribing what's recorded / said by TTS
-# stt_mqtt.subscribe(f"bloob/{arguments.device_id}/stt/transcribe")
+# stt_mqtt.subscribe(f"bloob/{arguments.device_id}/tts/finished") # This is for testing, automatically transcribing what's recorded / said by TTS
+stt_mqtt.subscribe(f"bloob/{arguments.device_id}/stt/transcribe")
 
 
 stt_mqtt.loop_forever()
