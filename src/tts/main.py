@@ -1,6 +1,8 @@
 """ MQTT connected TTS engine for Blueberry, making use of Piper TTS
 
 Wishes to be provided with {"id": identifier_of_this_tts_request: str, "text": text_to_speak: str} over MQTT to "bloob/{arguments.device_id}/tts/run"
+
+Will respond with {"id": received_id: str, "audio": audio: str}, where audio is a WAV file, encoded as b64 bytes, then decoded into a string, to "bloob/{arguments.device_id}/tts/finished"
 """
 import argparse
 import subprocess

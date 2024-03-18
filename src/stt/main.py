@@ -1,6 +1,8 @@
 """ MQTT connected STT engine for Blueberry, making use of OpenAI Whisper, through faster-whisper
 
 Wishes to be provided with {"id": identifier_of_this_tts_request: str, "audio": text_to_speak: str}, where audio is a WAV file, encoded as b64 bytes, then decoded into a string, over MQTT to "bloob/{arguments.device_id}/stt/transcribe"
+
+Will respond with {"id", id: str, "text": transcript} to "bloob/{arguments.device_id}/stt/finished"
 """
 import argparse
 import subprocess
