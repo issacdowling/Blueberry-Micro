@@ -50,6 +50,8 @@ async def main():
         exit(0)
     # Prepare the MQTT configuration
     json_config_mqtt = config.get("mqtt")
+    if json_config_mqtt == None:
+        exit("No MQTT configuration found, exiting.")
     mqtt_config = mqttserver.MQTTServer(host=json_config_mqtt.get("host"), port=json_config_mqtt.get("port"), user=json_config_mqtt.get("user"), password=json_config_mqtt.get("password"))
     # Then, ready all the cores
     logging.debug(f"Using {cores_dir} for cores")
