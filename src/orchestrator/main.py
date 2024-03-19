@@ -9,6 +9,8 @@ import argparse
 import os
 import pathlib
 import json
+import webserver
+import webserver.server
 
 # Arguments
 parser = argparse.ArgumentParser()
@@ -54,11 +56,14 @@ async def main():
     loaded_cores = []
     core_files = [str(core) for core in cores_dir.glob('*bb_core*')]
     for core_file in core_files:
-        loaded_cores.append(core.Core(path=core_file,mqtt=mqtt_config))
+        loaded_cores.append(core.Core(path=core_file,mqtt=mqtt_config, devid=config.get("device_id")))
     # Now, start all the cores
     for core_object in loaded_cores:
         core_object.run()
-
+    # Run the webserver
+    httpserver = webserver.server.OrchestratorHTTPServer(config)
+    
+    await httpserver.run_server()
     # Enter loop
     try:
         while True:
@@ -69,6 +74,8 @@ async def main():
         for core_object in loaded_cores:
             core_object.stop()
             logging.info(f"Stopped core: {core_object.name}")
+        logging.info("Stopping webserver")
+        await httpserver.runner.cleanup()
     
 
 if __name__ == "__main__":

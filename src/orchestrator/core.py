@@ -3,10 +3,10 @@ import logging
 import subprocess
 import json
 class Core:
-    def __init__(self, path, mqtt):
+    def __init__(self, path, mqtt, devid="testdevice"):
         self.mqttserver = mqtt
         self.path = path
-        
+        self.devid = devid
         logging.debug(f"Readying core at: {self.path}")
 
         # Get core identification
@@ -40,10 +40,12 @@ class Core:
         if(self.mqttserver.password != None):
             args.append("--pass")
             args.append(self.mqttserver.password)
-
+        args.append("--device-id")
+        args.append(self.devid)
+        
         return args
 
     def run(self):
-        self.running_core = subprocess.Popen(self.construct_run_args())
+        self.running_core = subprocess.Popen(self.construct_run_args(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     def stop(self):
         self.running_core.terminate()
