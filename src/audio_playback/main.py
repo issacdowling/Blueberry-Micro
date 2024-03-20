@@ -1,3 +1,4 @@
+#!/bin/env python3
 """ MQTT connected Audio playback program for Blueberry, making use of MPV
 
 Wishes to be provided with {"id", id: str, "audio": audio: str}, where audio is a WAV file, encoded as b64 bytes then decoded into a string, over MQTT to "bloob/{arguments.device_id}/audio_playback/play"
@@ -59,4 +60,7 @@ async def connect():
 				print("Error with payload.")
 
 if __name__ == "__main__":
-	asyncio.run(connect())
+	try:
+		asyncio.run(connect())
+	except aiomqtt.exceptions.MqttError:
+		exit("MQTT Failed")

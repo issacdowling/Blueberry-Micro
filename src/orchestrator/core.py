@@ -3,7 +3,9 @@ import logging
 import subprocess
 import json
 class Core:
-    def __init__(self, path, mqtt, devid="testdevice"):
+    def __init__(self, path, mqtt, devid="test"):
+        if devid == None:
+            exit("No device_id in config")
         self.mqttserver = mqtt
         self.path = path
         self.devid = devid
@@ -11,20 +13,20 @@ class Core:
 
         # Get core identification
         core_run = subprocess.run([self.path, "IDENTIFY"],capture_output=True)
-        try:
-            self.core_json = json.loads(core_run.stdout.decode())
-        except:
-            debug.error(f"Unable to load core at {self.path}")
-            return
+        # try:
+        # self.core_json = json.loads(core_run.stdout.decode())
+        # except:
+        #     debug.error(f"Unable to load core at {self.path}")
+        #     return
         #print(self.core_json)
-        self.name = self.core_json.get("name")
-        self.friendly_name = self.core_json.get("friendly_name")
-        self.is_device_handler = bool(self.core_json.get("device_handler"))
+        # self.name = self.core_json.get("name")
+        # self.friendly_name = self.core_json.get("friendly_name")
+        # self.is_device_handler = bool(self.core_json.get("device_handler"))
 
-        if(self.is_device_handler):
-            logging.info(f"Device Handler {self.friendly_name} loaded.")
-        else:
-            logging.info(f"Core {self.friendly_name} loaded.")
+        # if(self.is_device_handler):
+        #     logging.info(f"Device Handler {self.friendly_name} loaded.")
+        # else:
+        # logging.info(f"Core {self.friendly_name} loaded.")
     
     def construct_run_args(self):
         args = [self.path]

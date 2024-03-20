@@ -1,3 +1,4 @@
+#!/bin/env python3
 """ MQTT connected Wakeword engine for Blueberry, making use of OpenWakeWord
 
 Requires no input, will always be detecting.

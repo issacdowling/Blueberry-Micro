@@ -27,6 +27,8 @@ logging.addLevelName( logging.CRITICAL, "\033[91m%s\033[1;0m" % logging.getLevel
 
 logging.info("Orchestrator starting up.")
 
+parent_folder_dir = pathlib.Path(__file__).parents[1]
+
 async def main():
     # Get the data dir sorted
     if(arguments.data_dir == None):
@@ -55,8 +57,10 @@ async def main():
     mqtt_config = mqttserver.MQTTServer(host=json_config_mqtt.get("host"), port=json_config_mqtt.get("port"), user=json_config_mqtt.get("user"), password=json_config_mqtt.get("password"))
     # Then, ready all the cores
     logging.debug(f"Using {cores_dir} for cores")
+    builtin_cores = []
+    builtin_cores.extend([parent_folder_dir.joinpath("audio_playback/main.py"), parent_folder_dir.joinpath("audio_recorder/main.py"), parent_folder_dir.joinpath("stt/main.py"), parent_folder_dir.joinpath("tts/main.py"), parent_folder_dir.joinpath("wakeword/main.py")])
     loaded_cores = []
-    core_files = [str(core) for core in cores_dir.glob('*bb_core*')]
+    core_files = [str(core) for core in cores_dir.glob('*bb_core*')] + builtin_cores
     for core_file in core_files:
         loaded_cores.append(core.Core(path=core_file,mqtt=mqtt_config, devid=config.get("device_id")))
     # Now, start all the cores

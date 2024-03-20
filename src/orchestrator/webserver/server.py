@@ -12,6 +12,9 @@ class OrchestratorHTTPServer:
         return aiohttp.web.Response(text="<h1>orchestrator running</h1>", content_type="text/html")
     async def run_server(self):
 
+        if self.config.get("http") == None:
+            exit("No http config")
+
         # Setup runner
         self.runner = aiohttp.web.AppRunner(self.app)
         await self.runner.setup()

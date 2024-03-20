@@ -1,3 +1,4 @@
+#!/bin/env python3
 """ MQTT connected TTS engine for Blueberry, making use of Piper TTS
 
 Wishes to be provided with {"id": identifier_of_this_tts_request: str, "text": text_to_speak: str} over MQTT to "bloob/{arguments.device_id}/tts/run"

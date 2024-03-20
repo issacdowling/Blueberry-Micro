@@ -1,3 +1,4 @@
+#!/bin/env python3
 """ MQTT connected audio recorder for Blueberry
 
 Wishes to be provided with {"id": identifier_of_this_audio_recorder_request: str} over MQTT to "bloob/{arguments.device_id}/audio_recorder/record_speech"
