@@ -31,7 +31,14 @@ arg_parser.add_argument('--port', default=1883)
 arg_parser.add_argument('--user')
 arg_parser.add_argument('--pass')
 arg_parser.add_argument('--device-id', default="test")
+arg_parser.add_argument('--identify', default="")
 arguments = arg_parser.parse_args()
+
+arguments.port = int(arguments.port)
+
+if arguments.identify:
+  print(json.dumps({"id": "audio_recorder"}))
+  exit()
 
 #This is turned into a str because otherwise python-mpv and faster-whisper broke
 recorded_audio_wav_path = str(audio_recorder_temp_path.joinpath("recorded_audio.wav"))
@@ -44,7 +51,7 @@ sample_rate = 16000 # Also saves data, though it may be changed in the future
 frame_size = 1280 # This value chosen because oww recommends 80ms frames, 16000/1280 = 12.5, 1000/12.5 = 80ms, and I just didn't change it for the recorder
 vad_speech_margin_init = 16000 # The number of samples (normally 16000 for 1s) of "Not Speech" before the recording stops
 
-vad_threshold = 0.1 #VAD set so low purely to prevent wasting time trying to understand silence. Tune manually if wanted.
+vad_threshold = 2 #VAD set so low purely to prevent wasting time trying to understand silence. Tune manually if wanted.
 vad_aggressiveness = 3 # 0-3, least to most aggressive at filtering noise
 
 from pyaudio import PyAudio, paInt16
@@ -61,8 +68,6 @@ for device_index in range(total_devices):
     mic_index = audio_recording_system.get_device_info_by_host_api_device_index(0, device_index).get("index")
 print(f"Found pipewire at index {mic_index}")
 
-speech_buffer = []
-
 ## Open Mic:
 print("Opening Mic")
 mic_stream = audio_recording_system.open(format=paInt16, channels=channels, rate=sample_rate, input=True, frames_per_buffer=frame_size, input_device_index=mic_index)
@@ -73,6 +78,7 @@ import paho.mqtt.publish as publish
 while True:
   try:
     request_id = json.loads(mqtt_subscribe.simple(f"bloob/{arguments.device_id}/audio_recorder/record_speech", hostname = arguments.host, port = arguments.port ).payload.decode())["id"]
+    speech_buffer = []
   except json.decoder.JSONDecodeError:
     print("Recieved invalid JSON")
   while True:
@@ -96,6 +102,7 @@ while True:
           vad_speech_margin -= 320
 
     print("Finished recording, saving audio")
+
     with wave.open(recorded_audio_wav_path, 'wb') as wf:
       wf.setnchannels(channels)
       wf.setsampwidth(audio_recording_system.get_sample_size(paInt16))

@@ -1,88 +1,65 @@
-""" The Orchestrator. Part of Blueberry """
-import asyncio
-import aiomqtt
-import sys
-import logging
-import core
-import mqttserver
-import argparse
-import os
 import pathlib
+import os
+import subprocess
 import json
-import webserver
-import webserver.server
+import atexit
+from time import sleep
+import paho.mqtt.publish as publish
+import paho.mqtt.subscribe as subscribe
+import pathlib
 
-# Arguments
-parser = argparse.ArgumentParser()
-parser.add_argument('--data-dir', default=None)
-arguments = parser.parse_args()
-# Get the logging set up
-logging.basicConfig(level=logging.DEBUG)
 
-logging.addLevelName( logging.DEBUG, "\033[96m%s\033[1;0m" % logging.getLevelName(logging.DEBUG))
-logging.addLevelName( logging.INFO, "\033[92m%s\033[1;0m" % logging.getLevelName(logging.INFO))
-logging.addLevelName( logging.WARNING, "\033[93m%s\033[1;0m" % logging.getLevelName(logging.WARNING))
-logging.addLevelName( logging.ERROR, "\033[91m%s\033[1;0m" % logging.getLevelName(logging.ERROR))
-logging.addLevelName( logging.CRITICAL, "\033[91m%s\033[1;0m" % logging.getLevelName(logging.CRITICAL))
+def exit_cleanup():
+  for core in loaded_cores:
+    list(core.values())[0].kill()
+atexit.register(exit_cleanup)
 
-logging.info("Orchestrator starting up.")
+data_dir = pathlib.Path(os.environ["HOME"]).joinpath(".config/bloob")
 
+
+with open(data_dir.joinpath("config.json"), 'r') as config_file:
+  config_json = json.load(config_file)
+
+
+cores_dir = data_dir.joinpath("cores")
 parent_folder_dir = pathlib.Path(__file__).parents[1]
 
-async def main():
-    # Get the data dir sorted
-    if(arguments.data_dir == None):
-        data_dir = pathlib.Path(os.environ["HOME"]).joinpath(".config/bloob")
-    else:
-        data_dir = pathlib.Path(arguments.data_dir)
-    logging.debug(f"using {data_dir} for data")
-    cores_dir = data_dir.joinpath("cores")
-    if (not data_dir.exists()):
-        logging.info("Creating data directory.")
-        os.mkdir(data_dir)
-    if (not cores_dir.exists()):
-        logging.info("Creating cores directory.")
-        os.mkdir(cores_dir)
-    # Load the configuration file
-    try:
-        with open(data_dir.joinpath("config.json"),"r") as f:
-            config = json.load(f)
-    except json.decoder.JSONDecodeError:
-        logging.critical("Configuration parse failed, invalid JSON. Exiting.")
-        exit(0)
-    # Prepare the MQTT configuration
-    json_config_mqtt = config.get("mqtt")
-    if json_config_mqtt == None:
-        exit("No MQTT configuration found, exiting.")
-    mqtt_config = mqttserver.MQTTServer(host=json_config_mqtt.get("host"), port=json_config_mqtt.get("port"), user=json_config_mqtt.get("user"), password=json_config_mqtt.get("password"))
-    # Then, ready all the cores
-    logging.debug(f"Using {cores_dir} for cores")
-    builtin_cores = []
-    builtin_cores.extend([parent_folder_dir.joinpath("audio_playback/main.py"), parent_folder_dir.joinpath("audio_recorder/main.py"), parent_folder_dir.joinpath("stt/main.py"), parent_folder_dir.joinpath("tts/main.py"), parent_folder_dir.joinpath("wakeword/main.py")])
-    loaded_cores = []
-    core_files = [str(core) for core in cores_dir.glob('*bb_core*')] + builtin_cores
-    for core_file in core_files:
-        loaded_cores.append(core.Core(path=core_file,mqtt=mqtt_config, devid=config.get("device_id")))
-    # Now, start all the cores
-    for core_object in loaded_cores:
-        core_object.run()
-    # Run the webserver
-    httpserver = webserver.server.OrchestratorHTTPServer(config)
-    
-    await httpserver.run_server()
-    # Enter loop
-    try:
-        while True:
-            await asyncio.sleep(1)
-    except:
-        # Time to stop
-        logging.info("Shutting down.")
-        for core_object in loaded_cores:
-            core_object.stop()
-            logging.info(f"Stopped core: {core_object.name}")
-        logging.info("Stopping webserver")
-        await httpserver.runner.cleanup()
-    
+builtin_cores = []
+builtin_cores.extend([parent_folder_dir.joinpath("audio_playback/main.py"), parent_folder_dir.joinpath("audio_recorder/main.py"), parent_folder_dir.joinpath("stt/main.py"), parent_folder_dir.joinpath("tts/main.py"), parent_folder_dir.joinpath("wakeword/main.py")])
+external_core_files = [str(core) for core in cores_dir.glob('*bb_core*')] + builtin_cores
+loaded_cores = []
 
-if __name__ == "__main__":
-    asyncio.run(main())
+
+for core_file in external_core_files:
+  print(f"Attempting to load {core_file}")
+  core_run = subprocess.run([core_file, "--identify", "true"],capture_output=True)
+  core_json = json.loads(core_run.stdout.decode())
+  loaded_cores.append({core_json["id"]: subprocess.Popen([core_file, "--host", config_json["mqtt"]["host"], "--port", str(config_json["mqtt"]["port"]), "--device-id", config_json["uuid"]], stdout=subprocess.PIPE, stderr=subprocess.PIPE)})
+
+  print(f"Loaded {core_json['id']}")
+
+sleep(1)
+
+# Detection loop
+while True:
+  print("Waiting for wakeword...")
+
+  #Wait for wakeword
+  subscribe.simple(f"bloob/{config_json['uuid']}/wakeword/detected", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+  print("Wakeword detected, starting recording")
+
+  #Start recording
+  publish.single(f"bloob/{config_json['uuid']}/audio_recorder/record_speech", payload=json.dumps({"id": 1}) ,hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+  #Receieve recording
+  recording = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/audio_recorder/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload)["audio"]
+  print("Recording finished, starting transcription")
+
+  #Transcribe
+  publish.single(f"bloob/{config_json['uuid']}/stt/transcribe", payload=json.dumps({"id": 1, "audio": recording}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+  #Receive transcription
+  transcript = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/stt/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload)["text"]
+  print(f"Transcription finished - {transcript} - starting intent recognition")
+
+
+
+input()

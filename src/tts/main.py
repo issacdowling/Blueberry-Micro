@@ -33,7 +33,15 @@ arg_parser.add_argument('--pass')
 arg_parser.add_argument('--device-id', default="test")
 arg_parser.add_argument('--tts-path', default=default_tts_path)
 arg_parser.add_argument('--tts-model', default="en_US-lessac-high")
+arg_parser.add_argument('--identify', default="")
 arguments = arg_parser.parse_args()
+
+arguments.port = int(arguments.port)
+
+if arguments.identify:
+  print(json.dumps({"id": "tts"}))
+  exit()
+
 
 output_audio_path = f"{tts_temp_path}/out.wav"
 

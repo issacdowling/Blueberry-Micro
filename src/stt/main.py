@@ -37,7 +37,15 @@ arg_parser.add_argument('--pass')
 arg_parser.add_argument('--device-id', default="test")
 arg_parser.add_argument('--stt-path', default=default_stt_path)
 arg_parser.add_argument('--stt-model', default="Systran/faster-distil-whisper-small.en")
+arg_parser.add_argument('--identify', default="")
 arguments = arg_parser.parse_args()
+
+arguments.port = int(arguments.port)
+
+if arguments.identify:
+  print(json.dumps({"id": "stt"}))
+  exit()
+
 
 if not os.path.exists(arguments.stt_path):
   os.makedirs(arguments.stt_path)
@@ -62,6 +70,7 @@ def transcribe(audio):
   segments, info = model.transcribe(audio, beam_size=5, condition_on_previous_text=False) #condition_on_previous_text=False reduces hallucinations and inference time with no downsides for our short text.
 
   print("Transcribing...")
+  
   raw_spoken_words = ""
   for segment in segments:
     raw_spoken_words += segment.text
