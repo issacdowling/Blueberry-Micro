@@ -138,7 +138,7 @@ def parse(text_to_parse, intents):
   return None, None
 
 while True:
-  request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/intent_parser/run").payload.decode())
+  request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/intent_parser/run", hostname = arguments.host, port = arguments.port).payload.decode())
   cleaned_input = clean_input(request_json["text"])
   parsed_intent, parsed_core = parse(text_to_parse=cleaned_input, intents=intents)
   publish.single(f"bloob/{arguments.device_id}/intent_parser/finished", payload=json.dumps({"intent": parsed_intent, "core": parsed_core, "text": cleaned_input, "id": request_json["id"]}), hostname=arguments.host, port=arguments.port)
