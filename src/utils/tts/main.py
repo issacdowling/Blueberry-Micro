@@ -38,8 +38,9 @@ arguments = arg_parser.parse_args()
 
 arguments.port = int(arguments.port)
 
+core_id = "tts"
 if arguments.identify:
-  print(json.dumps({"id": "tts"}))
+  print(json.dumps({"id": core_id}))
   exit()
 
 

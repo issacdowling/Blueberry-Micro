@@ -38,8 +38,9 @@ arguments = arg_parser.parse_args()
 
 arguments.port = int(arguments.port)
 
+core_id = "audio_playback"
 if arguments.identify:
-	print(json.dumps({"id": "audio_playback"}))
+	print(json.dumps({"id": core_id}))
 	exit()
 
 def play(audio):

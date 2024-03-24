@@ -32,7 +32,6 @@ arguments = arg_parser.parse_args()
 arguments.port = int(arguments.port)
 
 core_id = "intent_parser"
-
 if arguments.identify:
   print(json.dumps({"id": core_id}))
   exit()
