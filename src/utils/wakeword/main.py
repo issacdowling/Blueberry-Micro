@@ -38,8 +38,9 @@ arguments = arg_parser.parse_args()
 
 arguments.port = int(arguments.port)
 
+core_id = "wakeword"
 if arguments.identify:
-  print(json.dumps({"id": "wakeword"}))
+  print(json.dumps({"id": core_id}))
   exit()
 
 
