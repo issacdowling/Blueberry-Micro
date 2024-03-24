@@ -10,6 +10,7 @@ import subprocess
 import asyncio
 import sys
 import re
+import aiomqtt
 import json
 import base64
 import pathlib
