@@ -8,7 +8,6 @@ Will respond with {"id": identifier_of_this_request: str, "intent": intent["inte
 import argparse
 import subprocess
 import asyncio
-import aiomqtt
 import sys
 import re
 import json

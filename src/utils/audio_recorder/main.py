@@ -8,7 +8,6 @@ Will respond with {"id": received_id: str, "audio": audio: str}, where audio is 
 import argparse
 import subprocess
 import asyncio
-import aiomqtt
 import sys
 import re
 import json

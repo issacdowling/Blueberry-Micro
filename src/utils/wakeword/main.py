@@ -8,7 +8,6 @@ Will respond with {"wakeword_id": id_of_detected_wakeword: str, "confidence": co
 import argparse
 import subprocess
 import asyncio
-import aiomqtt
 import sys
 import re
 import json
