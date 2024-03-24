@@ -99,7 +99,7 @@ mic_stream = audio_recording_system.open(format=paInt16, channels=channels, rate
 ## Detection loop
 print("Waiting for wakeword:")
 while True:
-
+  speech_buffer = []
   ## Begin capturing audio
   current_frame = np.frombuffer(mic_stream.read(frame_size), dtype=np.int16)
 
