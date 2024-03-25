@@ -49,10 +49,9 @@ import wave
 channels = 1 # Mono since stereo would be a waste of data
 sample_rate = 16000 # Also saves data, though it may be changed in the future
 frame_size = 1280 # This value chosen because oww recommends 80ms frames, 16000/1280 = 12.5, 1000/12.5 = 80ms, and I just didn't change it for the recorder
-vad_speech_margin_init = 16000 # The number of samples (normally 16000 for 1s) of "Not Speech" before the recording stops
+vad_speech_margin_init = 8000 # The number of samples (normally 16000 for 1s) of "Not Speech" before the recording stops
 
-vad_threshold = 2 #VAD set so low purely to prevent wasting time trying to understand silence. Tune manually if wanted.
-vad_aggressiveness = 3 # 0-3, least to most aggressive at filtering noise
+vad_aggressiveness = 2 # 0-3, least to most aggressive at filtering noise
 
 from pyaudio import PyAudio, paInt16
 audio_recording_system = PyAudio()
