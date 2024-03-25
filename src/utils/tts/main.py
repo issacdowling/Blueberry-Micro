@@ -54,7 +54,7 @@ def speak(text):
 	print(f"Spoken: {speech_text}")
 
 async def connect():
-	async with aiomqtt.Client(arguments.host) as client:
+	async with aiomqtt.Client(hostname=arguments.host, port=arguments.port) as client:
 		await client.subscribe(f"bloob/{arguments.device_id}/tts/run")
 		async for message in client.messages:
 			try:
