@@ -14,8 +14,8 @@ import json
 import base64
 import pathlib
 import os
-import paho.mqtt.publish as publish
 import paho.mqtt.subscribe as subscribe
+import paho.mqtt.publish as publish
 
 default_data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob") 
 
@@ -35,6 +35,16 @@ core_id = "intent_parser"
 if arguments.identify:
   print(json.dumps({"id": core_id}))
   exit()
+
+
+
+
+# Set up MQTT config
+def on_intent_change(client, _, message):
+  pass
+  # print(message.payload.decode())
+# subscribe.callback(on_intent_change, f"bloob/{arguments.device_id}/cores/+/config", hostname=arguments.host, port=int(arguments.port))
+
 
 # Can be provided with a str, or list, where it'll search for that str or 
 # each str in the list as a whole word in spoken_words (or whatever the search_string arg is)
@@ -112,8 +122,13 @@ state_percentage_keyphrases = ["percent", "%", "percentage"]
 from datetime import datetime
 
 intents = [
-
-  {"intentName" : "getDate", "keywords": ["date", "day", "time"], "type": "get", "core": "date_handler", "private": True},
+{
+    "intentName" : "getDate",
+    "keywords": ["date", "day", "time"],
+    "type": "get",
+    "core_id": "date_time_get",
+    "private": True
+  },
   {"intentName" : "setCar", "keywords": ["motor", "vehicle", "wheels"], "type": "set", "core": "date_handler", "private": True},
   {"intentName" : "getCat", "keywords": ["meow", "cat2", "cat"], "type": "get", "core": "cat_handler", "private": True},
   {"intentName" : "setColour", "keywords": ["yellow", "orange", "blue"], "type": "set", "core": "date_handler", "private": True}
@@ -128,39 +143,17 @@ def parse(text_to_parse, intents):
     if intent.get("keywords") != None:
       if intent.get("type") == "set" and getTextMatches(match_item=set_keyphrases, search_string=text_to_parse):
         if getTextMatches(match_item=intent["keywords"], search_string=text_to_parse):
-          return intent["intentName"], intent["core"]
+          return intent["intentName"], intent["core_id"]
           break
       elif intent.get("type") == "get" and getTextMatches(match_item=get_keyphrases, search_string=text_to_parse):
         if getTextMatches(match_item=intent["keywords"], search_string=text_to_parse):
-          return intent["intentName"], intent["core"]
+          return intent["intentName"], intent["core_id"]
           break
 
   return None, None
 
 while True:
-  request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/intent_parser/run", hostname = arguments.host, port = arguments.port).payload.decode())
+  request_json =  json.loads(subscribe.simple(f"bloob/{arguments.device_id}/intent_parser/run", hostname=arguments.host, port=arguments.port).payload.decode())
   cleaned_input = clean_input(request_json["text"])
   parsed_intent, parsed_core = parse(text_to_parse=cleaned_input, intents=intents)
-  publish.single(f"bloob/{arguments.device_id}/intent_parser/finished", payload=json.dumps({"intent": parsed_intent, "core": parsed_core, "text": cleaned_input, "id": request_json["id"]}), hostname=arguments.host, port=arguments.port)
-  
-
-# ## Get the time 
-# elif getTextMatches("time"):
-#   now = datetime.now()
-#   if now.strftime('%p') == "PM":
-#     apm = "PM"
-#   else:
-#     apm = "PM"
-#   print(f"The time is {now.strftime('%I')}:{now.strftime('%M')} {apm}")
-# ## Get the date
-# elif getTextMatches("date"):
-#   pass
-
-
-# TODO: Special case words, check for the word at the start of speech, then send the rest on to whatever has asked for us to check for that case
-# #Special case for "play" or "search" keywords for media and web queries:
-# elif spoken_words_list[0] == "play":
-#   pass
-# elif spoken_words_list[0] == "search":
-#   pass
-
+  publish.single(f"bloob/{arguments.device_id}/intent_parser/finished", payload=json.dumps({"intent": parsed_intent, "core_id": parsed_core, "text": cleaned_input, "id": request_json["id"]}))
