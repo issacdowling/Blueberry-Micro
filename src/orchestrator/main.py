@@ -10,10 +10,14 @@ import pathlib
 from random import randint
 
 def exit_cleanup():
+  #Kill cores
   for core in loaded_cores:
     list(core.values())[0].kill()
   for core in loaded_utils:
     list(core.values())[0].kill()
+  #Clear the retained cores/list message
+  publish.single(f"bloob/{config_json['uuid']}/cores/list", payload=None, retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+  
 atexit.register(exit_cleanup)
 
 data_dir = pathlib.Path(os.environ["HOME"]).joinpath(".config/bloob")
@@ -52,6 +56,10 @@ for core_file in external_core_files + internal_core_files:
 
   print(f"Loaded Core: {core_json['id']}")
 
+#Publish and retain loaded cores for access over MQTT
+publish.single(f"bloob/{config_json['uuid']}/cores/list", payload=json.dumps({"loaded_cores": [list(core.keys())[0] for core in loaded_cores]}), retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+
+
 sleep(1)
 
 # Detection loop
@@ -82,14 +90,21 @@ while True:
   parsed_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/intent_parser/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload.decode())
   print(f"Parsing finished - sending to core")
 
-  #Fire intent to relevant core
-  publish.single(f"bloob/{config_json['uuid']}/cores/{parsed_json['core_id']}/run", payload=json.dumps({"id": request_identifier, "intent": parsed_json['intent'], "text": parsed_json['text']}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"], client_id="bloob-orchestrator")
-  #Get output from the core
-  core_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/cores/{parsed_json['core_id']}/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"], client_id="bloob-orchestrator").payload.decode())
-  print(f"Core finished - sending to TTS")
+  # Handle the intent not being recognised by saying that we didn't understand
+  if not (parsed_json["core_id"] == None or parsed_json["intent"] == None):
+    #Fire intent to relevant core
+    publish.single(f"bloob/{config_json['uuid']}/cores/{parsed_json['core_id']}/run", payload=json.dumps({"id": request_identifier, "intent": parsed_json['intent'], "text": parsed_json['text']}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"], client_id="bloob-orchestrator")
+    #Get output from the core
+    core_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/cores/{parsed_json['core_id']}/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"], client_id="bloob-orchestrator").payload.decode())
+    print(f"Core finished - sending to TTS")
+    speech_text = core_json["speech"]
+    explanation = core_json["explanation"]
+  else:
+    speech_text = "I'm not sure what you mean, could you repeat that?"
+    explanation = "Failed to recognise what the user meant"
 
   #Text to speech the core's output
-  publish.single(f"bloob/{config_json['uuid']}/tts/run", payload=json.dumps({"id": request_identifier, "text": core_json["speech"]}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+  publish.single(f"bloob/{config_json['uuid']}/tts/run", payload=json.dumps({"id": request_identifier, "text": speech_text}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
   #Get TTS output
   tts_audio = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/tts/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload.decode())["audio"]
   print(f"TTS finished - sending to audio_playback")

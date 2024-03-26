@@ -36,16 +36,6 @@ if arguments.identify:
   print(json.dumps({"id": core_id}))
   exit()
 
-
-
-
-# Set up MQTT config
-def on_intent_change(client, _, message):
-  pass
-  # print(message.payload.decode())
-# subscribe.callback(on_intent_change, f"bloob/{arguments.device_id}/cores/+/config", hostname=arguments.host, port=int(arguments.port))
-
-
 # Can be provided with a str, or list, where it'll search for that str or 
 # each str in the list as a whole word in spoken_words (or whatever the search_string arg is)
 # and return them in spoken order
@@ -121,24 +111,23 @@ state_percentage_keyphrases = ["percent", "%", "percentage"]
 
 from datetime import datetime
 
-intents = [
-{
-    "intentName" : "getDate",
-    "keywords": ["date", "day", "time"],
-    "type": "get",
-    "core_id": "date_time_get",
-    "private": True
-  },
-  {"intentName" : "setCar", "keywords": ["motor", "vehicle", "wheels"], "type": "set", "core": "date_handler", "private": True},
-  {"intentName" : "getCat", "keywords": ["meow", "cat2", "cat"], "type": "get", "core": "cat_handler", "private": True},
-  {"intentName" : "setColour", "keywords": ["yellow", "orange", "blue"], "type": "set", "core": "date_handler", "private": True}
-  
-]
+intents = []
+
+# Get the list of cores, then get the config of each, find all intents, and load them here.
+loaded_cores = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/list",hostname=arguments.host, port=arguments.port).payload.decode())["loaded_cores"]
+for core_id in loaded_cores:
+  print(core_id)
+  core_conf = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/config",hostname=arguments.host, port=arguments.port).payload.decode())
+  print(core_conf)
+  for intent in core_conf["intents"]:
+    intents.append(intent)
 
 def parse(text_to_parse, intents):
   if len(text_to_parse) == 0:
     return None, None
   
+  ## TODO: Allow only checking for the first word
+  ## TODO: ALlow checking for which wakeword was spoken
   for intent in intents:
     if intent.get("keywords") != None:
       if intent.get("type") == "set" and getTextMatches(match_item=set_keyphrases, search_string=text_to_parse):
@@ -156,4 +145,4 @@ while True:
   request_json =  json.loads(subscribe.simple(f"bloob/{arguments.device_id}/intent_parser/run", hostname=arguments.host, port=arguments.port).payload.decode())
   cleaned_input = clean_input(request_json["text"])
   parsed_intent, parsed_core = parse(text_to_parse=cleaned_input, intents=intents)
-  publish.single(f"bloob/{arguments.device_id}/intent_parser/finished", payload=json.dumps({"intent": parsed_intent, "core_id": parsed_core, "text": cleaned_input, "id": request_json["id"]}))
+  publish.single(f"bloob/{arguments.device_id}/intent_parser/finished", payload=json.dumps({"intent": parsed_intent, "core_id": parsed_core, "text": cleaned_input, "id": request_json["id"]}), hostname=arguments.host, port=arguments.port)
