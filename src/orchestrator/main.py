@@ -74,19 +74,30 @@ while True:
 	#Start recording
 	publish.single(f"bloob/{config_json['uuid']}/audio_recorder/record_speech", payload=json.dumps({"id": request_identifier}) ,hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 	#Receieve recording
-	recording = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/audio_recorder/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload)["audio"]
+	received_id = None
+	while received_id != request_identifier:
+		recording_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/audio_recorder/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload)
+		received_id = recording_json["id"]
+	recording = recording_json["audio"]
 	print("Recording finished, starting transcription")
 
 	#Transcribe
 	publish.single(f"bloob/{config_json['uuid']}/stt/transcribe", payload=json.dumps({"id": request_identifier, "audio": recording}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 	#Receive transcription
-	transcript = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/stt/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload)["text"]
+	received_id = None
+	while received_id != request_identifier:
+		stt_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/stt/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload)
+		received_id = stt_json["id"]
+	transcript = stt_json["text"]
 	print(f"Transcription finished - {transcript} - sending to intent parser")
 
 	#Parse
 	publish.single(f"bloob/{config_json['uuid']}/intent_parser/run", payload=json.dumps({"id": request_identifier, "text": transcript}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 	#Receieve parsed intent
-	parsed_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/intent_parser/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload.decode())
+	received_id = None
+	while received_id != request_identifier:
+		parsed_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/intent_parser/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload.decode())
+		received_id = parsed_json["id"]
 	print(f"Parsing finished - sending to core")
 
 	# Handle the intent not being recognised by saying that we didn't understand
@@ -94,7 +105,10 @@ while True:
 		#Fire intent to relevant core
 		publish.single(f"bloob/{config_json['uuid']}/cores/{parsed_json['core_id']}/run", payload=json.dumps({"id": request_identifier, "intent": parsed_json['intent'], "text": parsed_json['text']}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"], client_id="bloob-orchestrator")
 		#Get output from the core
-		core_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/cores/{parsed_json['core_id']}/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"], client_id="bloob-orchestrator").payload.decode())
+		received_id = None
+		while received_id != request_identifier:
+			core_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/cores/{parsed_json['core_id']}/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"], client_id="bloob-orchestrator").payload.decode())
+			received_id = core_json["id"]
 		print(f"Core finished - sending to TTS")
 		speech_text = core_json["speech"]
 		explanation = core_json["explanation"]
@@ -105,7 +119,11 @@ while True:
 	#Text to speech the core's output
 	publish.single(f"bloob/{config_json['uuid']}/tts/run", payload=json.dumps({"id": request_identifier, "text": speech_text}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 	#Get TTS output
-	tts_audio = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/tts/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload.decode())["audio"]
+	received_id = None
+	while received_id != request_identifier:
+		tts_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/tts/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload.decode())
+		received_id = tts_json["id"]
+	tts_audio = tts_json["audio"]
 	print(f"TTS finished - sending to audio_playback")
 
 	#Send to audio playback util
