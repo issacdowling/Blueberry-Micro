@@ -1,16 +1,16 @@
 #!/bin/env python3
 """ MQTT connected Audio playback program for Blueberry, making use of MPV
 
-Wishes to be provided with {"id", id: str, "audio": audio: str}, where audio is a WAV file, encoded as b64 bytes then decoded into a string, over MQTT to "bloob/{arguments.device_id}/audio_playback/play"
+Wishes to be provided with {"id", id: str, "audio": audio: str}, where audio is a WAV file, encoded as b64 bytes then decoded into a string, over MQTT to "bloob/{arguments.device_id}/audio_playback/run"
 
 Will respond with {"id": received_id: str, "audio": received_audio: str}. The audio is an exact copy of what was sent. To "bloob/{arguments.device_id}/audio_playback/finished"
 """
 import argparse
 import subprocess
 import asyncio
-import aiomqtt
 import sys
 import re
+import aiomqtt
 import json
 import base64
 import pathlib
@@ -34,7 +34,15 @@ arg_parser.add_argument('--port', default=1883)
 arg_parser.add_argument('--user')
 arg_parser.add_argument('--pass')
 arg_parser.add_argument('--device-id', default="test")
+arg_parser.add_argument('--identify', default="")
 arguments = arg_parser.parse_args()
+
+arguments.port = int(arguments.port)
+
+core_id = "audio_playback"
+if arguments.identify:
+	print(json.dumps({"id": core_id}))
+	exit()
 
 def play(audio):
 	## Save last played audio to tmp for debugging
@@ -48,7 +56,7 @@ def play(audio):
 async def connect():
 	async with aiomqtt.Client(arguments.host) as client:
 		# await client.subscribe(f"bloob/{arguments.device_id}/audio_recorder/finished") # This is for testing, it'll automatically play what the TTS says
-		await client.subscribe(f"bloob/{arguments.device_id}/audio_playback/play")
+		await client.subscribe(f"bloob/{arguments.device_id}/audio_playback/run")
 		async for message in client.messages:
 			try:
 				message_payload = json.loads(message.payload.decode())

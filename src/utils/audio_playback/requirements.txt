@@ -1,0 +1,5 @@
+# Audio Playback
+mpv
+#Install (ARCH: pipewire-alsa and mpv)
+
+aiomqtt

@@ -8,7 +8,6 @@ Will respond with {"wakeword_id": id_of_detected_wakeword: str, "confidence": co
 import argparse
 import subprocess
 import asyncio
-import aiomqtt
 import sys
 import re
 import json
@@ -34,7 +33,16 @@ arg_parser.add_argument('--pass')
 arg_parser.add_argument('--device-id', default="test")
 arg_parser.add_argument('--ww-path', default=default_ww_path)
 arg_parser.add_argument('--ww-model', default="en_US-lessac-high")
+arg_parser.add_argument('--identify', default="")
 arguments = arg_parser.parse_args()
+
+arguments.port = int(arguments.port)
+
+core_id = "wakeword"
+if arguments.identify:
+  print(json.dumps({"id": core_id}))
+  exit()
+
 
 # Create Wakeword data directory if necessary
 if not os.path.exists(arguments.ww_path):
@@ -91,7 +99,7 @@ mic_stream = audio_recording_system.open(format=paInt16, channels=channels, rate
 ## Detection loop
 print("Waiting for wakeword:")
 while True:
-
+  speech_buffer = []
   ## Begin capturing audio
   current_frame = np.frombuffer(mic_stream.read(frame_size), dtype=np.int16)
 

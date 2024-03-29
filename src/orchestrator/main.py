@@ -1,88 +1,141 @@
-""" The Orchestrator. Part of Blueberry """
-import asyncio
-import aiomqtt
-import sys
-import logging
-import core
-import mqttserver
-import argparse
-import os
 import pathlib
+import os
+import subprocess
 import json
-import webserver
-import webserver.server
+import atexit
+from time import sleep
+import paho.mqtt.publish as publish
+import paho.mqtt.subscribe as subscribe
+import pathlib
+import base64
+from random import randint
 
-# Arguments
-parser = argparse.ArgumentParser()
-parser.add_argument('--data-dir', default=None)
-arguments = parser.parse_args()
-# Get the logging set up
-logging.basicConfig(level=logging.DEBUG)
+import core
 
-logging.addLevelName( logging.DEBUG, "\033[96m%s\033[1;0m" % logging.getLevelName(logging.DEBUG))
-logging.addLevelName( logging.INFO, "\033[92m%s\033[1;0m" % logging.getLevelName(logging.INFO))
-logging.addLevelName( logging.WARNING, "\033[93m%s\033[1;0m" % logging.getLevelName(logging.WARNING))
-logging.addLevelName( logging.ERROR, "\033[91m%s\033[1;0m" % logging.getLevelName(logging.ERROR))
-logging.addLevelName( logging.CRITICAL, "\033[91m%s\033[1;0m" % logging.getLevelName(logging.CRITICAL))
+def exit_cleanup():
+	#Kill cores
+	for core in loaded_cores:
+		core.stop()
+	for util in loaded_utils:
+		util.stop()
+	#Clear the retained cores/list message
+	publish.single(f"bloob/{config_json['uuid']}/cores/list", payload=None, retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+	
+atexit.register(exit_cleanup)
 
-logging.info("Orchestrator starting up.")
+data_dir = pathlib.Path(os.environ["HOME"]).joinpath(".config/bloob")
 
+cores_dir = data_dir.joinpath("cores")
 parent_folder_dir = pathlib.Path(__file__).parents[1]
 
-async def main():
-    # Get the data dir sorted
-    if(arguments.data_dir == None):
-        data_dir = pathlib.Path(os.environ["HOME"]).joinpath(".config/bloob")
-    else:
-        data_dir = pathlib.Path(arguments.data_dir)
-    logging.debug(f"using {data_dir} for data")
-    cores_dir = data_dir.joinpath("cores")
-    if (not data_dir.exists()):
-        logging.info("Creating data directory.")
-        os.mkdir(data_dir)
-    if (not cores_dir.exists()):
-        logging.info("Creating cores directory.")
-        os.mkdir(cores_dir)
-    # Load the configuration file
-    try:
-        with open(data_dir.joinpath("config.json"),"r") as f:
-            config = json.load(f)
-    except json.decoder.JSONDecodeError:
-        logging.critical("Configuration parse failed, invalid JSON. Exiting.")
-        exit(0)
-    # Prepare the MQTT configuration
-    json_config_mqtt = config.get("mqtt")
-    if json_config_mqtt == None:
-        exit("No MQTT configuration found, exiting.")
-    mqtt_config = mqttserver.MQTTServer(host=json_config_mqtt.get("host"), port=json_config_mqtt.get("port"), user=json_config_mqtt.get("user"), password=json_config_mqtt.get("password"))
-    # Then, ready all the cores
-    logging.debug(f"Using {cores_dir} for cores")
-    builtin_cores = []
-    builtin_cores.extend([parent_folder_dir.joinpath("audio_playback/main.py"), parent_folder_dir.joinpath("audio_recorder/main.py"), parent_folder_dir.joinpath("stt/main.py"), parent_folder_dir.joinpath("tts/main.py"), parent_folder_dir.joinpath("wakeword/main.py")])
-    loaded_cores = []
-    core_files = [str(core) for core in cores_dir.glob('*bb_core*')] + builtin_cores
-    for core_file in core_files:
-        loaded_cores.append(core.Core(path=core_file,mqtt=mqtt_config, devid=config.get("device_id")))
-    # Now, start all the cores
-    for core_object in loaded_cores:
-        core_object.run()
-    # Run the webserver
-    httpserver = webserver.server.OrchestratorHTTPServer(config)
-    
-    await httpserver.run_server()
-    # Enter loop
-    try:
-        while True:
-            await asyncio.sleep(1)
-    except:
-        # Time to stop
-        logging.info("Shutting down.")
-        for core_object in loaded_cores:
-            core_object.stop()
-            logging.info(f"Stopped core: {core_object.name}")
-        logging.info("Stopping webserver")
-        await httpserver.runner.cleanup()
-    
+resources_dir = parent_folder_dir.joinpath("resources")
 
-if __name__ == "__main__":
-    asyncio.run(main())
+with open(data_dir.joinpath("config.json"), 'r') as config_file:
+	config_json = json.load(config_file)
+
+util_files = []
+util_files.extend([parent_folder_dir.joinpath("utils/audio_playback/main.py"), parent_folder_dir.joinpath("utils/audio_recorder/main.py"), parent_folder_dir.joinpath("utils/stt/main.py"), parent_folder_dir.joinpath("utils/tts/main.py"), parent_folder_dir.joinpath("utils/wakeword/main.py"), parent_folder_dir.joinpath("utils/intent_parser/main.py")])
+external_core_files = [str(core) for core in cores_dir.glob('**/*bb_core*')]
+internal_core_files = [str(core) for core in parent_folder_dir.glob('**/*bb_core*')]
+loaded_utils = []
+loaded_cores = []
+
+with open(resources_dir.joinpath("audio/begin_listening.wav"), "rb") as audio_file:
+	begin_listening_audio = base64.b64encode(audio_file.read()).decode()
+
+with open(resources_dir.joinpath("audio/stop_listening.wav"), "rb") as audio_file:
+	stop_listening_audio = base64.b64encode(audio_file.read()).decode()
+
+
+for util_file in util_files:
+	print(f"Attempting to load {util_file}")
+	## This fails if the underlying core crashes, often caused by not having the venv activated and therefore missing imports
+	core_obj = core.Core(path=util_file, host=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"], devid=config_json["uuid"])
+	loaded_utils.append(core_obj)
+	core_obj.run()
+
+	print(f"Loaded util: {core_obj.core_id}")
+	
+
+for core_file in external_core_files + internal_core_files:
+	print(f"Attempting to load {core_file}")
+	core_obj = core.Core(path=core_file, host=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"], devid=config_json["uuid"])
+	loaded_cores.append(core_obj)
+	core_obj.run()
+
+	print(f"Loaded core: {core_obj.core_id}")
+
+#Publish and retain loaded cores for access over MQTT
+publish.single(f"bloob/{config_json['uuid']}/cores/list", payload=json.dumps({"loaded_cores": [core.core_id for core in loaded_cores]}), retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+
+# Detection loop
+while True:
+	print("Waiting for wakeword...")
+
+	request_identifier = str(randint(1000,9999))
+
+	#Wait for wakeword
+	subscribe.simple(f"bloob/{config_json['uuid']}/wakeword/detected", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+	print("Wakeword detected, starting recording")
+
+	#Play sound for...
+	publish.single(f"bloob/{config_json['uuid']}/audio_playback/run", payload=json.dumps({"id": request_identifier, "audio": begin_listening_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+	#Start recording
+	publish.single(f"bloob/{config_json['uuid']}/audio_recorder/record_speech", payload=json.dumps({"id": request_identifier}) ,hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+	#Receieve recording
+	received_id = None
+	while received_id != request_identifier:
+		recording_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/audio_recorder/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload)
+		received_id = recording_json["id"]
+	#Play sound for finished recording
+	publish.single(f"bloob/{config_json['uuid']}/audio_playback/run", payload=json.dumps({"id": request_identifier, "audio": stop_listening_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+	recording = recording_json["audio"]
+	print("Recording finished, starting transcription")
+
+	#Transcribe
+	publish.single(f"bloob/{config_json['uuid']}/stt/transcribe", payload=json.dumps({"id": request_identifier, "audio": recording}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+	#Receive transcription
+	received_id = None
+	while received_id != request_identifier:
+		stt_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/stt/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload)
+		received_id = stt_json["id"]
+	transcript = stt_json["text"]
+	print(f"Transcription finished - {transcript} - sending to intent parser")
+
+	#Parse
+	publish.single(f"bloob/{config_json['uuid']}/intent_parser/run", payload=json.dumps({"id": request_identifier, "text": transcript}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+	#Receieve parsed intent
+	received_id = None
+	while received_id != request_identifier:
+		parsed_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/intent_parser/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload.decode())
+		received_id = parsed_json["id"]
+	print(f"Parsing finished - sending to core")
+
+	# Handle the intent not being recognised by saying that we didn't understand
+	if not (parsed_json["core_id"] == None or parsed_json["intent"] == None):
+		#Fire intent to relevant core
+		publish.single(f"bloob/{config_json['uuid']}/cores/{parsed_json['core_id']}/run", payload=json.dumps({"id": request_identifier, "intent": parsed_json['intent'], "text": parsed_json['text']}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"], client_id="bloob-orchestrator")
+		#Get output from the core
+		received_id = None
+		while received_id != request_identifier:
+			core_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/cores/{parsed_json['core_id']}/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"], client_id="bloob-orchestrator").payload.decode())
+			received_id = core_json["id"]
+		print(f"Core finished - sending to TTS")
+		speech_text = core_json["speech"]
+		explanation = core_json["explanation"]
+	else:
+		speech_text = "I'm not sure what you mean, could you repeat that?"
+		explanation = "Failed to recognise what the user meant"
+
+	#Text to speech the core's output
+	publish.single(f"bloob/{config_json['uuid']}/tts/run", payload=json.dumps({"id": request_identifier, "text": speech_text}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+	#Get TTS output
+	received_id = None
+	while received_id != request_identifier:
+		tts_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/tts/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload.decode())
+		received_id = tts_json["id"]
+	tts_audio = tts_json["audio"]
+	print(f"TTS finished - sending to audio_playback")
+
+	#Send to audio playback util
+	publish.single(f"bloob/{config_json['uuid']}/audio_playback/run", payload=json.dumps({"id": request_identifier, "audio": tts_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])

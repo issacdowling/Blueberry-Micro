@@ -3,45 +3,28 @@ import logging
 import subprocess
 import json
 class Core:
-    def __init__(self, path, mqtt, devid="test"):
+    def __init__(self, path, devid="test", host="localhost", port=1883, username=None, password=None):
         if devid == None:
             exit("No device_id in config")
-        self.mqttserver = mqtt
-        self.path = path
-        self.devid = devid
-        logging.debug(f"Readying core at: {self.path}")
-
+        self.devid, self.host, self.port, self.username, self.password, self.path = devid, host, port, username, password, path
+        
         # Get core identification
-        core_run = subprocess.run([self.path, "IDENTIFY"],capture_output=True)
+        core_run = subprocess.run([self.path, "--identify", "true"],capture_output=True)
         try:
             self.core_json = json.loads(core_run.stdout.decode())
-        except:
-            debug.error(f"Unable to load core at {self.path}")
+        except AttributeError:
+            logging.error(f"Unable to load core at {self.path} due to JSON issue")
             return
-        print(self.core_json)
-        self.name = self.core_json.get("name")
-        self.friendly_name = self.core_json.get("friendly_name")
-        self.is_device_handler = bool(self.core_json.get("device_handler"))
-
-        if(self.is_device_handler):
-            logging.info(f"Device Handler {self.friendly_name} loaded.")
-        else:
-            logging.info(f"Core {self.friendly_name} loaded.")
+        self.core_id = self.core_json.get("id")
     
     def construct_run_args(self):
         args = [self.path]
-        if(self.mqttserver.host != None):
-            args.append("--host")
-            args.append(self.mqttserver.host)
-        if(self.mqttserver.port != None):
-            args.append("--port")
-            args.append(str(self.mqttserver.port))
-        if(self.mqttserver.user != None):
+        if(self.username != None):
             args.append("--user")
-            args.append(self.mqttserver.user)
-        if(self.mqttserver.password != None):
+            args.append(self.username)
+        if(self.password != None):
             args.append("--pass")
-            args.append(self.mqttserver.password)
+            args.append(self.password)
         args.append("--device-id")
         args.append(self.devid)
         
