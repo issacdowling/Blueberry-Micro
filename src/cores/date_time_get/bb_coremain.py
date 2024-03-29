@@ -69,7 +69,7 @@ def get_date():
   dayNum = datetime.now().day
   month = months[(datetime.now().month)-1]
   weekday = weekdays[datetime.today().weekday()]
-  return dayNum, month, weekday
+  return str(dayNum), month, weekday
 
 def get_time():
   now = datetime.now()
@@ -92,7 +92,17 @@ while True:
   request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
   if "date" in request_json["text"] and "time" not in request_json["text"]:
     dayNum, month, weekday = get_date()
+    if dayNum[-1] == "1":
+      dayNum += "st"
+    elif dayNum[-1] == "2":
+      dayNum += "nd"
+    elif dayNum[-1] == "3":
+      dayNum += "rd"
+    else:
+      dayNum += "th"
     to_speak = f"Today, it's {weekday} the {dayNum} of {month}"
+
+      
     explanation = f"Got that the current date is the {dayNum} of {month}, which is a {weekday}"
   elif "time" in request_json["text"] and "date" not in request_json["text"]:
     hr24, hr12, minute, apm = get_time()
