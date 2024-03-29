@@ -7,6 +7,7 @@ from time import sleep
 import paho.mqtt.publish as publish
 import paho.mqtt.subscribe as subscribe
 import pathlib
+import base64
 from random import randint
 
 import core
@@ -24,13 +25,13 @@ atexit.register(exit_cleanup)
 
 data_dir = pathlib.Path(os.environ["HOME"]).joinpath(".config/bloob")
 
+cores_dir = data_dir.joinpath("cores")
+parent_folder_dir = pathlib.Path(__file__).parents[1]
+
+resources_dir = parent_folder_dir.joinpath("resources")
 
 with open(data_dir.joinpath("config.json"), 'r') as config_file:
 	config_json = json.load(config_file)
-
-
-cores_dir = data_dir.joinpath("cores")
-parent_folder_dir = pathlib.Path(__file__).parents[1]
 
 util_files = []
 util_files.extend([parent_folder_dir.joinpath("utils/audio_playback/main.py"), parent_folder_dir.joinpath("utils/audio_recorder/main.py"), parent_folder_dir.joinpath("utils/stt/main.py"), parent_folder_dir.joinpath("utils/tts/main.py"), parent_folder_dir.joinpath("utils/wakeword/main.py"), parent_folder_dir.joinpath("utils/intent_parser/main.py")])
@@ -38,6 +39,12 @@ external_core_files = [str(core) for core in cores_dir.glob('**/*bb_core*')]
 internal_core_files = [str(core) for core in parent_folder_dir.glob('**/*bb_core*')]
 loaded_utils = []
 loaded_cores = []
+
+with open(resources_dir.joinpath("audio/begin_listening.wav"), "rb") as audio_file:
+	begin_listening_audio = base64.b64encode(audio_file.read()).decode()
+
+with open(resources_dir.joinpath("audio/stop_listening.wav"), "rb") as audio_file:
+	stop_listening_audio = base64.b64encode(audio_file.read()).decode()
 
 
 for util_file in util_files:
@@ -71,6 +78,8 @@ while True:
 	subscribe.simple(f"bloob/{config_json['uuid']}/wakeword/detected", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 	print("Wakeword detected, starting recording")
 
+	#Play sound for...
+	publish.single(f"bloob/{config_json['uuid']}/audio_playback/run", payload=json.dumps({"id": request_identifier, "audio": begin_listening_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 	#Start recording
 	publish.single(f"bloob/{config_json['uuid']}/audio_recorder/record_speech", payload=json.dumps({"id": request_identifier}) ,hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 	#Receieve recording
@@ -78,6 +87,8 @@ while True:
 	while received_id != request_identifier:
 		recording_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/audio_recorder/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload)
 		received_id = recording_json["id"]
+	#Play sound for finished recording
+	publish.single(f"bloob/{config_json['uuid']}/audio_playback/run", payload=json.dumps({"id": request_identifier, "audio": stop_listening_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 	recording = recording_json["audio"]
 	print("Recording finished, starting transcription")
 
