@@ -66,6 +66,22 @@ def getDeviceMatches(device_list, search_string):
         
   return(device_matches)
 
+### Define function for checking matches between a string and lists, then ordering them
+def getSpeechMatches(match_item, check_string):
+  if type(match_item) is list:
+    matches = [phrase for phrase in match_item if(phrase in check_string)]
+    matches.sort(key=lambda phrase: check_string.find(phrase))
+    return(matches)
+  elif type(match_item) is str:
+    # This converts the string into a list so that we only get whole word matches
+    # Otherwise, "what's 8 times 12" would count as valid for checking the "time"
+    # TODO: In the list section, check if phrases are only a single word, and use this logic
+    # if so, otherwise use the current checking logic.
+    if match_item in check_string.split(" "):
+      return(match_item)
+    else:
+      return("")
+
 class WledDevice:
   def __init__(self,names,ip_address):
     self.names = names
@@ -106,11 +122,21 @@ class WledDevice:
 
 wled_devices = []
 
+## Get device configs from central config, instantiate
+device_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
+for device in device_config["devices"]:
+  wled_devices.append(WledDevice(names=device["names"], ip_address=device["ip"]))
 
 all_device_names = []
 for device in wled_devices:
   for name in device.names:
     all_device_names.append(name)
+
+state_bool_keyphrases = ["on", "off"]
+state_brightness_keyphrases = ["brightness"]
+state_percentage_keyphrases = ["percent", "%", "percentage"]
+
+state_keyphrases = state_bool_keyphrases + state_brightness_keyphrases + state_percentage_keyphrases
 
 core_config = {
   "metadata": {
@@ -125,7 +151,7 @@ core_config = {
   },
   "intents": [{
     "intent_name" : "setWLED",
-    "keywords": [all_device_names, ["on","off"]],
+    "keywords": [all_device_names, state_keyphrases],
     "type": "set",
     "core_id": core_id,
     "private": True
@@ -145,11 +171,38 @@ signal.signal(signal.SIGINT, on_exit)
 while True:
   request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
   ## TODO: Actual stuff here, matching the right device from name, state, etc
-  device = getDeviceMatches(wled_devices, request_json["text"])[0]
-  if "on" in request_json["text"]:
-    device.on()
-  else:
-    device.off()
+
+  spoken_devices = getDeviceMatches(device_list=wled_devices, search_string=request_json["text"])
+  spoken_states = getSpeechMatches(match_item=state_keyphrases, check_string=request_json["text"])
+
+  to_speak = ""
+  explanation = ""
+  for index, device in enumerate(spoken_devices):
+    # This should mean that if only one state was spoken, it'll repeat for all mentioned devices
+    try:
+      spoken_state = spoken_states[index]
+    except IndexError:
+      pass
+    ### Set the state ##################
+    to_speak += (f"Turning {device.friendly_name} {spoken_state}, " ) # Sample speech, will be better
+    print(to_speak)
+    #Boolean
+    if spoken_state == "on":
+      device.on()
+    elif spoken_state == "off":
+      device.off()
+    # Colours / custom states
+    # elif spoken_state in state_colour_keyphrases:
+    #   device.setColour(colours_json["rgb"][spoken_state])
+    # Set percentage of device (normally brightness, but could be anything else)
+    elif spoken_state in state_percentage_keyphrases:
+      how_many_numbers = 0
+      for word in request_json["text"].split(" "):
+        if word.isnumeric():
+          how_many_numbers += 1
+          spoken_number = int(word)
+      if how_many_numbers == 1 and "percent" in request_json["text"].split(" "):
+        device.setPercentage(spoken_number)
 
   publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "speech": to_speak, "explanation": explanation, "end_type": "finish"}), hostname=arguments.host, port=arguments.port)
 
