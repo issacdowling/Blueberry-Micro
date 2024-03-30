@@ -2,17 +2,18 @@ import pathlib
 import os
 import subprocess
 import json
-import atexit
 from time import sleep
 import paho.mqtt.publish as publish
 import paho.mqtt.subscribe as subscribe
 import pathlib
 import base64
 from random import randint
+import signal
+import traceback
 
 import core
 
-def exit_cleanup():
+def exit_cleanup(*args):
 	#Kill cores
 	for core in loaded_cores:
 		core.stop()
@@ -20,8 +21,10 @@ def exit_cleanup():
 		util.stop()
 	#Clear the retained cores/list message
 	publish.single(f"bloob/{config_json['uuid']}/cores/list", payload=None, retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
-	
-atexit.register(exit_cleanup)
+	exit()
+
+signal.signal(signal.SIGTERM, exit_cleanup)
+signal.signal(signal.SIGINT, exit_cleanup)
 
 data_dir = pathlib.Path(os.environ["HOME"]).joinpath(".config/bloob")
 

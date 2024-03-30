@@ -15,7 +15,7 @@ import json
 import base64
 import pathlib
 import os
-import atexit
+import signal
 
 import paho.mqtt.subscribe as subscribe
 import paho.mqtt.publish as publish
@@ -49,7 +49,7 @@ core_config = {
     "license": "AGPLv3"
   },
   "intents": [{
-    "intentName" : "getDate",
+    "intent_name" : "getDate",
     "keywords": ["date", "day", "time"],
     "type": "get",
     "core_id": core_id,
@@ -83,10 +83,12 @@ def get_time():
   return hr24, hr12, minute, apm
 
 # Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
-def on_exit():
+def on_exit(*args):
   publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
+  exit()
 
-atexit.register(on_exit)
+signal.signal(signal.SIGTERM, on_exit)
+signal.signal(signal.SIGINT, on_exit)
 
 while True:
   request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
