@@ -106,11 +106,11 @@ class WledDevice:
 
 wled_devices = []
 
-wled_devices.append(WledDevice(names=["door light", "doorframe", "door frame" "doorlight", "door lights"], ip_address="10.0.0.221"))
-wled_devices.append(WledDevice(names=["bedside light", "bed", "bedside lights"], ip_address="10.0.0.220"))
+
 all_device_names = []
 for device in wled_devices:
-  all_device_names.append(device.friendly_name)
+  for name in device.names:
+    all_device_names.append(name)
 
 core_config = {
   "metadata": {
