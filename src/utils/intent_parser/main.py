@@ -128,16 +128,44 @@ def parse(text_to_parse, intents):
   
   ## TODO: Allow only checking for the first word
   ## TODO: ALlow checking for which wakeword was spoken
+  intent_vote = []
   for intent in intents:
+
     if intent.get("keywords") != None:
-      if intent.get("type") == "set" and getTextMatches(match_item=set_keyphrases, search_string=text_to_parse):
+
+      if type(intent["keywords"][0]) == str:
         if getTextMatches(match_item=intent["keywords"], search_string=text_to_parse):
-          return intent["intentName"], intent["core_id"]
-          break
-      elif intent.get("type") == "get" and getTextMatches(match_item=get_keyphrases, search_string=text_to_parse):
-        if getTextMatches(match_item=intent["keywords"], search_string=text_to_parse):
-          return intent["intentName"], intent["core_id"]
-          break
+          intent_vote.append(intent)
+        else:
+          if intent in intent_vote:
+            intent_vote.remove(intent)
+      # TODO: Allow specifying extra keywords within a keyword (I guess it becomes an object), so there can be these conditional things per-keywords too
+      # Allows providing multiple lists of keywords to check, where there must be at least one match in each list
+      elif type(intent["keywords"][0]) == list:
+        failed_matches = False
+        for set_of_keywords in intent["keywords"]:
+          if not getTextMatches(match_item=set_of_keywords, search_string=text_to_parse):
+            failed_matches = True
+        if not failed_matches:
+          intent_vote.append(intent)
+        else:
+          if intent in intent_vote:
+            intent_vote.remove(intent)
+
+
+      if intent.get("type") == "set" and not getTextMatches(match_item=set_keyphrases, search_string=text_to_parse):
+        # Allows providing a single list of keywords to check, where at least one match is needed
+        if intent in intent_vote:
+          intent_vote.remove(intent)
+          
+      elif intent.get("type") == "get" and not getTextMatches(match_item=get_keyphrases, search_string=text_to_parse):
+        if intent in intent_vote:
+          intent_vote.remove(intent)
+
+  if len(intent_vote) == 1:
+    return intent_vote[0]["intent_name"], intent_vote[0]["core_id"]
+
+
 
   return None, None
 
