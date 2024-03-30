@@ -14,6 +14,9 @@ import traceback
 import core
 
 def exit_cleanup(*args):
+	#For each core, clear the retained message for the centralised config
+	for core in loaded_cores:
+		publish.single(f"bloob/{config_json['uuid']}/cores/{core.core_id}/orchestrated_config", payload=None, retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 	#Kill cores
 	for core in loaded_cores:
 		core.stop()
@@ -33,8 +36,8 @@ parent_folder_dir = pathlib.Path(__file__).parents[1]
 
 resources_dir = parent_folder_dir.joinpath("resources")
 
-with open(data_dir.joinpath("config.json"), 'r') as config_file:
-	config_json = json.load(config_file)
+with open(data_dir.joinpath("config.json"), 'r') as conf_file:
+	config_json = json.load(conf_file)
 
 util_files = []
 util_files.extend([parent_folder_dir.joinpath("utils/audio_playback/main.py"), parent_folder_dir.joinpath("utils/audio_recorder/main.py"), parent_folder_dir.joinpath("utils/stt/main.py"), parent_folder_dir.joinpath("utils/tts/main.py"), parent_folder_dir.joinpath("utils/wakeword/main.py"), parent_folder_dir.joinpath("utils/intent_parser/main.py")])
@@ -70,6 +73,10 @@ for core_file in external_core_files + internal_core_files:
 
 #Publish and retain loaded cores for access over MQTT
 publish.single(f"bloob/{config_json['uuid']}/cores/list", payload=json.dumps({"loaded_cores": [core.core_id for core in loaded_cores]}), retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+
+#For each core, publish the JSON object under the key of the core id, to allow centralised configs where wanted.
+for core in loaded_cores:
+	publish.single(f"bloob/{config_json['uuid']}/cores/{core.core_id}/orchestrated_config", payload=json.dumps(config_json.get(core.core_id)), retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 
 # Detection loop
 while True:
