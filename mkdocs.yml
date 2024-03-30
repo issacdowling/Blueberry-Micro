@@ -1,0 +1,41 @@
+site_name: Blueberry
+repo_url: https://gitlab.com/issacdowling/blueberry-micro
+repo_name: issacdowling/blueberry-micro
+
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for dark mode (this is the default)
+    - scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+      primary: deep purple
+
+
+    # Palette toggle for light mode
+    - scheme: default
+      toggle:
+        icon: material/brightness-7 
+        name: Switch to dark mode
+      primary: deep purple
+
+  features:
+    - content.code.copy
+    
+
+# Don't call out to Google Fonts on the user's machine!
+plugins:
+  - privacy:
+      enabled: true
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences 
+
+
+nav:
+  - Home: index.md
+  - About: about.md
