@@ -164,8 +164,9 @@ def parse(text_to_parse, intents):
       elif intent.get("type") == "get" and not getTextMatches(match_item=get_keyphrases, search_string=text_to_parse):
         if intent in intent_vote: intent_vote.remove(intent)
       
-    collection_valid = False
+    
     if intent.get("collections") != None:
+      collection_valid = False
       for collection in collections:
         if collection["id"] in intent["collections"]:
           for keyword in collection["keywords"]:
@@ -173,10 +174,10 @@ def parse(text_to_parse, intents):
               collection_valid = True
               if collection.get("substitute") != None:
                 text_to_parse = text_to_parse.replace(keyword, collection["substitute"])        
-    if collection_valid:
-      if intent not in intent_vote: intent_vote.append(intent)
-    else:
-      if intent in intent_vote: intent_vote.remove(intent)
+      if collection_valid:
+        if intent not in intent_vote: intent_vote.append(intent)
+      else:
+        if intent in intent_vote: intent_vote.remove(intent)
 
 
   print(intent_vote)
