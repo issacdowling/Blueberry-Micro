@@ -38,7 +38,7 @@ core_id = "tasmota"
 
 
 if arguments.identify:
-    print(json.dumps({"id": core_id}))
+    print(json.dumps({"id": core_id, "roles": ["intent_handler"]}))
     exit()
 
 def getDeviceMatches(device_list, search_string):
@@ -128,10 +128,14 @@ async def handle_message(message, client):
 
     if(message.topic.matches(f"bloob/{arguments.device_id}/cores/{core_id}/central_config")):
         device_config = json.loads(message.payload.decode())
-        print(f"Device config received: {device_config}")
-        # add the devices
-        for device in device_config["devices"]:
-            loaded_tasmota_devices.append(TasmotaDevice(names=device["names"], ip_address=device["ip"]))
+        if device_config != None:
+          print(f"Device config received: {device_config}")
+          # add the devices
+          for device in device_config.get("devices"):
+              loaded_tasmota_devices.append(TasmotaDevice(names=device["names"], ip_address=device["ip"]))
+        else:
+          state_keyphrases = []
+          
         core_config = {
             "metadata": {
                 "core_id": core_id,
@@ -153,6 +157,7 @@ async def handle_message(message, client):
                 }
             ]
         }
+
         # send out startup messages
 
         await client.publish(f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, qos=1)
@@ -177,7 +182,7 @@ async def handle_message(message, client):
             elif spoken_state == ("off"):
                 device.off()
 
-            await client.publish(f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": payload_json["id"], "speech": to_speak, "explanation": explanation, "end_type": "finish"}))
+            await client.publish(f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": payload_json["id"], "text": to_speak, "explanation": explanation, "end_type": "finish"}))
 
 
 
