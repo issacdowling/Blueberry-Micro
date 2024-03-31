@@ -127,6 +127,9 @@ device_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/
 for device in device_config["devices"]:
   wled_devices.append(WledDevice(names=device["names"], ip_address=device["ip"]))
 
+## Get required "colours" Collection from central Collection list
+colours_collection = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/collections/colours", hostname=arguments.host, port=arguments.port).payload.decode())
+
 all_device_names = []
 for device in wled_devices:
   for name in device.names:
@@ -136,7 +139,7 @@ state_bool_keyphrases = ["on", "off"]
 state_brightness_keyphrases = ["brightness"]
 state_percentage_keyphrases = ["percent", "%", "percentage"]
 
-state_keyphrases = state_bool_keyphrases + state_brightness_keyphrases + state_percentage_keyphrases
+state_keyphrases = state_bool_keyphrases + state_brightness_keyphrases + state_percentage_keyphrases + colours_collection["keywords"]
 
 core_config = {
   "metadata": {
@@ -181,6 +184,7 @@ while True:
     # This should mean that if only one state was spoken, it'll repeat for all mentioned devices
     try:
       spoken_state = spoken_states[index]
+      print(spoken_devices)
     except IndexError:
       pass
     ### Set the state ##################
@@ -192,8 +196,8 @@ while True:
     elif spoken_state == "off":
       device.off()
     # Colours / custom states
-    # elif spoken_state in state_colour_keyphrases:
-    #   device.setColour(colours_json["rgb"][spoken_state])
+    elif spoken_state in colours_collection["keywords"]:
+      device.setColour(colours_collection["variables"][spoken_state])
     # Set percentage of device (normally brightness, but could be anything else)
     elif spoken_state in state_percentage_keyphrases:
       how_many_numbers = 0
