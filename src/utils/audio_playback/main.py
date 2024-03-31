@@ -3,7 +3,7 @@
 
 Wishes to be provided with {"id", id: str, "audio": audio: str}, where audio is a WAV file, encoded as b64 bytes then decoded into a string, over MQTT to "bloob/{arguments.device_id}/audio_playback/play_file"
 
-Will respond with {"id": received_id: str, "audio": received_audio: str}. The audio is an exact copy of what was sent. To "bloob/{arguments.device_id}/audio_playback/finished"
+Will respond with {"id": received_id: str}. To "bloob/{arguments.device_id}/audio_playback/finished"
 """
 import argparse
 import subprocess
@@ -63,7 +63,7 @@ async def connect():
 				if(message_payload.get('audio') != None and message_payload.get('id') != None):
 					play(message_payload["audio"])
 
-					await client.publish(f"bloob/{arguments.device_id}/audio_playback/finished", json.dumps({"id": message_payload.get('id'), "audio":message_payload["audio"]}))
+					await client.publish(f"bloob/{arguments.device_id}/audio_playback/finished", json.dumps({"id": message_payload.get('id')}))
 			except:
 				print("Error with payload.")
 
