@@ -71,8 +71,11 @@ for core_file in external_core_files + internal_core_files:
 
 	print(f"Loaded core: {core_obj.core_id}")
 
+# If there are no external cores, just set the core IDs to those of the Orchestrated cores. If there are some, add those to the list too
+all_core_ids = [core.core_id for core in loaded_cores] if config_json.get("external_core_ids") == None else [core.core_id for core in loaded_cores] + config_json["external_core_ids"]
+
 #Publish and retain loaded cores for access over MQTT
-publish.single(f"bloob/{config_json['uuid']}/cores/list", payload=json.dumps({"loaded_cores": [core.core_id for core in loaded_cores]}), retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+publish.single(f"bloob/{config_json['uuid']}/cores/list", payload=json.dumps({"loaded_cores": all_core_ids}), retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 
 #For each core, publish the JSON object under the key of the core id, to allow centralised configs where wanted.
 for core in loaded_cores:
