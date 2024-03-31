@@ -112,6 +112,14 @@ while True:
     explanation = f"Got that the current time is {hr12}:{minute} {apm}"
   else:
     dayNum, month, weekday = get_date()
+    if dayNum[-1] == "1":
+      dayNum += "st"
+    elif dayNum[-1] == "2":
+      dayNum += "nd"
+    elif dayNum[-1] == "3":
+      dayNum += "rd"
+    else:
+      dayNum += "th"
     hr24, hr12, minute, apm = get_time()
     to_speak = f"Right now, it's {hr12}:{minute} {apm} on {weekday} the {dayNum} of {month}"
     explanation = f"Got that the current time is {hr12}:{minute} {apm}, and the current date is {weekday} the {dayNum} of {month}"
