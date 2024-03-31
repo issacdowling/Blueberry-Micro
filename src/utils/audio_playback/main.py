@@ -17,6 +17,12 @@ import pathlib
 import os
 import mpv
 
+bloob_python_module_dir = pathlib.Path(__file__).parents[2].joinpath("python_module")
+sys.path.append(str(bloob_python_module_dir))
+
+
+from bloob import getDeviceMatches, getTextMatches, log
+
 default_data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob") 
 default_temp_path = pathlib.Path("/dev/shm/bloob")
 
@@ -44,18 +50,24 @@ if arguments.identify:
 	print(json.dumps({"id": core_id, "roles": ["util"]}))
 	exit()
 
+## Logging starts here
+log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
+log("Starting up...", log_data)
+
 def play(audio):
 	## Save last played audio to tmp for debugging
 	with open(last_audio_file_path,'wb+') as audio_file:
 		#Encoding is like this because the string must first be encoded back into the base64 bytes format, then decoded again, this time as b64, into the original bytes.
 		audio_file.write(base64.b64decode(audio.encode()))
 
-	print("Playing received audio")
+	log("Playing received audio", log_data)
 	audio_playback_system.play(last_audio_file_path)
 
 async def connect():
+	
 	async with aiomqtt.Client(arguments.host) as client:
 		# await client.subscribe(f"bloob/{arguments.device_id}/audio_recorder/finished") # This is for testing, it'll automatically play what the TTS says
+		log("Waiting for input...", log_data)
 		await client.subscribe(f"bloob/{arguments.device_id}/audio_playback/play_file")
 		async for message in client.messages:
 			try:
@@ -65,7 +77,7 @@ async def connect():
 
 					await client.publish(f"bloob/{arguments.device_id}/audio_playback/finished", json.dumps({"id": message_payload.get('id')}))
 			except:
-				print("Error with payload.")
+				log("Error with payload.", log_data)
 
 if __name__ == "__main__":
 	try:
