@@ -16,6 +16,11 @@ import base64
 import pathlib
 import os
 
+bloob_python_module_dir = pathlib.Path(__file__).parents[2].joinpath("python_module")
+sys.path.append(str(bloob_python_module_dir))
+
+from bloob import getDeviceMatches, getTextMatches, log
+
 from faster_whisper import WhisperModel
 
 default_data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob") 
@@ -48,21 +53,26 @@ if arguments.identify:
   print(json.dumps({"id": core_id, "roles": ["util"]}))
   exit()
 
+## Logging starts here
+log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
+log("Starting up...", log_data)
+
 
 if not os.path.exists(arguments.stt_path):
+  log("Creating STT path", log_data)
   os.makedirs(arguments.stt_path)
 
-print(f"Loading Model: {arguments.stt_model}")
+log(f"Loading Model: {arguments.stt_model}", log_data)
 
 # Do this so that unfound models are automatically downloaded, but by default we aren't checking remotely at all, and the
 # STT directory doesn't need to be deleted just to automatically download other models
 try:
   model = WhisperModel(model_size_or_path=arguments.stt_model, device="cpu", download_root=arguments.stt_path, local_files_only = True)
 except: #huggingface_hub.utils._errors.LocalEntryNotFoundError (but can't do that here since huggingfacehub not directly imported)
-  print(f"Downloading Model: {arguments.stt_model}")
+  log(f"Downloading Model: {arguments.stt_model}", log_data)
   model = WhisperModel(model_size_or_path=arguments.stt_model, device="cpu", download_root=arguments.stt_path)
 
-print(f"Loaded Model: {arguments.stt_model}")
+log(f"Loaded Model: {arguments.stt_model}", log_data)
 
 
 def transcribe(audio): 
@@ -71,17 +81,18 @@ def transcribe(audio):
   # across significantly different tiers of hardware
   segments, info = model.transcribe(audio, beam_size=5, condition_on_previous_text=False) #condition_on_previous_text=False reduces hallucinations and inference time with no downsides for our short text.
 
-  print("Transcribing...")
+  log("Transcribing...", log_data)
   
   raw_spoken_words = ""
   for segment in segments:
     raw_spoken_words += segment.text
-  print(f"Transcribed words: {raw_spoken_words}")
+  log(f"Transcribed words: {raw_spoken_words}", log_data)
 
   return raw_spoken_words
 
 def on_message(client, _, message):
   try:
+    log("Waiting for input...", log_data)
     msg_json = json.loads(message.payload.decode())
     with open(transcribed_audio_path,'wb+') as audio_file:
       #Encoding is like this because the string must first be encoded back into the base64 bytes format, then decoded again, this time as b64, into the original bytes.
@@ -89,8 +100,8 @@ def on_message(client, _, message):
     
     transcription = transcribe(str(transcribed_audio_path))
   except KeyError:
-    print("Couldn't find the correct keys in recieved JSON")
-
+    log("Couldn't find the correct keys in recieved JSON", log_data)
+  log("Publishing output", log_data)
   stt_mqtt.publish(f"bloob/{arguments.device_id}/stt/finished", json.dumps({"id": msg_json["id"], "text": transcription}))
 
 stt_mqtt = mqtt.Client()
