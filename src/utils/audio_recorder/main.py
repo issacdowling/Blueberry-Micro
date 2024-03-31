@@ -40,6 +40,10 @@ if arguments.identify:
   print(json.dumps({"id": core_id, "roles": ["util"]}))
   exit()
 
+## Logging starts here
+log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
+log("Starting up...", log_data)
+
 #This is turned into a str because otherwise python-mpv and faster-whisper broke
 recorded_audio_wav_path = str(audio_recorder_temp_path.joinpath("recorded_audio.wav"))
 
@@ -65,10 +69,10 @@ total_devices = audio_recording_system_info.get("deviceCount")
 for device_index in range(total_devices):
   if audio_recording_system.get_device_info_by_host_api_device_index(0, device_index).get("name") == "pipewire":
     mic_index = audio_recording_system.get_device_info_by_host_api_device_index(0, device_index).get("index")
-print(f"Found pipewire at index {mic_index}")
+log(f"Found pipewire at index {mic_index}", log_data)
 
 ## Open Mic:
-print("Opening Mic")
+log("Opening Mic", log_data)
 mic_stream = audio_recording_system.open(format=paInt16, channels=channels, rate=sample_rate, input=True, frames_per_buffer=frame_size, input_device_index=mic_index)
 
 import paho.mqtt.subscribe as mqtt_subscribe
@@ -79,14 +83,14 @@ while True:
     request_id = json.loads(mqtt_subscribe.simple(f"bloob/{arguments.device_id}/audio_recorder/record_speech", hostname = arguments.host, port = arguments.port ).payload.decode())["id"]
     speech_buffer = []
   except json.decoder.JSONDecodeError:
-    print("Recieved invalid JSON")
+    log("Recieved invalid JSON", log_data)
   while True:
 
     ## Begin capturing audio
     current_frame = np.frombuffer(mic_stream.read(frame_size), dtype=np.int16)
 
     # Record, stopping when no speech detected
-    print("Recording: waiting for 1s of silence")
+    log("Recording: waiting for 1s of silence", log_data)
     vad_speech_margin = vad_speech_margin_init
     while vad_speech_margin > 0:
       current_frame = np.frombuffer(mic_stream.read(frame_size), dtype=np.int16)
@@ -100,7 +104,7 @@ while True:
         else:
           vad_speech_margin -= 320
 
-    print("Finished recording, saving audio")
+    log(f"Finished recording, saving audio to {recorded_audio_wav_path}", log_data)
 
     with wave.open(recorded_audio_wav_path, 'wb') as wf:
       wf.setnchannels(channels)
@@ -111,6 +115,6 @@ while True:
     with open(recorded_audio_wav_path, 'rb') as wf:
       audio_to_send = base64.b64encode(wf.read()).decode()
 
-    print("Saved audio")
+    log("Saved audio", log_data)
     publish.single(topic = f"bloob/{arguments.device_id}/audio_recorder/finished", payload= json.dumps({"id": request_id, "audio" : audio_to_send}), hostname = arguments.host, port = arguments.port)
     break
