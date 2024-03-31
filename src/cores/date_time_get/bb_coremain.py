@@ -34,7 +34,7 @@ arguments.port = int(arguments.port)
 core_id = "date_time_get"
 
 if arguments.identify:
-  print(json.dumps({"id": core_id}))
+  print(json.dumps({"id": core_id, "roles": ["intent_handler"]}))
   exit()
 
 core_config = {

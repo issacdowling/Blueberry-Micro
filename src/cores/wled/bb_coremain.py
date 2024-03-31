@@ -34,7 +34,7 @@ arguments.port = int(arguments.port)
 core_id = "wled"
 
 if arguments.identify:
-  print(json.dumps({"id": core_id}))
+  print(json.dumps({"id": core_id, "roles": ["intent_handler"]}))
   exit()
 
 # Can be provided with a list, which should contain objects with .names, 

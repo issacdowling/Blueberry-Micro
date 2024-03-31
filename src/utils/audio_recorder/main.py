@@ -37,7 +37,7 @@ arguments.port = int(arguments.port)
 
 core_id = "audio_recorder"
 if arguments.identify:
-  print(json.dumps({"id": core_id}))
+  print(json.dumps({"id": core_id, "roles": ["util"]}))
   exit()
 
 #This is turned into a str because otherwise python-mpv and faster-whisper broke

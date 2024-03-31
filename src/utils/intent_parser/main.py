@@ -33,7 +33,7 @@ arguments.port = int(arguments.port)
 
 core_id = "intent_parser"
 if arguments.identify:
-  print(json.dumps({"id": core_id}))
+  print(json.dumps({"id": core_id, "roles": ["util"]}))
   exit()
 
 # Can be provided with a str, or list, where it'll search for that str or 
