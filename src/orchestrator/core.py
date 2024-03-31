@@ -15,8 +15,12 @@ class Core:
         except AttributeError:
             logging.error(f"Unable to load core at {self.path} due to JSON issue")
             return
-        self.core_id = self.core_json.get("id")
-    
+        self.core_id = self.core_json["id"]
+        self.is_intent_handler = True if "intent_handler" in self.core_json["roles"] else False
+        self.is_collection_handler = True if "collection_handler" in self.core_json["roles"] else False
+        self.is_util = True if "util" in self.core_json["roles"] else False
+        self.is_core = True if "util" not in self.core_json["roles"] else False
+
     def construct_run_args(self):
         args = [self.path]
         if(self.username != None):
@@ -29,6 +33,17 @@ class Core:
         args.append(self.devid)
         
         return args
+
+    def get_collections(self):
+        # Get core identification
+        core_run = subprocess.run([self.path, "--collections", "true"],capture_output=True)
+        try:
+            self.collections_json = json.loads(core_run.stdout.decode())
+            self.collections = [collection for collection in self.collections_json["collections"]]
+        except AttributeError:
+            logging.error(f"Unable to load core at {self.path} due to JSON issue")
+            return
+        
 
     def run(self):
         self.running_core = subprocess.Popen(self.construct_run_args(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
