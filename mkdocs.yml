@@ -32,6 +32,7 @@ theme:
 plugins:
   - privacy:
       enabled: true
+  - search
 
 markdown_extensions:
   - pymdownx.highlight:
