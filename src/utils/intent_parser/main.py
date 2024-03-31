@@ -186,6 +186,8 @@ def parse(text_to_parse, intents):
   if len(intent_vote) == 0:
     return None, None, None
 
+  return None, None, None
+
 while True:
   request_json =  json.loads(subscribe.simple(f"bloob/{arguments.device_id}/intent_parser/run", hostname=arguments.host, port=arguments.port).payload.decode())
   cleaned_input = clean_input(request_json["text"])
