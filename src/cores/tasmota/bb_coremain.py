@@ -17,7 +17,11 @@ import signal
 import requests
 import aiomqtt
 import paho, paho.mqtt, paho.mqtt.publish
-#import paho.mqtt.publish
+
+bloob_python_module_dir = pathlib.Path(__file__).parents[2].joinpath("python_module")
+sys.path.append(str(bloob_python_module_dir))
+
+from bloob import getDeviceMatches, getTextMatches
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument('--host', default="localhost")
@@ -40,47 +44,6 @@ core_id = "tasmota"
 if arguments.identify:
     print(json.dumps({"id": core_id, "roles": ["intent_handler"]}))
     exit()
-
-def getDeviceMatches(device_list, search_string):
-  search_string = search_string.lower()
-
-  ## We want to return the actual device object, rather than just the text name of it.
-  name_matches = []
-  device_matches = []
-
-  ## Firstly, we loop over the devices, get their names, and append the found names to a list (we cannot order the devices in this step
-  ## since they would get ordered by their appearance in the main devices list, rather than in the spoken words)
-  for device in device_list:
-    for name in device.names:
-      if name.lower() in search_string:
-        name_matches.append(name)
-
-  ## Sort these names by their appearance in the spoken text
-  name_matches.sort(key=lambda name: search_string.find(name.lower()))
-
-  ## Go through each spoken device name in the order that it appears, find its matching device, and append it to a list.
-  for name in name_matches:
-    for device in device_list:
-      if name in device.names:
-        device_matches.append(device)
-        
-  return(device_matches)
-
-### Define function for checking matches between a string and lists, then ordering them
-def getSpeechMatches(match_item, check_string):
-  if type(match_item) is list:
-    matches = [phrase for phrase in match_item if(phrase in check_string)]
-    matches.sort(key=lambda phrase: check_string.find(phrase))
-    return(matches)
-  elif type(match_item) is str:
-    # This converts the string into a list so that we only get whole word matches
-    # Otherwise, "what's 8 times 12" would count as valid for checking the "time"
-    # TODO: In the list section, check if phrases are only a single word, and use this logic
-    # if so, otherwise use the current checking logic.
-    if match_item in check_string.split(" "):
-      return(match_item)
-    else:
-      return("")
 
 all_device_names = []
 class TasmotaDevice:
@@ -165,8 +128,8 @@ async def handle_message(message, client):
 
         payload_json = json.loads(message.payload.decode())
 
-        spoken_devices = getDeviceMatches(device_list=loaded_tasmota_devices, search_string=payload_json["text"])
-        spoken_states = getSpeechMatches(match_item=state_keyphrases, check_string=payload_json["text"])
+        spoken_devices = getDeviceMatches(device_list=loaded_tasmota_devices, check_string=payload_json["text"])
+        spoken_states = getTextMatches(match_item=state_keyphrases, check_string=payload_json["text"])
 
         to_speak = ""
         explanation = ""
