@@ -139,7 +139,7 @@ def parse(text_to_parse, intents):
   intent_vote = []
   for intent in intents:
 
-    if intent.get("keywords") != None:
+    if intent.get("keywords") != None and intent.get("keywords") != "" and intent.get("keywords") != []:
 
       if type(intent["keywords"][0]) == str:
         if getTextMatches(match_item=intent["keywords"], search_string=text_to_parse):
