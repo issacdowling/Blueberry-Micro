@@ -15,6 +15,12 @@ import base64
 import pathlib
 import os
 
+bloob_python_module_dir = pathlib.Path(__file__).parents[2].joinpath("python_module")
+sys.path.append(str(bloob_python_module_dir))
+
+
+from bloob import getDeviceMatches, getTextMatches, log
+
 default_data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob") 
 default_audio_recorder_path = default_data_path.joinpath("audio_recorder")
 
