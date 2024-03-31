@@ -18,6 +18,12 @@ def exit_cleanup(*args):
 	#For each core, clear the retained message for the centralised config
 	for core in loaded_cores:
 		publish.single(f"bloob/{config_json['uuid']}/cores/{core.core_id}/central_config", payload=None, retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+	#For each collection, clear the retained message
+	for collection in collections:
+		publish.single(f"bloob/{config_json['uuid']}/collections/{collection['id']}", payload=None, retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+	#Clear the retained list of collections
+	publish.single(f"bloob/{config_json['uuid']}/collections/list", payload=None, retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+
 	#Kill cores
 	for core in loaded_cores:
 		core.stop()
@@ -37,7 +43,6 @@ cores_dir = data_dir.joinpath("cores")
 src_folder_dir = pathlib.Path(__file__).parents[1]
 
 resources_dir = src_folder_dir.joinpath("resources")
-internal_collections_dir = src_folder_dir.joinpath("collections")
 
 with open(data_dir.joinpath("config.json"), 'r') as conf_file:
 	config_json = json.load(conf_file)
@@ -55,26 +60,32 @@ with open(resources_dir.joinpath("audio/begin_listening.wav"), "rb") as audio_fi
 with open(resources_dir.joinpath("audio/stop_listening.wav"), "rb") as audio_file:
 	stop_listening_audio = base64.b64encode(audio_file.read()).decode()
 
-## Load Collections
-
-
-## Load cores / utils
-for util_file in util_files:
-	print(f"Attempting to load {util_file}")
-	## This fails if the underlying core crashes, often caused by not having the venv activated and therefore missing imports
-	core_obj = core.Core(path=util_file, host=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"], devid=config_json["uuid"])
-	loaded_utils.append(core_obj)
-	core_obj.run()
-
-	print(f"Loaded util: {core_obj.core_id}")
-
-for core_file in external_core_files + internal_core_files:
+collections = []
+## Load Cores
+for core_file in external_core_files + internal_core_files + util_files:
 	print(f"Attempting to load {core_file}")
 	core_obj = core.Core(path=core_file, host=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"], devid=config_json["uuid"])
-	loaded_cores.append(core_obj)
+
+	if not core_obj.is_collection_handler:
+		if core_obj.is_util:
+			loaded_utils.append(core_obj)
+			print(f"Loaded util: {core_obj.core_id}")
+		else:
+			loaded_cores.append(core_obj)
+			print(f"Loaded core: {core_obj.core_id}")
+
+	elif core_obj.is_collection_handler:
+		collections += core_obj.get_collections()
+		
 	core_obj.run()
 
-	print(f"Loaded core: {core_obj.core_id}")
+
+all_collection_ids = [collection["id"] for collection in collections]
+
+for collection in collections:
+	publish.single(f"bloob/{config_json['uuid']}/collections/{collection['id']}", payload=json.dumps(collection), retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+
+publish.single(f"bloob/{config_json['uuid']}/collections/list", payload=json.dumps({"loaded_collections": all_collection_ids}), retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 
 # If there are no external cores, just set the core IDs to those of the Orchestrated cores. If there are some, add those to the list too
 all_core_ids = [core.core_id for core in loaded_cores] if config_json.get("external_core_ids") == None else [core.core_id for core in loaded_cores] + config_json["external_core_ids"]
@@ -127,7 +138,7 @@ while True:
 	while received_id != request_identifier:
 		parsed_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/intent_parser/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload.decode())
 		received_id = parsed_json["id"]
-	print(f"Parsing finished - sending to core")
+	print(f"Parsing finished - {parsed_json['text']} - sending to core")
 
 	# Handle the intent not being recognised by saying that we didn't understand
 	if not (parsed_json["core_id"] == None or parsed_json["intent"] == None):

@@ -42,7 +42,7 @@ class Core:
             self.collections = [collection for collection in self.collections_json["collections"]]
         except AttributeError:
             logging.error(f"Unable to load core at {self.path} due to JSON issue")
-            return
+        return self.collections
         
 
     def run(self):
