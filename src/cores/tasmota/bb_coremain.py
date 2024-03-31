@@ -88,7 +88,7 @@ async def main():
             await handle_message(message, client)
 
 async def handle_message(message, client):
-
+    global state_keyphrases
     if(message.topic.matches(f"bloob/{arguments.device_id}/cores/{core_id}/central_config")):
         device_config = json.loads(message.payload.decode())
         if device_config != None:
