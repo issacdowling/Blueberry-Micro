@@ -1,5 +1,7 @@
 import paho.mqtt.publish as publish
 
+# Logging data should be set as a tuple, logging_data = (mqtt_host: str, mqtt_port: int, device_id: str, core_id: str)
+# The point is to shorten what needs to be written and reduce duplication
 def log(text_to_log, logging_data):
   mqtt_host, mqtt_port, device_id, core_id = logging_data
   message_to_log = f"[{core_id}] {text_to_log}"
