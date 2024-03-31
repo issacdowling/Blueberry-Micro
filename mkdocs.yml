@@ -26,6 +26,9 @@ theme:
 
   features:
     - content.code.copy
+  
+  favicon: resources/favicon.svg
+  logo: resources/favicon.svg
     
 
 # Don't call out to Google Fonts on the user's machine!
