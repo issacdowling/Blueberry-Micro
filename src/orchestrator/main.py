@@ -13,6 +13,7 @@ import traceback
 
 import core
 
+## Allow graceful exits with MQTT stuff handled
 def exit_cleanup(*args):
 	#For each core, clear the retained message for the centralised config
 	for core in loaded_cores:
@@ -29,30 +30,35 @@ def exit_cleanup(*args):
 signal.signal(signal.SIGTERM, exit_cleanup)
 signal.signal(signal.SIGINT, exit_cleanup)
 
+## Set up directories
 data_dir = pathlib.Path(os.environ["HOME"]).joinpath(".config/bloob")
 
 cores_dir = data_dir.joinpath("cores")
-parent_folder_dir = pathlib.Path(__file__).parents[1]
+src_folder_dir = pathlib.Path(__file__).parents[1]
 
-resources_dir = parent_folder_dir.joinpath("resources")
+resources_dir = src_folder_dir.joinpath("resources")
+internal_collections_dir = src_folder_dir.joinpath("collections")
 
 with open(data_dir.joinpath("config.json"), 'r') as conf_file:
 	config_json = json.load(conf_file)
 
 util_files = []
-util_files.extend([parent_folder_dir.joinpath("utils/audio_playback/main.py"), parent_folder_dir.joinpath("utils/audio_recorder/main.py"), parent_folder_dir.joinpath("utils/stt/main.py"), parent_folder_dir.joinpath("utils/tts/main.py"), parent_folder_dir.joinpath("utils/wakeword/main.py"), parent_folder_dir.joinpath("utils/intent_parser/main.py")])
+util_files.extend([src_folder_dir.joinpath("utils/audio_playback/main.py"), src_folder_dir.joinpath("utils/audio_recorder/main.py"), src_folder_dir.joinpath("utils/stt/main.py"), src_folder_dir.joinpath("utils/tts/main.py"), src_folder_dir.joinpath("utils/wakeword/main.py"), src_folder_dir.joinpath("utils/intent_parser/main.py")])
 external_core_files = [str(core) for core in cores_dir.glob('**/*bb_core*')]
-internal_core_files = [str(core) for core in parent_folder_dir.glob('**/*bb_core*')]
+internal_core_files = [str(core) for core in src_folder_dir.glob('**/*bb_core*')]
 loaded_utils = []
 loaded_cores = []
 
+## Load the start and stop listening files (TODO: Allow their paths to be changed in the config)
 with open(resources_dir.joinpath("audio/begin_listening.wav"), "rb") as audio_file:
 	begin_listening_audio = base64.b64encode(audio_file.read()).decode()
-
 with open(resources_dir.joinpath("audio/stop_listening.wav"), "rb") as audio_file:
 	stop_listening_audio = base64.b64encode(audio_file.read()).decode()
 
+## Load Collections
 
+
+## Load cores / utils
 for util_file in util_files:
 	print(f"Attempting to load {util_file}")
 	## This fails if the underlying core crashes, often caused by not having the venv activated and therefore missing imports
@@ -61,7 +67,6 @@ for util_file in util_files:
 	core_obj.run()
 
 	print(f"Loaded util: {core_obj.core_id}")
-	
 
 for core_file in external_core_files + internal_core_files:
 	print(f"Attempting to load {core_file}")
