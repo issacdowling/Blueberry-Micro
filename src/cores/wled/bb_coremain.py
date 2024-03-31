@@ -23,7 +23,7 @@ import paho.mqtt.publish as publish
 bloob_python_module_dir = pathlib.Path(__file__).parents[2].joinpath("python_module")
 sys.path.append(str(bloob_python_module_dir))
 
-from bloob import getDeviceMatches, getTextMatches
+from bloob import getDeviceMatches, getTextMatches, log
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument('--host', default="localhost")
@@ -80,13 +80,19 @@ class WledDevice:
     else:
       return False
 
+## Logging starts here
+log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
+log("Starting up...", log_data)
+
 wled_devices = []
 
 ## Get device configs from central config, instantiate
+log("Getting Centralised Config from Orchestrator", log_data)
 device_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
 for device in device_config["devices"]:
   wled_devices.append(WledDevice(names=device["names"], ip_address=device["ip"]))
 
+log("Getting colours Collection from Orchestrator", log_data)
 ## Get required "colours" Collection from central Collection list
 colours_collection = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/collections/colours", hostname=arguments.host, port=arguments.port).payload.decode())
 
@@ -121,10 +127,12 @@ core_config = {
   }]
 }
 
+log("Publishing Core Config", log_data)
 publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
 
 # Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
 def on_exit(*args):
+  log("Shutting Down...", log_data)
   publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
   exit()
 
@@ -132,11 +140,14 @@ signal.signal(signal.SIGTERM, on_exit)
 signal.signal(signal.SIGINT, on_exit)
 
 while True:
+  log("Waiting for input...", log_data)
   request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
   ## TODO: Actual stuff here, matching the right device from name, state, etc
 
   spoken_devices = getDeviceMatches(device_list=wled_devices, check_string=request_json["text"])
   spoken_states = getTextMatches(match_item=state_keyphrases, check_string=request_json["text"])
+
+  log(f"Spoken devices: {spoken_devices}, spoken states: {spoken_states}", log_data)
 
   to_speak = ""
   explanation = ""
@@ -144,12 +155,11 @@ while True:
     # This should mean that if only one state was spoken, it'll repeat for all mentioned devices
     try:
       spoken_state = spoken_states[index]
-      print(spoken_devices)
+
     except IndexError:
       pass
     ### Set the state ##################
     to_speak += (f"Turning {device.friendly_name} {spoken_state}, " ) # Sample speech, will be better
-    print(to_speak)
     #Boolean
     if spoken_state == "on":
       device.on()
@@ -168,6 +178,7 @@ while True:
       if how_many_numbers == 1 and "percent" in request_json["text"].split(" "):
         device.setPercentage(spoken_number)
 
+  log(f"Publishing Output, {to_speak}", log_data)
   publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "text": to_speak, "explanation": explanation, "end_type": "finish"}), hostname=arguments.host, port=arguments.port)
 
 

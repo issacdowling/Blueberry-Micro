@@ -21,7 +21,7 @@ import paho, paho.mqtt, paho.mqtt.publish
 bloob_python_module_dir = pathlib.Path(__file__).parents[2].joinpath("python_module")
 sys.path.append(str(bloob_python_module_dir))
 
-from bloob import getDeviceMatches, getTextMatches
+from bloob import getDeviceMatches, getTextMatches, log
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument('--host', default="localhost")
