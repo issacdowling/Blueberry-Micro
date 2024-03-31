@@ -89,7 +89,7 @@ while True:
 	print("Wakeword detected, starting recording")
 
 	#Play sound for...
-	publish.single(f"bloob/{config_json['uuid']}/audio_playback/run", payload=json.dumps({"id": request_identifier, "audio": begin_listening_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+	publish.single(f"bloob/{config_json['uuid']}/audio_playback/play_file", payload=json.dumps({"id": request_identifier, "audio": begin_listening_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 	#Start recording
 	publish.single(f"bloob/{config_json['uuid']}/audio_recorder/record_speech", payload=json.dumps({"id": request_identifier}) ,hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 	#Receieve recording
@@ -98,7 +98,7 @@ while True:
 		recording_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/audio_recorder/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload)
 		received_id = recording_json["id"]
 	#Play sound for finished recording
-	publish.single(f"bloob/{config_json['uuid']}/audio_playback/run", payload=json.dumps({"id": request_identifier, "audio": stop_listening_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+	publish.single(f"bloob/{config_json['uuid']}/audio_playback/play_file", payload=json.dumps({"id": request_identifier, "audio": stop_listening_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 	recording = recording_json["audio"]
 	print("Recording finished, starting transcription")
 
@@ -148,4 +148,4 @@ while True:
 	print(f"TTS finished - sending to audio_playback")
 
 	#Send to audio playback util
-	publish.single(f"bloob/{config_json['uuid']}/audio_playback/run", payload=json.dumps({"id": request_identifier, "audio": tts_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+	publish.single(f"bloob/{config_json['uuid']}/audio_playback/play_file", payload=json.dumps({"id": request_identifier, "audio": tts_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])

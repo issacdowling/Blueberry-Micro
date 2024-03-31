@@ -1,7 +1,7 @@
 #!/bin/env python3
 """ MQTT connected Audio playback program for Blueberry, making use of MPV
 
-Wishes to be provided with {"id", id: str, "audio": audio: str}, where audio is a WAV file, encoded as b64 bytes then decoded into a string, over MQTT to "bloob/{arguments.device_id}/audio_playback/run"
+Wishes to be provided with {"id", id: str, "audio": audio: str}, where audio is a WAV file, encoded as b64 bytes then decoded into a string, over MQTT to "bloob/{arguments.device_id}/audio_playback/play_file"
 
 Will respond with {"id": received_id: str, "audio": received_audio: str}. The audio is an exact copy of what was sent. To "bloob/{arguments.device_id}/audio_playback/finished"
 """
@@ -56,7 +56,7 @@ def play(audio):
 async def connect():
 	async with aiomqtt.Client(arguments.host) as client:
 		# await client.subscribe(f"bloob/{arguments.device_id}/audio_recorder/finished") # This is for testing, it'll automatically play what the TTS says
-		await client.subscribe(f"bloob/{arguments.device_id}/audio_playback/run")
+		await client.subscribe(f"bloob/{arguments.device_id}/audio_playback/play_file")
 		async for message in client.messages:
 			try:
 				message_payload = json.loads(message.payload.decode())
