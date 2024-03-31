@@ -16,6 +16,11 @@ import base64
 import pathlib
 import os
 
+bloob_python_module_dir = pathlib.Path(__file__).parents[2].joinpath("python_module")
+sys.path.append(str(bloob_python_module_dir))
+
+from bloob import getDeviceMatches, getTextMatches, log
+
 default_data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob") 
 default_tts_path = default_data_path.joinpath("tts")
 
@@ -43,18 +48,24 @@ if arguments.identify:
   print(json.dumps({"id": core_id, "roles": ["util"]}))
   exit()
 
+## Logging starts here
+log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
+log("Starting up...", log_data)
 
 output_audio_path = f"{tts_temp_path}/out.wav"
 
 def speak(text):
 	speech_text = re.sub(r"^\W+|\W+$",'', text)
+	log(f"Inputted text - {text} - sanitised into - {speech_text}")
 	tts_path = arguments.tts_path
 	tts_model_path = f"{tts_path}/{arguments.tts_model}.onnx"
+	log(f"Generating speech")
 	subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_path} --download-dir {tts_path} --model {tts_model_path} --output_file {output_audio_path}', stdout=subprocess.PIPE, shell=True)
-	print(f"Spoken: {speech_text}")
+	log(f"Spoken: {speech_text}", log_data)
 
 async def connect():
 	async with aiomqtt.Client(hostname=arguments.host, port=arguments.port) as client:
+		log(f"Waiting for input...", log_data)
 		await client.subscribe(f"bloob/{arguments.device_id}/tts/run")
 		async for message in client.messages:
 			try:
@@ -62,11 +73,13 @@ async def connect():
 				if(message_payload.get('text') != None and message_payload.get('id') != None):
 					speak(message_payload.get('text'))
 					# encode speech to base64
+					log(f"Writing to temp file", log_data)
 					with open(output_audio_path, 'rb') as f:
 						encoded = base64.b64encode(f.read())
 						str_encoded = encoded.decode()
+						log(f"Publishing Output", log_data)
 					await client.publish(f"bloob/{arguments.device_id}/tts/finished", json.dumps({"id": message_payload.get('id'), "audio":str_encoded}))
 			except:
-				print("Error with payload.")
+				log("Error with payload.", log_data)
 
 asyncio.run(connect())
