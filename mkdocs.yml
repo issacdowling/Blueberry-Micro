@@ -5,6 +5,7 @@ repo_name: issacdowling/blueberry-micro
 nav:
   - Home: index.md
   - API: api.md
+  - Config: config.md
 
 theme:
   name: material
