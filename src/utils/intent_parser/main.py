@@ -20,7 +20,8 @@ import paho.mqtt.publish as publish
 bloob_python_module_dir = pathlib.Path(__file__).parents[2].joinpath("python_module")
 sys.path.append(str(bloob_python_module_dir))
 
-from bloob import getDeviceMatches, getTextMatches
+
+from bloob import getDeviceMatches, getTextMatches, log
 
 default_data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob") 
 
@@ -41,6 +42,9 @@ if arguments.identify:
   print(json.dumps({"id": core_id, "roles": ["util"]}))
   exit()
 
+
+log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
+
 # Clean up inputs ########################################
 def clean_input(text):
 
@@ -52,6 +56,9 @@ def clean_input(text):
 
   # Remove special characters from text, make lowercase
   cleaned_text = re.sub('[^A-Za-z0-9 ]+', "", cleaned_text).lower()
+
+  log(f"Cleaned original input - {text} - into - {cleaned_text}", log_data)
+
   return cleaned_text
 
 # Intent Parsing ########################################
@@ -64,27 +71,34 @@ state_percentage_keyphrases = ["percent", "%", "percentage"]
 
 from datetime import datetime
 
+log("Starting up...", log_data)
+
 intents = []
+
+
 # Get the list of cores, then get the config of each, find all intents, and load them here.
 loaded_cores = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/list",hostname=arguments.host, port=arguments.port).payload.decode())["loaded_cores"]
 for core_id in loaded_cores:
-  print(core_id)
+  log(f"Getting Config for {core_id}", log_data)
   core_conf = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/config",hostname=arguments.host, port=arguments.port).payload.decode())
-  print(core_conf)
   for intent in core_conf["intents"]:
     intents.append(intent)
+
+log(f"Loaded Intents: {intents}", log_data)
 
 collections = []
 # Get the list of collections and load them here.
 loaded_collections = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/collections/list",hostname=arguments.host, port=arguments.port).payload.decode())["loaded_collections"]
 for collection_id in loaded_collections:
-  print(collection_id)
+  log(f"Getting Collection: {collection_id}", log_data)
   collection = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/collections/{collection_id}",hostname=arguments.host, port=arguments.port).payload.decode())
-  print(collection)
   collections.append(collection)
+
+log(f"Loaded Collections: {collections}", log_data)
 
 def parse(text_to_parse, intents):
   if len(text_to_parse) == 0:
+    log(f"0 length text inputted", log_data)
     return None, None
   
   ## TODO: Allow only checking for the first word
@@ -133,7 +147,7 @@ def parse(text_to_parse, intents):
         if intent in intent_vote: intent_vote.remove(intent)
 
 
-  print(intent_vote)
+  log(f"Intent vote length: {len(intent_vote)}", log_data)
   if len(intent_vote) == 1:
     return intent_vote[0]["intent_name"], intent_vote[0]["core_id"], text_to_parse
   if len(intent_vote) == 0:
@@ -142,7 +156,10 @@ def parse(text_to_parse, intents):
   return None, None, None
 
 while True:
+  log(f"Waiting for input...", log_data)
   request_json =  json.loads(subscribe.simple(f"bloob/{arguments.device_id}/intent_parser/run", hostname=arguments.host, port=arguments.port).payload.decode())
   cleaned_input = clean_input(request_json["text"])
+  log(f"Received input, beginning parsing", log_data)
   parsed_intent, parsed_core, text_out = parse(text_to_parse=cleaned_input, intents=intents)
+  log(f"Outputting results, Core: {parsed_core}, Intent: {parsed_intent}", log_data)
   publish.single(f"bloob/{arguments.device_id}/intent_parser/finished", payload=json.dumps({"id": request_json["id"], "intent": parsed_intent, "core_id": parsed_core, "text": text_out}), hostname=arguments.host, port=arguments.port)
