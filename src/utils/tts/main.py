@@ -56,10 +56,10 @@ output_audio_path = f"{tts_temp_path}/out.wav"
 
 def speak(text):
 	speech_text = re.sub(r"^\W+|\W+$",'', text)
-	log(f"Inputted text - {text} - sanitised into - {speech_text}")
+	log(f"Inputted text - {text} - sanitised into - {speech_text}", log_data)
 	tts_path = arguments.tts_path
 	tts_model_path = f"{tts_path}/{arguments.tts_model}.onnx"
-	log(f"Generating speech")
+	log(f"Generating speech", log_data)
 	subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_path} --download-dir {tts_path} --model {tts_model_path} --output_file {output_audio_path}', stdout=subprocess.PIPE, shell=True)
 	log(f"Spoken: {speech_text}", log_data)
 
@@ -70,16 +70,18 @@ async def connect():
 		async for message in client.messages:
 			try:
 				message_payload = json.loads(message.payload.decode())
-				if(message_payload.get('text') != None and message_payload.get('id') != None):
-					speak(message_payload.get('text'))
-					# encode speech to base64
-					log(f"Writing to temp file", log_data)
-					with open(output_audio_path, 'rb') as f:
-						encoded = base64.b64encode(f.read())
-						str_encoded = encoded.decode()
-						log(f"Publishing Output", log_data)
-					await client.publish(f"bloob/{arguments.device_id}/tts/finished", json.dumps({"id": message_payload.get('id'), "audio":str_encoded}))
 			except:
 				log("Error with payload.", log_data)
+
+			if(message_payload.get('text') != None and message_payload.get('id') != None):
+				speak(message_payload.get('text'))
+				# encode speech to base64
+				log(f"Writing to temp file", log_data)
+				with open(output_audio_path, 'rb') as f:
+					encoded = base64.b64encode(f.read())
+					str_encoded = encoded.decode()
+					log(f"Publishing Output", log_data)
+				await client.publish(f"bloob/{arguments.device_id}/tts/finished", json.dumps({"id": message_payload.get('id'), "audio":str_encoded}))
+
 
 asyncio.run(connect())
