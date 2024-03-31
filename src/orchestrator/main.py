@@ -131,7 +131,7 @@ while True:
 			core_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/cores/{parsed_json['core_id']}/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"], client_id="bloob-orchestrator").payload.decode())
 			received_id = core_json["id"]
 		print(f"Core finished - sending to TTS")
-		speech_text = core_json["speech"]
+		speech_text = core_json["text"]
 		explanation = core_json["explanation"]
 	else:
 		speech_text = "I'm not sure what you mean, could you repeat that?"

@@ -204,6 +204,6 @@ while True:
       if how_many_numbers == 1 and "percent" in request_json["text"].split(" "):
         device.setPercentage(spoken_number)
 
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "speech": to_speak, "explanation": explanation, "end_type": "finish"}), hostname=arguments.host, port=arguments.port)
+  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "text": to_speak, "explanation": explanation, "end_type": "finish"}), hostname=arguments.host, port=arguments.port)
 
 
