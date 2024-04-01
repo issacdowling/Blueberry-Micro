@@ -134,8 +134,15 @@ def parse(text_to_parse, intents):
     
     if intent.get("collections") != None:
       collection_valid = False
+
+      #Special case for any_number collection
+      if "any_number" in intent["collections"]:
+        for word in text_to_parse.split(" "):
+          if word.isnumeric(): collection_valid = True
+
+      #For regular Collections, compare normally
       for collection in collections:
-        if collection["id"] in intent["collections"]:
+        if collection["id"] in intent["collections"]:    
           for keyword in collection["keywords"]:
             if keyword in text_to_parse:
               collection_valid = True
