@@ -126,8 +126,8 @@ core_config = {
   },
   "intents": [{
     "intent_name" : "setWLED",
-    
-    "collections": [["boolean"]],
+    "keywords": [all_device_names],
+    "collections": [["boolean", "colours", "any_number"]],
     
     "core_id": core_id,
     "private": True
@@ -155,6 +155,19 @@ while True:
   spoken_devices = getDeviceMatches(device_list=wled_devices, check_string=request_json["text"])
   spoken_states = getTextMatches(match_item=state_keyphrases, check_string=request_json["text"])
 
+  # If there's a blank spot in the state, but there are numbers in the spoken words, do that.
+  if not spoken_states:
+    for word in request_json["text"].split(" "):
+      if word.isnumeric():
+        log("A A O" +str(word), log_data)
+        spoken_states[index] == f"{word} percent"
+  else:
+    for index, state in enumerate(spoken_states):
+      if not state:
+        for word in request_json["text"].split(" "):
+          if word.isnumeric():
+            spoken_states[index] == f"{word} percent"
+
   log(f"Spoken devices: {spoken_devices}, spoken states: {spoken_states}", log_data)
 
   to_speak = ""
@@ -167,7 +180,7 @@ while True:
     except IndexError:
       pass
     ### Set the state ##################
-    to_speak += (f"Turning {device.friendly_name} {spoken_state}, " ) # Sample speech, will be better
+    to_speak += (f"Turning the {device.friendly_name} {spoken_state}, " ) # Sample speech, will be better
     #Boolean
     if boolean_collection["variables"].get(spoken_state) == True:
       device.on()
@@ -177,13 +190,13 @@ while True:
     elif spoken_state in colours_collection["keywords"]:
       device.setColour(colours_collection["variables"][spoken_state])
     # Set percentage of device (normally brightness, but could be anything else)
-    elif spoken_state in state_percentage_keyphrases:
+    else:
       how_many_numbers = 0
       for word in request_json["text"].split(" "):
         if word.isnumeric():
           how_many_numbers += 1
           spoken_number = int(word)
-      if how_many_numbers == 1 and "percent" in request_json["text"].split(" "):
+      if how_many_numbers == 1:
         device.setPercentage(spoken_number)
 
   log(f"Publishing Output, {to_speak}", log_data)
