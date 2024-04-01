@@ -48,17 +48,26 @@ if arguments.identify:
   print(json.dumps({"id": core_id, "roles": ["util"]}))
   exit()
 
+if not os.path.exists(arguments.tts_path):
+  os.makedirs(arguments.tts_path)
+
+tts_path = arguments.tts_path
+tts_model_path = f"{tts_path}/{arguments.tts_model}.onnx"
+output_audio_path = f"{tts_temp_path}/out.wav"
+
+if not os.path.exists(tts_model_path):
+	subprocess.call(f'echo {"test speech to download the model"} | {sys.executable} -m piper --data-dir {tts_path} --download-dir {tts_path} --model {arguments.tts_model} --output_file {output_audio_path}', stdout=subprocess.PIPE, shell=True)
+
+
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
 log("Starting up...", log_data)
 
-output_audio_path = f"{tts_temp_path}/out.wav"
+
 
 def speak(text):
 	speech_text = re.sub(r"^\W+|\W+$",'', text)
 	log(f"Inputted text - {text} - sanitised into - {speech_text}", log_data)
-	tts_path = arguments.tts_path
-	tts_model_path = f"{tts_path}/{arguments.tts_model}.onnx"
 	log(f"Generating speech", log_data)
 	subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_path} --download-dir {tts_path} --model {tts_model_path} --output_file {output_audio_path}', stdout=subprocess.PIPE, shell=True)
 	log(f"Spoken: {speech_text}", log_data)
