@@ -86,15 +86,15 @@ for core_id in loaded_cores:
 
 log(f"Loaded Intents: {intents}", log_data)
 
-collections = []
+loaded_collections = []
 # Get the list of collections and load them here.
-loaded_collections = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/collections/list",hostname=arguments.host, port=arguments.port).payload.decode())["loaded_collections"]
-for collection_id in loaded_collections:
+orchestrator_collections = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/collections/list",hostname=arguments.host, port=arguments.port).payload.decode())["loaded_collections"]
+for collection_id in orchestrator_collections:
   log(f"Getting Collection: {collection_id}", log_data)
   collection = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/collections/{collection_id}",hostname=arguments.host, port=arguments.port).payload.decode())
-  collections.append(collection)
+  loaded_collections.append(collection)
 
-log(f"Loaded Collections: {collections}", log_data)
+log(f"Loaded Collections: {loaded_collections}", log_data)
 
 def parse(text_to_parse, intents):
   if len(text_to_parse) == 0:
@@ -103,61 +103,134 @@ def parse(text_to_parse, intents):
   
   ## TODO: Allow only checking for the first word
   ## TODO: ALlow checking for which wakeword was spoken
-  intent_vote = []
+  intent_results = []
+
+  # Explanation of this mess, for future generations
+  # Each test is based on one key, such as "collections" or "keywords"
+  # You should go through whatever internal logic is necessary to produce a yes or no for your test
+  # But, in the end, you just return +1 vote if it succeeds, and nothing if it doesn't
+  # I had many troubles with accidentally voting for each little internal test, such as for each keyword, etc
+  # At the end, we compare the number of votes to the number of needed votes (determined by the number of those values - which are tests - were mentioned in the intent JSON)
+  # If you have enough, you're added to the intent_results, where - in the future - we will have a way to deal with multiple intents
+
   for intent in intents:
+    intent_votes = 0
+    needed_votes = 0
+
+    # The number of tests needed to run is the number of votes needed to win, as each test votes once
+    if intent.get("keywords"): needed_votes +=1
+    if intent.get("collections"): needed_votes +=1
 
     if intent.get("keywords") != None and intent.get("keywords") != "" and intent.get("keywords") != []:
-
-      if type(intent["keywords"][0]) == str:
-        if getTextMatches(match_item=intent["keywords"], check_string=text_to_parse):
-          if intent not in intent_vote: intent_vote.append(intent)
-        else:
-          if intent in intent_vote: intent_vote.remove(intent)
-      # TODO: Allow specifying extra keywords within a keyword (I guess it becomes an object), so there can be these conditional things per-keywords too
-      # Allows providing multiple lists of keywords to check, where there must be at least one match in each list
-      elif type(intent["keywords"][0]) == list:
-        failed_matches = False
-        for set_of_keywords in intent["keywords"]:
-          if not getTextMatches(match_item=set_of_keywords, check_string=text_to_parse): failed_matches = True
+      keywords_pass = False
+      failed_matches = False
+      for set_of_keywords in intent["keywords"]:
+        if not getTextMatches(match_item=set_of_keywords, check_string=text_to_parse): failed_matches = True
         if not failed_matches:
-          if intent not in intent_vote: intent_vote.append(intent)
+          keywords_pass = True
         else:
-          if intent in intent_vote: intent_vote.remove(intent)
+          keywords_pass = False
 
       if intent.get("type") == "set" and not getTextMatches(match_item=set_keyphrases, check_string=text_to_parse):
         # Allows providing a single list of keywords to check, where at least one match is needed
-        if intent in intent_vote: intent_vote.remove(intent)
+        keywords_pass = False
           
       elif intent.get("type") == "get" and not getTextMatches(match_item=get_keyphrases, check_string=text_to_parse):
-        if intent in intent_vote: intent_vote.remove(intent)
+        keywords_pass = False
+
+      if keywords_pass: intent_votes += 1
+
+      log(f"{intent['intent_name']} - Keywords check votes: {keywords_pass}", log_data)
+
+    if intent.get("collections") != None and intent.get("collections") != [] and intent.get("collections") != [[]]:
+      collection_votes = 0
+      number_of_sets_of_collections = len(intent["collections"])
+      for set_of_collections in intent["collections"]:
+        something_in_this_set_has_passed = False
+        for intent_collection_id in set_of_collections:
+          for collection in loaded_collections:
+            if intent_collection_id == collection["id"]:
+
+              #Special case for any_number collection
+              if intent_collection_id == "any_number":
+                there_are_any_numbers = False
+                for word in text_to_parse.split(" "):
+                  if word.isnumeric(): there_are_any_numbers = True
+                something_in_this_set_has_passed = True if there_are_any_numbers else False              
+              
+              # Any other special cases to be added as elifs here
+
+              else:
+                there_are_any_keywords = False
+                for keyword in collection["keywords"]:
+                  if keyword in text_to_parse:
+                    something_in_this_set_has_passed = True
+                    if collection.get("substitute") != None:
+                      text_to_parse = text_to_parse.replace(keyword, collection["substitute"])
+
+        if something_in_this_set_has_passed: collection_votes += 1
+
+      if collection_votes == number_of_sets_of_collections:
+        log(f"{intent['intent_name']} - Collections check votes: {True}, {collection_votes} of {number_of_sets_of_collections} needed collections passed", log_data)
+        intent_votes += 1
+      else:
+        log(f"{intent['intent_name']} - Collections check votes: {False}, only {collection_votes} of {number_of_sets_of_collections} necessary collections passed", log_data)
+
+      
+    log(f"{intent_votes}/{needed_votes} votes for {intent['intent_name']}", log_data)
+    if intent_votes > 0:
+      intent_results.append(intent)
+      # exit()
+      #   if not getTextMatches(match_item=set_of_keywords, check_string=text_to_parse): failed_matches = True
+      #   if not failed_matches:
+      #     if intent not in intent_vote: intent_vote.append(intent)
+      #   else:
+      #     if intent in intent_vote: intent_vote.remove(intent)
+
+      # if intent.get("type") == "set" and not getTextMatches(match_item=set_keyphrases, check_string=text_to_parse):
+      #   # Allows providing a single list of keywords to check, where at least one match is needed
+      #   if intent in intent_vote: intent_vote.remove(intent)
+          
+      # elif intent.get("type") == "get" and not getTextMatches(match_item=get_keyphrases, check_string=text_to_parse):
+      #   if intent in intent_vote: intent_vote.remove(intent)
       
     
-    if intent.get("collections") != None:
-      collection_valid = False
+    # if intent.get("collections") != None:
+    #   log(f"Collections in intent {intent['intent_name']}: {intent['collections']}", log_data)
+    #   #If there is one list, its first item will be a str, and this indicates that we'll take ANYTHING from ANY collection
+    #   #rather than needing _each_ collection individually to be matched
+    #   if type(intent["collections"][0]) == str:
 
-      #Special case for any_number collection
-      if "any_number" in intent["collections"]:
-        for word in text_to_parse.split(" "):
-          if word.isnumeric(): collection_valid = True
+    #     collection_valid = False
 
-      #For regular Collections, compare normally
-      for collection in collections:
-        if collection["id"] in intent["collections"]:    
-          for keyword in collection["keywords"]:
-            if keyword in text_to_parse:
-              collection_valid = True
-              if collection.get("substitute") != None:
-                text_to_parse = text_to_parse.replace(keyword, collection["substitute"])        
-      if collection_valid:
-        if intent not in intent_vote: intent_vote.append(intent)
-      else:
-        if intent in intent_vote: intent_vote.remove(intent)
+    #     #Special case for any_number collection
+    #     if "any_number" in intent["collections"]:
+    #       for word in text_to_parse.split(" "):
+    #         if word.isnumeric(): collection_valid = True
+
+    #     #For regular Collections, compare normally
+    #     for collection in collections:
+    #       if collection["id"] in intent["collections"]:    
+    #         for keyword in collection["keywords"]:
+    #           if keyword in text_to_parse:
+    #             collection_valid = True
+    #             if collection.get("substitute") != None:
+    #               text_to_parse = text_to_parse.replace(keyword, collection["substitute"])        
+    #     if collection_valid:
+    #       if intent not in intent_vote: intent_vote.append(intent)
+    #     else:
+    #       if intent in intent_vote: intent_vote.remove(intent)
+
+    #   elif type(intent["collections"][0]) == list:
+    #     print(intent["collections"])
+    #     exit()
+            
 
 
-  log(f"Intent vote length: {len(intent_vote)}", log_data)
-  if len(intent_vote) == 1:
-    return intent_vote[0]["intent_name"], intent_vote[0]["core_id"], text_to_parse
-  if len(intent_vote) == 0:
+  log(f"Intent results length: {len(intent_results)}", log_data)
+  if len(intent_results) == 1:
+    return intent_results[0]["intent_name"], intent_results[0]["core_id"], text_to_parse
+  if len(intent_results) == 0:
     return None, None, None
 
   return None, None, None
@@ -166,7 +239,7 @@ while True:
   log(f"Waiting for input...", log_data)
   request_json =  json.loads(subscribe.simple(f"bloob/{arguments.device_id}/intent_parser/run", hostname=arguments.host, port=arguments.port).payload.decode())
   cleaned_input = clean_input(request_json["text"])
-  log(f"Received input, beginning parsing", log_data)
+  log(f"Received input, beginning parsing on text: {cleaned_input}", log_data)
   parsed_intent, parsed_core, text_out = parse(text_to_parse=cleaned_input, intents=intents)
   log(f"Outputting results, Core: {parsed_core}, Intent: {parsed_intent}", log_data)
   publish.single(f"bloob/{arguments.device_id}/intent_parser/finished", payload=json.dumps({"id": request_json["id"], "intent": parsed_intent, "core_id": parsed_core, "text": text_out}), hostname=arguments.host, port=arguments.port)
