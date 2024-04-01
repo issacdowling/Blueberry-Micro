@@ -125,11 +125,49 @@ colour_collection = {
     }
 }
 
+boolean_collection = {
+    "id": "boolean",
+  "keywords": [
+    "on",
+    "true",
+    "yes",
+    "agreed",
+    "agree",
+    "sure",
+    "alright",
+    "off",
+    "false",
+    "no",
+    "disagreed",
+    "disagree",
+    "nope",
+    "dont"
+  ],
+  "substitute": None,
+  "variables": {
+    "on": True,
+    "true": True,
+    "yes": True,
+    "agreed": True,
+    "agree": True,
+    "sure": True,
+    "alright": True,
+    "off": False,
+    "false": False,
+    "no": False,
+    "disagreed": False,
+    "disagree": False,
+    "nope": False,
+    "dont": False
+  }
+}
+
+
 any_number_collection = {
     "id": "any_number",
     "placeholder": "This is only used to add the any_number Collection to the loaded_collections. The intent_handler has a special case for checking numbers."
 }
-collections_list = [colour_collection, any_number_collection]
+collections_list = [colour_collection, any_number_collection, boolean_collection]
 
 core_id = "basic_collections"
 

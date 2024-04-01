@@ -96,6 +96,10 @@ log("Getting colours Collection from Orchestrator", log_data)
 ## Get required "colours" Collection from central Collection list
 colours_collection = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/collections/colours", hostname=arguments.host, port=arguments.port).payload.decode())
 
+log("Getting boolean Collection from Orchestrator", log_data)
+## Get required "boolean" Collection from central Collection list
+boolean_collection = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/collections/boolean", hostname=arguments.host, port=arguments.port).payload.decode())
+
 all_device_names = []
 for device in wled_devices:
   for name in device.names:
@@ -105,7 +109,9 @@ state_bool_keyphrases = ["on", "off"]
 state_brightness_keyphrases = ["brightness"]
 state_percentage_keyphrases = ["percent", "%", "percentage"]
 
-state_keyphrases = state_bool_keyphrases + state_brightness_keyphrases + state_percentage_keyphrases + colours_collection["keywords"]
+state_keyphrases = boolean_collection["keywords"] + state_brightness_keyphrases + state_percentage_keyphrases + colours_collection["keywords"]
+
+log(boolean_collection["keywords"], log_data)
 
 core_config = {
   "metadata": {
@@ -120,13 +126,15 @@ core_config = {
   },
   "intents": [{
     "intent_name" : "setWLED",
-    "keywords": [all_device_names, state_keyphrases],
-    "type": "set",
+    
+    "collections": [["boolean"]],
+    
     "core_id": core_id,
     "private": True
   }]
 }
 
+print(all_device_names)
 log("Publishing Core Config", log_data)
 publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
 
@@ -161,9 +169,9 @@ while True:
     ### Set the state ##################
     to_speak += (f"Turning {device.friendly_name} {spoken_state}, " ) # Sample speech, will be better
     #Boolean
-    if spoken_state == "on":
+    if boolean_collection["variables"].get(spoken_state) == True:
       device.on()
-    elif spoken_state == "off":
+    elif boolean_collection["variables"].get(spoken_state) == False:
       device.off()
     # Colours / custom states
     elif spoken_state in colours_collection["keywords"]:

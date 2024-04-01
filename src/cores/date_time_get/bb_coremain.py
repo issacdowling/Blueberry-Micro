@@ -50,8 +50,8 @@ core_config = {
   },
   "intents": [{
     "intent_name" : "getDate",
-    "keywords": ["date", "day", "time"],
-    "type": "get",
+    "keywords": [["day", "date", "time"]],
+
     "core_id": core_id,
     "private": True
   }]

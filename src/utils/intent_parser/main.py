@@ -123,12 +123,12 @@ def parse(text_to_parse, intents):
     if intent.get("collections"): needed_votes +=1
 
     if intent.get("keywords") != None and intent.get("keywords") != "" and intent.get("keywords") != []:
-      keywords_pass = False
+      keywords_pass = True
       failed_matches = False
       found_keywords = []
 
       for set_of_keywords in intent["keywords"]:
-        if getTextMatches(match_item=set_of_keywords, check_string=text_to_parse): keywords_pass = True
+        if not getTextMatches(match_item=set_of_keywords, check_string=text_to_parse): keywords_pass = False
         found_keywords.append(getTextMatches(match_item=set_of_keywords, check_string=text_to_parse))
       
       if intent.get("type") == "set" and not getTextMatches(match_item=set_keyphrases, check_string=text_to_parse):
