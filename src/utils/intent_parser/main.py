@@ -155,15 +155,15 @@ def parse(text_to_parse, intents):
               if intent_collection_id == "any_number":
                 there_are_any_numbers = False
                 for word in text_to_parse.split(" "):
-                  log(word + str(word.isnumeric()), log_data)
                   if word.isnumeric(): there_are_any_numbers = True
-                something_in_this_set_has_passed = True if there_are_any_numbers else False              
+                if there_are_any_numbers: something_in_this_set_has_passed = True
               
               # Any other special cases to be added as elifs here
 
               else:
                 there_are_any_keywords = False
                 for keyword in collection["keywords"]:
+                  log(keyword + str((keyword in text_to_parse)), log_data)
                   if keyword in text_to_parse:
                     something_in_this_set_has_passed = True
                     if collection.get("substitute") != None:
