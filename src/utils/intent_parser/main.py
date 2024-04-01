@@ -99,7 +99,7 @@ log(f"Loaded Collections: {loaded_collections}", log_data)
 def parse(text_to_parse, intents):
   if len(text_to_parse) == 0:
     log(f"0 length text inputted", log_data)
-    return None, None
+    return None, None, None
   
   ## TODO: Allow only checking for the first word
   ## TODO: ALlow checking for which wakeword was spoken
@@ -155,6 +155,7 @@ def parse(text_to_parse, intents):
               if intent_collection_id == "any_number":
                 there_are_any_numbers = False
                 for word in text_to_parse.split(" "):
+                  log(word + str(word.isnumeric()), log_data)
                   if word.isnumeric(): there_are_any_numbers = True
                 something_in_this_set_has_passed = True if there_are_any_numbers else False              
               
@@ -178,7 +179,7 @@ def parse(text_to_parse, intents):
 
       
     log(f"{intent_votes}/{needed_votes} votes for {intent['intent_name']}", log_data)
-    if intent_votes > 0:
+    if intent_votes == needed_votes:
       intent_results.append(intent)
 
   log(f"Intent results length: {len(intent_results)}", log_data)
