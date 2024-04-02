@@ -130,13 +130,6 @@ def parse(text_to_parse, intents):
       for set_of_keywords in intent["keywords"]:
         if not getTextMatches(match_item=set_of_keywords, check_string=text_to_parse): keywords_pass = False
         found_keywords.append(getTextMatches(match_item=set_of_keywords, check_string=text_to_parse))
-      
-      if intent.get("type") == "set" and not getTextMatches(match_item=set_keyphrases, check_string=text_to_parse):
-        # Allows providing a single list of keywords to check, where at least one match is needed
-        keywords_pass = False
-          
-      elif intent.get("type") == "get" and not getTextMatches(match_item=get_keyphrases, check_string=text_to_parse):
-        keywords_pass = False
 
       if keywords_pass: intent_votes += 1
 
