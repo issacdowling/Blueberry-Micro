@@ -155,8 +155,7 @@ while True:
   if not spoken_states:
     for word in request_json["text"].split(" "):
       if word.isnumeric():
-        log("A A O" +str(word), log_data)
-        spoken_states[index] == f"{word} percent"
+        spoken_states.append(f"{word} percent")
   else:
     for index, state in enumerate(spoken_states):
       if not state:
