@@ -112,12 +112,12 @@ log(boolean_collection["keywords"], log_data)
 core_config = {
   "metadata": {
     "core_id": core_id,
-    "friendly_name": "Date / Time Getter",
-    "link": None,
-    "author": None,
+    "friendly_name": "WLED Device Handler",
+    "link": "https://gitlab.com/issacdowling/blueberry-micro/-/tree/main/src/cores/wled",
+    "author": "Issac Dowling",
     "icon": None,
-    "description": None,
-    "version": 0.1,
+    "description": "Allows setting / getting the basic states of WLED lights using their REST API",
+    "version": "0.1",
     "license": "AGPLv3"
   },
   "intents": [{
