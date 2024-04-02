@@ -62,13 +62,6 @@ def clean_input(text):
   return cleaned_text
 
 # Intent Parsing ########################################
-get_keyphrases = ["get", "what", "whats", "is"]
-set_keyphrases = ["set", "make", "makes", "turn"]
-
-state_bool_keyphrases = ["on", "off"]
-state_brightness_keyphrases = ["brightness"]
-state_percentage_keyphrases = ["percent", "%", "percentage"]
-
 from datetime import datetime
 
 log("Starting up...", log_data)
