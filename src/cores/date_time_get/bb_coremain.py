@@ -52,8 +52,7 @@ core_config = {
     "intent_name" : "getDate",
     "keywords": [["day", "date", "time"]],
     "collections": [["get"]],
-    "core_id": core_id,
-    "private": True
+    "core_id": core_id
   }]
   
 }

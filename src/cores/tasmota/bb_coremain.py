@@ -115,8 +115,7 @@ async def handle_message(message, client):
                     "intent_name": "controlTasmota",
                     "keywords": [all_device_names, state_keyphrases],
                     "collections": [["set"]],
-                    "core_id": core_id,
-                    "private": True
+                    "core_id": core_id
                 }
             ]
         }
