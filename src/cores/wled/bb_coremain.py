@@ -121,7 +121,7 @@ core_config = {
     "license": "AGPLv3"
   },
   "intents": [{
-    "intent_name" : "setWLED",
+    "intent_id" : "setWLED",
     "keywords": [all_device_names],
     "collections": [["set"], ["boolean", "colours", "any_number"]],
     "core_id": core_id

@@ -49,7 +49,7 @@ core_config = {
     "license": "AGPLv3"
   },
   "intents": [{
-    "intent_name" : "getDate",
+    "intent_id" : "getDate",
     "keywords": [["day", "date", "time"]],
     "collections": [["get"]],
     "core_id": core_id

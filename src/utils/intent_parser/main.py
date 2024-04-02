@@ -126,7 +126,7 @@ def parse(text_to_parse, intents):
 
       if keywords_pass: intent_votes += 1
 
-      log(f"{intent['intent_name']} - Keywords check votes: {keywords_pass}, {found_keywords} found", log_data)
+      log(f"{intent['intent_id']} - Keywords check votes: {keywords_pass}, {found_keywords} found", log_data)
 
     if intent.get("collections") != None and intent.get("collections") != [] and intent.get("collections") != [[]]:
       collection_votes = 0
@@ -158,19 +158,19 @@ def parse(text_to_parse, intents):
         if something_in_this_set_has_passed: collection_votes += 1
 
       if collection_votes == number_of_sets_of_collections:
-        log(f"{intent['intent_name']} - Collections check votes: {True}, {collection_votes} of {number_of_sets_of_collections} needed collections passed", log_data)
+        log(f"{intent['intent_id']} - Collections check votes: {True}, {collection_votes} of {number_of_sets_of_collections} needed collections passed", log_data)
         intent_votes += 1
       else:
-        log(f"{intent['intent_name']} - Collections check votes: {False}, only {collection_votes} of {number_of_sets_of_collections} necessary collections passed", log_data)
+        log(f"{intent['intent_id']} - Collections check votes: {False}, only {collection_votes} of {number_of_sets_of_collections} necessary collections passed", log_data)
 
       
-    log(f"{intent_votes}/{needed_votes} votes for {intent['intent_name']}", log_data)
+    log(f"{intent_votes}/{needed_votes} votes for {intent['intent_id']}", log_data)
     if intent_votes == needed_votes:
       intent_results.append(intent)
 
   log(f"Intent results length: {len(intent_results)}", log_data)
   if len(intent_results) == 1:
-    return intent_results[0]["intent_name"], intent_results[0]["core_id"], text_to_parse
+    return intent_results[0]["intent_id"], intent_results[0]["core_id"], text_to_parse
   if len(intent_results) == 0:
     return None, None, None
 
