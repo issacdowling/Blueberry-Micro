@@ -123,8 +123,7 @@ core_config = {
   "intents": [{
     "intent_name" : "setWLED",
     "keywords": [all_device_names],
-    "collections": [["boolean", "colours", "any_number"]],
-    
+    "collections": [["set"], ["boolean", "colours", "any_number"]],
     "core_id": core_id,
     "private": True
   }]

@@ -162,12 +162,38 @@ boolean_collection = {
   }
 }
 
+set_collection = {
+    "id": "set",
+  "keywords": [
+    "set",
+    "turn",
+    "make"
+  ],
+  "substitute": None,
+  "variables": {
+  }
+}
+
+get_collection = {
+    "id": "get",
+  "keywords": [
+    "get",
+    "what",
+    "is",
+    "tell me"
+  ],
+  "substitute": None,
+  "variables": {
+  }
+}
+
+
 
 any_number_collection = {
     "id": "any_number",
     "placeholder": "This is only used to add the any_number Collection to the loaded_collections. The intent_handler has a special case for checking numbers."
 }
-collections_list = [colour_collection, any_number_collection, boolean_collection]
+collections_list = [colour_collection, any_number_collection, boolean_collection, set_collection, get_collection]
 
 core_id = "basic_collections"
 
