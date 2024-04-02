@@ -105,11 +105,7 @@ for device in wled_devices:
   for name in device.names:
     all_device_names.append(name)
 
-state_bool_keyphrases = ["on", "off"]
-state_brightness_keyphrases = ["brightness"]
-state_percentage_keyphrases = ["percent", "%", "percentage"]
-
-state_keyphrases = boolean_collection["keywords"] + state_brightness_keyphrases + state_percentage_keyphrases + colours_collection["keywords"]
+state_keyphrases = boolean_collection["keywords"] + colours_collection["keywords"]
 
 log(boolean_collection["keywords"], log_data)
 
