@@ -41,8 +41,8 @@ core_config = {
   "metadata": {
     "core_id": core_id,
     "friendly_name": "Date / Time Getter",
-    "link": None,
-    "author": None,
+    "link": "https://gitlab.com/issacdowling/blueberry-micro/-/tree/main/src/cores/date_time_get",
+    "author": "Issac Dowling",
     "icon": None,
     "description": None,
     "version": 0.1,
