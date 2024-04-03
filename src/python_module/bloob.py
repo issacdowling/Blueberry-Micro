@@ -5,7 +5,7 @@ import paho.mqtt.publish as publish
 def log(text_to_log, logging_data):
   mqtt_host, mqtt_port, device_id, core_id = logging_data
   message_to_log = f"[{core_id}] {text_to_log}"
-  publish.single(f"bloob/{device_id}/logs", payload=message_to_log, hostname=mqtt_host, port=mqtt_port)
+  publish.single(f"bloob/{device_id}/logs", payload=message_to_log, hostname=mqtt_host, port=mqtt_port, qos=2)
   print(message_to_log)
 
 # Can be provided with a list, which should contain objects with .names, 
