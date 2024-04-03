@@ -179,6 +179,7 @@ get_collection = {
   "keywords": [
     "get",
     "what",
+    "whats",
     "is",
     "tell me"
   ],

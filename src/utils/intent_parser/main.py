@@ -122,25 +122,29 @@ def parse(text_to_parse, intents):
     if intent.get("collections"): needed_votes +=1
 
     if intent.get("keywords") != None and intent.get("keywords") != "" and intent.get("keywords") != []:
-      keywords_pass = True
-      failed_matches = False
+      keywords_votes = 0
+      number_of_sets_of_keywords = len(intent["keywords"])
       found_keywords = []
 
       for set_of_keywords in intent["keywords"]:
-        # If all "keywords "in that set are single words - as opposed to phrases - only match the whole word,
+        something_in_this_set_has_passed = False
+        # If a "keyword" is a single word - as opposed to a phrase - only match the whole word,
         # else accept non-whole matches since it's unlikely that a whole phrase would accidentally be inside another
         # Came from issues where "time" would conflict with "times" in different cores
         whole_words_only = True
         for keyword in set_of_keywords:
           if not len(keyword.split(" ")) == 1:
             whole_words_only = False
+          match = getTextMatches(match_item=keyword, check_string=text_to_parse, whole_words_only=whole_words_only)
+          if match: 
+            something_in_this_set_has_passed = True
+            found_keywords.append(match)
+        if something_in_this_set_has_passed:
+          keywords_votes += 1
 
-        if not getTextMatches(match_item=set_of_keywords, check_string=text_to_parse, whole_words_only=whole_words_only): keywords_pass = False
-        found_keywords.append(getTextMatches(match_item=set_of_keywords, check_string=text_to_parse))
+      if keywords_votes == number_of_sets_of_keywords: intent_votes += 1
 
-      if keywords_pass: intent_votes += 1
-
-      log(f"{intent['intent_id']} - Keywords check votes: {keywords_pass}, {found_keywords} found", log_data)
+      log(f"{intent['intent_id']} - Keywords check votes: {keywords_votes}/{number_of_sets_of_keywords}, {found_keywords} found", log_data)
 
     if intent.get("collections") != None and intent.get("collections") != [] and intent.get("collections") != [[]]:
       collection_votes = 0
@@ -161,13 +165,15 @@ def parse(text_to_parse, intents):
               # Any other special cases to be added as elifs here
 
               else:
+                # Go through each keyword in the collection. If the keyword is one word, it must be a whole word match
+                # If it is a multi-word phrase, we are ok without it being a whole word match, so things work either way
                 there_are_any_keywords = False
                 for keyword in collection["keywords"]:
+
                   whole_words_only = True
                   if not len(keyword.split(" ")) == 1:
                     whole_words_only = False
 
-                  log(keyword + str((keyword in text_to_parse)), log_data)
                   if getTextMatches(match_item=keyword, check_string=text_to_parse, whole_words_only=whole_words_only):
                     something_in_this_set_has_passed = True
                     if collection.get("substitute") != None:
