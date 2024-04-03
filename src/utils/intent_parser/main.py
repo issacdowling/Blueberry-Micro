@@ -52,7 +52,13 @@ def clean_input(text):
 
   # TODO: For x in list of words to replace, do this, to allow future additions
   cleaned_text = cleaned_text.replace("%", " percent")
+
   cleaned_text = cleaned_text.replace("&", " and")
+
+  cleaned_text = cleaned_text.replace("+", " plus")
+  cleaned_text = cleaned_text.replace("*", " times")
+  cleaned_text = cleaned_text.replace("-", " minus")
+  cleaned_text = cleaned_text.replace("/", " over")
 
   # Remove special characters from text, make lowercase
   cleaned_text = re.sub('[^A-Za-z0-9 ]+', "", cleaned_text).lower()
@@ -121,7 +127,15 @@ def parse(text_to_parse, intents):
       found_keywords = []
 
       for set_of_keywords in intent["keywords"]:
-        if not getTextMatches(match_item=set_of_keywords, check_string=text_to_parse): keywords_pass = False
+        # If all "keywords "in that set are single words - as opposed to phrases - only match the whole word,
+        # else accept non-whole matches since it's unlikely that a whole phrase would accidentally be inside another
+        # Came from issues where "time" would conflict with "times" in different cores
+        whole_words_only = True
+        for keyword in set_of_keywords:
+          if not len(keyword.split(" ")) == 1:
+            whole_words_only = False
+
+        if not getTextMatches(match_item=set_of_keywords, check_string=text_to_parse, whole_words_only=whole_words_only): keywords_pass = False
         found_keywords.append(getTextMatches(match_item=set_of_keywords, check_string=text_to_parse))
 
       if keywords_pass: intent_votes += 1

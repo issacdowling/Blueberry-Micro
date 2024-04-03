@@ -40,24 +40,33 @@ def getDeviceMatches(device_list, check_string):
 # Can be provided with a str, or list, where it'll search for that str or 
 # each str in the list as a whole word in spoken_words (or whatever the check_string arg is)
 # and return them in spoken order
-def getTextMatches(match_item, check_string):
+def getTextMatches(match_item, check_string, whole_words_only=False):
   check_string = check_string.lower()
 
   # If we're given a list, we'll check for everything in that list, and return it in the order that it was spoken
+  # We split the input string into words, so that we only match whole words
   if type(match_item) is list:
-    matches = [phrase for phrase in match_item if(phrase.lower() in check_string)]
-    matches.sort(key=lambda phrase: check_string.find(phrase.lower()))
-    return(matches)
+    if whole_words_only:
+      matches = [phrase for phrase in match_item if(phrase.lower() in check_string.split(" "))]
+      matches.sort(key=lambda phrase: check_string.find(phrase.lower()))
+      return(matches)
+    else:
+      matches = [phrase for phrase in match_item if(phrase.lower() in check_string)]
+      matches.sort(key=lambda phrase: check_string.find(phrase.lower()))
+      return(matches)
   # If it's a string, check for it as a standalone word
   elif type(match_item) is str:
     # This converts the string into a list so that we only get whole word matches
     # Otherwise, "what's 8 times 12" would count as valid for checking the "time"
     # TODO: In the list section, check if phrases are only a single word, and use this logic
     # if so, otherwise use the current checking logic.
-    if match_item in check_string.split(" "):
-      return(match_item)
+    if whole_words_only:    
+      if match_item in check_string.split(" "):
+        return(match_item)
     else:
-      return("")
+      if match_item in check_string:
+        return(match_item)
+    return("")
 
 # Can be provided with a list, which should contain objects with .names, 
 # which is a list of potential different names for the device, where the first is
