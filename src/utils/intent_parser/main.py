@@ -163,8 +163,12 @@ def parse(text_to_parse, intents):
               else:
                 there_are_any_keywords = False
                 for keyword in collection["keywords"]:
+                  whole_words_only = True
+                  if not len(keyword.split(" ")) == 1:
+                    whole_words_only = False
+
                   log(keyword + str((keyword in text_to_parse)), log_data)
-                  if keyword in text_to_parse:
+                  if getTextMatches(match_item=keyword, check_string=text_to_parse, whole_words_only=whole_words_only):
                     something_in_this_set_has_passed = True
                     if collection.get("substitute") != None:
                       text_to_parse = text_to_parse.replace(keyword, collection["substitute"])
