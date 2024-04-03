@@ -4,7 +4,7 @@ Core ID: weather
 
 Follows the Bloob Core format for input / output
 
-Requires centralised config with key "weather" and value of an object: {"location": [lat,long]}. It is recommended that your lat/long is
+Requires centralised config with key "weather" and value of an object: {"location": [lat,long], "temperature_unit": "celsius"/"fahrenheit"}. It is recommended that your lat/long is
 kept to 1dp of precision, as this should be reasonable for weather requests, while not being too specific
 """
 import argparse
