@@ -1,0 +1,142 @@
+{
+  "0": {
+    "day": {
+      "description": "Sunny"
+    }
+  },
+  "1": {
+    "day": {
+      "description": "Mainly Sunny"
+    }
+  },
+  "2": {
+    "day": {
+      "description": "Partly Cloudy"
+    }
+  },
+  "3": {
+    "day": {
+      "description": "Cloudy"
+    }
+  },
+  "45": {
+    "day": {
+      "description": "Foggy"
+    }
+  },
+  "48": {
+    "day": {
+      "description": "Rime Fog"
+    }
+  },
+  "51": {
+    "day": {
+      "description": "Light Drizzle"
+    }
+  },
+  "53": {
+    "day": {
+      "description": "Drizzle"
+    }
+  },
+  "55": {
+    "day": {
+      "description": "Heavy Drizzle"
+    }
+  },
+  "56": {
+    "day": {
+      "description": "Light Freezing Drizzle"
+    }
+  },
+  "57": {
+    "day": {
+      "description": "Freezing Drizzle"
+    }
+  },
+  "61": {
+    "day": {
+      "description": "Light Rain"
+    }
+  },
+  "63": {
+    "day": {
+      "description": "Rain"
+    }
+  },
+  "65": {
+    "day": {
+      "description": "Heavy Rain"
+    }
+  },
+  "66": {
+    "day": {
+      "description": "Light Freezing Rain"
+    }
+  },
+  "67": {
+    "day": {
+      "description": "Freezing Rain"
+    }
+  },
+  "71": {
+    "day": {
+      "description": "Light Snow"
+    }
+  },
+  "73": {
+    "day": {
+      "description": "Snow"
+    }
+  },
+  "75": {
+    "day": {
+      "description": "Heavy Snow"
+    }
+  },
+  "77": {
+    "day": {
+      "description": "Snow Grains"
+    }
+  },
+  "80": {
+    "day": {
+      "description": "Light Showers"
+    }
+  },
+  "81": {
+    "day": {
+      "description": "Showers"
+    }
+  },
+  "82": {
+    "day": {
+      "description": "Heavy Showers"
+    }
+  },
+  "85": {
+    "day": {
+      "description": "Light Snow Showers"
+    }
+  },
+  "86": {
+    "day": {
+      "description": "Snow Showers"
+    }
+  },
+  "95": {
+    "day": {
+      "description": "Thunderstorm"
+    }
+  },
+  "96": {
+    "day": {
+      "description": "Light Thunderstorms With Hail"
+    }
+  },
+  "99": {
+    "day": {
+      "description": "Thunderstorm With Hail"
+    }
+  }
+}

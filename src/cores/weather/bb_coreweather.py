@@ -65,6 +65,12 @@ core_config = {
   
 }
 
+# Load weathercodes from the drive, which should be placed next to this .py file
+script_path = os.path.abspath(os.path.dirname(__file__))
+with open(f"{script_path}/weathercodes.json", "r") as weather_file:
+  # File by Stellasphere, modified / shrunken to fit my needs
+  wmo_codes = json.load(weather_file)
+
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
 log("Starting up...", log_data)
@@ -98,8 +104,8 @@ while True:
       temperature_unit = central_config["temperature_unit"]
     latlong = central_config["location"]
     weather = requests.get(f'https://api.open-meteo.com/v1/forecast?latitude={latlong[0]}&longitude={latlong[1]}&current=temperature_2m,is_day,weathercode&temperature_unit={temperature_unit}').json()
-    to_speak = f'Right now, its {weather["current"]["temperature_2m"]} degrees {temperature_unit}'
-    explanation = f'The Weather Core got that the temperature is {weather["current"]["temperature_2m"]} degrees {temperature_unit}'
+    to_speak = f'Right now, its {weather["current"]["temperature_2m"]} degrees {temperature_unit} and {wmo_codes[str(weather["current"]["weathercode"])]["day"]["description"]}'
+    explanation = f'The Weather Core got that the temperature is {weather["current"]["temperature_2m"]} degrees {temperature_unit} and the conditions are {wmo_codes[str(weather["current"]["weathercode"])]["day"]["description"]}'
 
   publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "text": to_speak, "explanation": explanation, "end_type": "finish"}), hostname=arguments.host, port=arguments.port)
 
