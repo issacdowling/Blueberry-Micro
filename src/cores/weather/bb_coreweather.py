@@ -49,7 +49,7 @@ core_config = {
   "metadata": {
     "core_id": core_id,
     "friendly_name": "Weather Getter",
-    "link": None,
+    "link": "https://gitlab.com/issacdowling/blueberry-micro/-/tree/main/src/cores/weather",
     "author": "Issac Dowling",
     "icon": None,
     "description": "Gets the weather using Open Meteo",
