@@ -83,6 +83,13 @@ for core_id in loaded_cores:
   for intent in core_conf["intents"]:
     intents.append(intent)
 
+# Get the list of Instant Intents
+instant_intent_words = []
+for intent in intents:
+  if intent.get("wakewords"):
+    for wakeword in intent["wakewords"]:
+      instant_intent_words.append(wakeword)
+
 log(f"Loaded Intents: {intents}", log_data)
 
 loaded_collections = []
@@ -114,6 +121,13 @@ def parse(text_to_parse, intents):
   # It would be useful, if you plan on adding to this, for you to explain the logic of your votes as you do it, like the collections test does (maybe show your internal test values)
 
   for intent in intents:
+    
+    #Check if the text exactly matches the name of an Instant Intent word
+    for wakeword in instant_intent_words:
+      if wakeword == text_to_parse:
+        return intent["intent_id"], intent["core_id"], text_to_parse
+
+
     intent_votes = 0
     needed_votes = 0
 

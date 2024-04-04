@@ -58,9 +58,10 @@ core_config = {
   },
   "intents": [{
     "intent_id" : "getWeather",
+    "core_id": core_id,
     "keywords": [["weather", "hot", "cold", "temperature", "raining", "sun"]],
     "collections": [["get"]],
-    "core_id": core_id
+    "wakewords": ["weatherword"]
   }]
   
 }

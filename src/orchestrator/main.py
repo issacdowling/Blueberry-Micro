@@ -117,6 +117,22 @@ for core in loaded_cores:
 	log(f"Publishing central Core config for: {core.core_id}", log_data)
 	publish.single(f"bloob/{config_json['uuid']}/cores/{core.core_id}/central_config", payload=json.dumps(config_json.get(core.core_id)), retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 
+
+# Find all intents, extract their wakewords, and create a list of wakewords that skip straight to the intent parser
+log("Loading intents to get which wakewords to treat specially", log_data)
+instant_intent_words = []
+for core_id in all_core_ids:
+	log(f"Getting Config for {core_id}", log_data)
+	core_intents = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/cores/{core_id}/config",hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload.decode()).get("intents")
+	for intent in core_intents:
+		if intent.get("wakewords"):
+			for wakeword in intent["wakewords"]:
+				instant_intent_words.append(wakeword)
+
+
+log(f"Loaded Instant Intent words: {instant_intent_words}", log_data)
+
+
 # Detection loop
 while True:
 	log("Waiting for wakeword...", log_data)
@@ -124,32 +140,36 @@ while True:
 	request_identifier = str(randint(1000,9999))
 
 	#Wait for wakeword
-	subscribe.simple(f"bloob/{config_json['uuid']}/wakeword/detected", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
-	log("Wakeword detected, starting recording", log_data)
+	wakeword = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/wakeword/detected", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload.decode())["wakeword_id"]
+	log(f"Wakeword {wakeword} detected, starting recording", log_data)
 
-	#Play sound for...
-	publish.single(f"bloob/{config_json['uuid']}/audio_playback/play_file", payload=json.dumps({"id": request_identifier, "audio": begin_listening_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
-	#Start recording
-	publish.single(f"bloob/{config_json['uuid']}/audio_recorder/record_speech", payload=json.dumps({"id": request_identifier}) ,hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
-	#Receieve recording
-	received_id = None
-	while received_id != request_identifier:
-		recording_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/audio_recorder/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload)
-		received_id = recording_json["id"]
-	#Play sound for finished recording
-	publish.single(f"bloob/{config_json['uuid']}/audio_playback/play_file", payload=json.dumps({"id": request_identifier, "audio": stop_listening_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
-	recording = recording_json["audio"]
-	log("Recording finished, starting transcription", log_data)
+	if wakeword in instant_intent_words:
+		# TODO: New sound to go here, represnting Instant Intents
+		transcript = wakeword
+	else:
+		#Play sound for...
+		publish.single(f"bloob/{config_json['uuid']}/audio_playback/play_file", payload=json.dumps({"id": request_identifier, "audio": begin_listening_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+		#Start recording
+		publish.single(f"bloob/{config_json['uuid']}/audio_recorder/record_speech", payload=json.dumps({"id": request_identifier}) ,hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+		#Receieve recording
+		received_id = None
+		while received_id != request_identifier:
+			recording_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/audio_recorder/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload)
+			received_id = recording_json["id"]
+		#Play sound for finished recording
+		publish.single(f"bloob/{config_json['uuid']}/audio_playback/play_file", payload=json.dumps({"id": request_identifier, "audio": stop_listening_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+		recording = recording_json["audio"]
+		log("Recording finished, starting transcription", log_data)
 
-	#Transcribe
-	publish.single(f"bloob/{config_json['uuid']}/stt/transcribe", payload=json.dumps({"id": request_identifier, "audio": recording}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
-	#Receive transcription
-	received_id = None
-	while received_id != request_identifier:
-		stt_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/stt/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload)
-		received_id = stt_json["id"]
-	transcript = stt_json["text"]
-	log(f"Transcription finished - {transcript} - sending to intent parser", log_data)
+		#Transcribe
+		publish.single(f"bloob/{config_json['uuid']}/stt/transcribe", payload=json.dumps({"id": request_identifier, "audio": recording}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+		#Receive transcription
+		received_id = None
+		while received_id != request_identifier:
+			stt_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/stt/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload)
+			received_id = stt_json["id"]
+		transcript = stt_json["text"]
+		log(f"Transcription finished - {transcript} - sending to intent parser", log_data)
 
 	#Parse
 	publish.single(f"bloob/{config_json['uuid']}/intent_parser/run", payload=json.dumps({"id": request_identifier, "text": transcript}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
