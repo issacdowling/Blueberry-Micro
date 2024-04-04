@@ -73,6 +73,10 @@ with open(resources_dir.joinpath("audio/begin_listening.wav"), "rb") as audio_fi
 	begin_listening_audio = base64.b64encode(audio_file.read()).decode()
 with open(resources_dir.joinpath("audio/stop_listening.wav"), "rb") as audio_file:
 	stop_listening_audio = base64.b64encode(audio_file.read()).decode()
+with open(resources_dir.joinpath("audio/instant_intent.wav"), "rb") as audio_file:
+	instant_intent_audio = base64.b64encode(audio_file.read()).decode()
+with open(resources_dir.joinpath("audio/error.wav"), "rb") as audio_file:
+	error_audio = base64.b64encode(audio_file.read()).decode()
 
 log("Loading Cores", log_data)
 collections = []
@@ -145,11 +149,12 @@ while True:
 
 	if wakeword in instant_intent_words:
 		log(f"Executing Instant Intent", log_data)
-		# TODO: New sound to go here, represnting Instant Intents
+		#Play sound for starting recording
+		publish.single(f"bloob/{config_json['uuid']}/audio_playback/play_file", payload=json.dumps({"id": request_identifier, "audio": instant_intent_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 		transcript = wakeword
 	else:
 		log(f"Starting recording", log_data)
-		#Play sound for...
+		#Play sound for starting recording
 		publish.single(f"bloob/{config_json['uuid']}/audio_playback/play_file", payload=json.dumps({"id": request_identifier, "audio": begin_listening_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 		#Start recording
 		publish.single(f"bloob/{config_json['uuid']}/audio_recorder/record_speech", payload=json.dumps({"id": request_identifier}) ,hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
