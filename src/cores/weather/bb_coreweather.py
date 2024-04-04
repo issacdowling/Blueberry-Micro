@@ -61,7 +61,7 @@ core_config = {
     "core_id": core_id,
     "keywords": [["weather", "hot", "cold", "temperature", "raining", "sun"]],
     "collections": [["get"]],
-    "wakewords": ["weatherword"]
+    "wakewords": ["weather"]
   }]
   
 }

@@ -102,14 +102,17 @@ for collection_id in orchestrator_collections:
 
 log(f"Loaded Collections: {loaded_collections}", log_data)
 
-def parse(text_to_parse, intents):
-  if len(text_to_parse) == 0:
+def parse(uncleaned_text_to_parse, intents):
+  if len(uncleaned_text_to_parse) == 0:
     log(f"0 length text inputted", log_data)
     return None, None, None
   
   ## TODO: Allow only checking for the first word
   ## TODO: ALlow checking for which wakeword was spoken
   intent_results = []
+
+  text_to_parse = clean_input(uncleaned_text_to_parse)
+  log(f"Received input, beginning parsing on text: {text_to_parse}", log_data)
 
   # Explanation of this mess, for future generations
   # Each test is based on one key, such as "collections" or "keywords"
@@ -121,11 +124,12 @@ def parse(text_to_parse, intents):
   # It would be useful, if you plan on adding to this, for you to explain the logic of your votes as you do it, like the collections test does (maybe show your internal test values)
 
   for intent in intents:
-    
     #Check if the text exactly matches the name of an Instant Intent word
-    for wakeword in instant_intent_words:
-      if wakeword == text_to_parse:
-        return intent["intent_id"], intent["core_id"], text_to_parse
+    if intent.get("wakewords") != None:
+      for wakeword in intent["wakewords"]:
+        # Specifically use the UNCLEANED text_to_parse, so that special characters are preserved
+        if wakeword == uncleaned_text_to_parse and wakeword in intent.get("wakewords"):
+          return intent["intent_id"], intent["core_id"], uncleaned_text_to_parse
 
 
     intent_votes = 0
@@ -217,8 +221,6 @@ def parse(text_to_parse, intents):
 while True:
   log(f"Waiting for input...", log_data)
   request_json =  json.loads(subscribe.simple(f"bloob/{arguments.device_id}/intent_parser/run", hostname=arguments.host, port=arguments.port).payload.decode())
-  cleaned_input = clean_input(request_json["text"])
-  log(f"Received input, beginning parsing on text: {cleaned_input}", log_data)
-  parsed_intent, parsed_core, text_out = parse(text_to_parse=cleaned_input, intents=intents)
+  parsed_intent, parsed_core, text_out = parse(uncleaned_text_to_parse=request_json["text"], intents=intents)
   log(f"Outputting results, Core: {parsed_core}, Intent: {parsed_intent}", log_data)
   publish.single(f"bloob/{arguments.device_id}/intent_parser/finished", payload=json.dumps({"id": request_json["id"], "intent": parsed_intent, "core_id": parsed_core, "text": text_out}), hostname=arguments.host, port=arguments.port)

@@ -141,12 +141,14 @@ while True:
 
 	#Wait for wakeword
 	wakeword = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/wakeword/detected", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload.decode())["wakeword_id"]
-	log(f"Wakeword {wakeword} detected, starting recording", log_data)
+	log(f"Wakeword {wakeword} detected", log_data)
 
 	if wakeword in instant_intent_words:
+		log(f"Executing Instant Intent", log_data)
 		# TODO: New sound to go here, represnting Instant Intents
 		transcript = wakeword
 	else:
+		log(f"Starting recording", log_data)
 		#Play sound for...
 		publish.single(f"bloob/{config_json['uuid']}/audio_playback/play_file", payload=json.dumps({"id": request_identifier, "audio": begin_listening_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 		#Start recording
