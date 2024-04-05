@@ -1,0 +1,3 @@
+[submodule "src/cores/sync-clock"]
+	path = src/cores/sync-clock
+	url = https://gitlab.com/issacdowling/sync-clock
