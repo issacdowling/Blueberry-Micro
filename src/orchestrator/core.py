@@ -21,6 +21,8 @@ class Core:
         self.is_util = True if "util" in self.core_json["roles"] else False
         self.is_core = True if "util" not in self.core_json["roles"] else False
 
+        self.extra_args = []
+
     def construct_run_args(self):
         args = [self.path]
         if(self.username != None):
@@ -46,6 +48,8 @@ class Core:
         
 
     def run(self):
-        self.running_core = subprocess.Popen(self.construct_run_args(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        args = self.construct_run_args()
+        args.extend(self.extra_args)
+        self.running_core = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     def stop(self):
         self.running_core.terminate()

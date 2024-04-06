@@ -87,6 +87,12 @@ for core_file in external_core_files + internal_core_files + util_files:
 
 	if not core_obj.is_collection_handler:
 		if core_obj.is_util:
+			if(core_obj.core_id == "tts" and config_json.get("tts_model") != None):
+				core_obj.extra_args.append("--tts-model")
+				core_obj.extra_args.append(config_json.get("tts_model"))
+			if(core_obj.core_id == "stt" and config_json.get("stt_model") != None):
+				core_obj.extra_args.append("--stt-model")
+				core_obj.extra_args.append(config_json.get("stt_model"))
 			loaded_utils.append(core_obj)
 			log(f"Loaded util: {core_obj.core_id}", log_data)
 		else:
