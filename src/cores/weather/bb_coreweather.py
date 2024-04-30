@@ -92,8 +92,7 @@ signal.signal(signal.SIGINT, on_exit)
 
 while True:
   request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
-  
-  if central_config.get("location") == None:
+  if central_config == None or central_config.get("location") == None:
     log("No location set in config", log_data)
     to_speak = "I couldn't get the weather, as you don't have a location set up in your configuration file"
     explanation = "The Weather Core could not get the weather, as the user has not configured their location"
