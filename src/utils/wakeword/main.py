@@ -66,6 +66,9 @@ log(f"Found these OpenWakeWord Models: {[str(model) for model in arguments.ww_pa
 enabled_wakewords = [str(model) for model in arguments.ww_path.glob('*.tflite')]
 ## TODO: Add automatically downloading "personal wakewords" from configuration server and enabling them
 
+if len(enabled_wakewords) == 0:
+  log(f"There are no wakewords in {arguments.ww_path}, so wakeword detection cannot continue. Exiting.", log_data)
+  exit()
 
 ## Load OpenWakeword #######################
 from openwakeword import Model
