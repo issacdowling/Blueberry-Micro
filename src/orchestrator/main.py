@@ -49,11 +49,33 @@ data_dir = pathlib.Path(os.environ["HOME"]).joinpath(".config/bloob")
 cores_dir = data_dir.joinpath("cores")
 src_folder_dir = pathlib.Path(__file__).parents[1]
 
+config_path = data_dir.joinpath("config.json")
+
 resources_dir = src_folder_dir.joinpath("resources")
 
-with open(data_dir.joinpath("config.json"), 'r') as conf_file:
-	config_json = json.load(conf_file)
+## Make default - or load custom - config
+if not os.path.exists(data_dir):
+	os.mkdir(data_dir)
 
+if os.path.exists(config_path):
+	with open(config_path, 'r') as conf_file:
+		config_json = json.load(conf_file)
+else:
+	config_json = {
+    "instance_name": "Default Name",
+    "uuid": "test",
+    "stt_model": "Systran/faster-distil-whisper-small.en",
+    "tts_model": "en_GB-southern_english_female_low",
+    "external_core_ids": [],
+    "mqtt": {
+        "host": "localhost",
+        "port": 1883,
+        "user": "",
+        "password": ""
+    }
+}
+	with open(data_dir.joinpath("config.json"), 'w') as conf_file:
+		json.dump(config_json, conf_file)
 
 ## Logging begins here
 core_id = "orchestrator"
@@ -139,8 +161,10 @@ for core_id in all_core_ids:
 			for wakeword in intent["wakewords"]:
 				instant_intent_words.append(wakeword)
 
-
-log(f"Loaded Instant Intent words: {instant_intent_words}", log_data)
+if len(instant_intent_words) > 0:
+	log(f"Registered Instant Intent words: {instant_intent_words}", log_data)
+else:
+	log(f"No Instant Intent words registered", log_data)
 
 
 # Detection loop
