@@ -15,6 +15,7 @@ import json
 import base64
 import pathlib
 import os
+from piper import download
 
 bloob_python_module_dir = pathlib.Path(__file__).parents[2].joinpath("python_module")
 sys.path.append(str(bloob_python_module_dir))
@@ -37,7 +38,7 @@ arg_parser.add_argument('--user')
 arg_parser.add_argument('--pass')
 arg_parser.add_argument('--device-id', default="test")
 arg_parser.add_argument('--tts-path', default=default_tts_path)
-arg_parser.add_argument('--tts-model', default="en_US-lessac-high")
+arg_parser.add_argument('--tts-model', default="en_GB-southern_english_female-low")
 arg_parser.add_argument('--identify', default="")
 arguments = arg_parser.parse_args()
 
@@ -55,15 +56,17 @@ tts_path = arguments.tts_path
 tts_model_path = f"{tts_path}/{arguments.tts_model}.onnx"
 output_audio_path = f"{tts_temp_path}/out.wav"
 
-if not os.path.exists(tts_model_path):
-	subprocess.call(f'echo {"test speech to download the model"} | {sys.executable} -m piper --data-dir {tts_path} --download-dir {tts_path} --model {arguments.tts_model} --output_file {output_audio_path}', stdout=subprocess.PIPE, shell=True)
-
-
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
 log("Starting up...", log_data)
 
-
+if not os.path.exists(tts_model_path):
+	log(f"Couldn't find voice ({arguments.tts_model}) locally, trying to download it.", log_data)
+	try:
+		download.ensure_voice_exists(arguments.tts_model, [tts_path], tts_path, download.get_voices(tts_path))
+	except download.VoiceNotFoundError:
+		log(f"The requested voice ({arguments.tts_model}) was not found locally or able to be downloaded. The list of officially available Piper voices is {list(download.get_voices(tts_path, True).keys())}  Exiting.", log_data)
+		exit()
 
 def speak(text):
 	speech_text = re.sub(r"^\W+|\W+$",'', text)
@@ -85,7 +88,7 @@ async def connect():
 			if(message_payload.get('text') != None and message_payload.get('id') != None):
 				speak(message_payload.get('text'))
 				# encode speech to base64
-				log(f"Writing to temp file", log_data)
+				log(f"Writing to temp file ({output_audio_path})", log_data)
 				with open(output_audio_path, 'rb') as f:
 					encoded = base64.b64encode(f.read())
 					str_encoded = encoded.decode()

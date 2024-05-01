@@ -65,7 +65,7 @@ else:
     "instance_name": "Default Name",
     "uuid": "test",
     "stt_model": "Systran/faster-distil-whisper-small.en",
-    "tts_model": "en_GB-southern_english_female_low",
+    "tts_model": "en_GB-southern_english_female-low",
     "external_core_ids": [],
     "mqtt": {
         "host": "localhost",
