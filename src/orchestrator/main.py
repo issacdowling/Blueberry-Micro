@@ -215,7 +215,7 @@ while True:
 	while received_id != request_identifier:
 		parsed_json = json.loads(subscribe.simple(f"bloob/{config_json['uuid']}/intent_parser/finished", hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"]).payload.decode())
 		received_id = parsed_json["id"]
-	log(f"Parsing finished - {parsed_json['text']} - sending to core", log_data)
+	log(f"Parsing finished - {parsed_json['text']} - sending to core ({parsed_json['core_id']} - {parsed_json['intent']})", log_data)
 
 	# Handle the intent not being recognised by saying that we didn't understand
 	if not (parsed_json["core_id"] == None or parsed_json["intent"] == None):
