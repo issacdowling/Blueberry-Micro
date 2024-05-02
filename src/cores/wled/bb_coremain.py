@@ -119,7 +119,27 @@ core_config = {
     "icon": None,
     "description": "Allows setting / getting the basic states of WLED lights using their REST API",
     "version": "0.1",
-    "license": "AGPLv3"
+    "license": "AGPLv3",
+    "example_config": {
+      "devices": [
+        {
+          "names": [
+            "first device name",
+            "other alias for device",
+            "the first name is what will be used by bloob normally",
+            "but you can say any of these and it'll work"
+          ],
+          "ip": "192.168.x.x"
+        },
+        {
+          "names": [
+            "I am a second device",
+            "kitchen light"
+          ],
+          "ip": "172.30.x.x"
+        }
+      ]
+    }
   },
   "intents": [{
     "intent_id" : "setWLED",
