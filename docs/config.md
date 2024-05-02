@@ -3,6 +3,7 @@
 * **The main config file is found, by default, at `~/.config/bloob/config.json`**
 * **Sections mentioned here will contain key:value pairs, which can be added in any order (this is just regular JSON) to your `config.json`**
 * **Default suggested values will be actual values (e.g `127.0.0.1`), example values where we can't guess what you might need will be clear (e.g `x.x.x.x` or `example-name`), values that can be empty contain `null`**
+* **Other Cores can choose to have information stored in this main config file, simply by adding a key with the ID of the core, with the value of an object that will be sent to the core on startup of the Orchestrator. You can choose to configure your Core in any way you see fit, especially if security is a concern due to this being a shared file that'll be transmitted over the network, however it's likely the way to go for most usecases.**
 
 ## Instance ID (required)
 ```
