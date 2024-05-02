@@ -2,6 +2,13 @@
 
 ## What Bloob needs from you
 
+### Structure
+You must create a file - either within your configuration directory's core folder (typically `~/.config/bloob/cores`, though this may not exist by default), or the repo directly if you plan to upstream it (at `src/cores/`) - that somehow includes the text `bb_core` in its name, as this is how Blueberry knows which files to run when searching for cores.
+
+This also means that Python scripts (or any other interpreted language) should begin with a shebang, so that they can be executed regularly. E.g: `#!/bin/env python3` (`/bin/env python3` instead of `/usr/bin/python3` ensures that venvs work fine).
+
+Your Cores must also be marked executable.
+
 ### Identification
 If your core is launched with the argument `--identify true`, it must not run regularly, and will hold back the Orchestrator until it's completed identifying itself. Over stdout, it must return its Core ID (a string that uniquely identifies this core) and its roles (whether it provides Collections, Intents, etc).
 
