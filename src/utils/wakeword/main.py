@@ -37,7 +37,6 @@ arg_parser.add_argument('--user')
 arg_parser.add_argument('--pass')
 arg_parser.add_argument('--device-id', default="test")
 arg_parser.add_argument('--ww-path', default=default_ww_path)
-arg_parser.add_argument('--ww-model', default="en_US-lessac-high")
 arg_parser.add_argument('--identify', default="")
 arguments = arg_parser.parse_args()
 
