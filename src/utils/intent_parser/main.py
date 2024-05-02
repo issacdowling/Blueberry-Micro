@@ -3,7 +3,7 @@
 
 Wishes to be provided with {"id": identifier_of_this_request: str, "text": text_to_parse: str}, over MQTT to "bloob/{arguments.device_id}/intent_parser/run"
 
-Will respond with {"id": identifier_of_this_request: str, "intent": intent["intentName"]: str, "text": cleaned_up_text, "core": intent["core"]: str} to "bloob/{arguments.device_id}/intent_parser/finished"
+Will respond with {"id": identifier_of_this_request: str, "intent": intent["intentName"]: str, "text": cleaned_up_text, "core_id": intent["core"]: str} to "bloob/{arguments.device_id}/intent_parser/finished"
 """
 import argparse
 import subprocess
