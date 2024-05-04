@@ -144,6 +144,7 @@ def parse(uncleaned_text_to_parse, intents):
     if intent.get("keywords"): needed_votes +=1
     if intent.get("collections"): needed_votes +=1
     if intent.get("prefixes"): needed_votes +=1
+    if intent.get("suffixes"): needed_votes +=1
 
     if intent.get("keywords") != None and intent.get("keywords") != "" and intent.get("keywords") != []:
       keywords_votes = 0
@@ -224,6 +225,20 @@ def parse(uncleaned_text_to_parse, intents):
         log(f"{intent['intent_id']} - Prefix check vote passed: [{which_prefix_found}] found at the start of speech.", log_data)
       else:
         log(f"{intent['intent_id']} - Prefix check vote failed.", log_data)
+
+
+    if intent.get("suffixes") != None and intent.get("suffixes") != []:
+      was_suffix_found = False
+      for suffix in intent["suffixes"]:
+        if text_to_parse.endswith(suffix):
+          was_suffix_found = True
+          which_suffix_found = suffix
+      
+      if was_suffix_found:
+        intent_votes += 1
+        log(f"{intent['intent_id']} - Suffix check vote passed: [{which_suffix_found}] found at the end of speech.", log_data)
+      else:
+        log(f"{intent['intent_id']} - Suffix check vote failed.", log_data)
 
 
     log(f"{intent_votes}/{needed_votes} votes for {intent['intent_id']}", log_data)
