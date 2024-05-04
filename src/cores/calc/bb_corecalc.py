@@ -17,7 +17,13 @@ import pathlib
 import os
 import signal
 
-bloob_python_module_dir = pathlib.Path(__file__).parents[2].joinpath("python_module")
+default_temp_path = pathlib.Path("/dev/shm/bloob")
+
+bloobinfo_path = default_temp_path.joinpath("bloobinfo.txt")
+with open(bloobinfo_path, "r") as bloobinfo_file:
+  bloob_info = json.load(bloobinfo_file)
+
+bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
 sys.path.append(str(bloob_python_module_dir))
 
 from bloob import getTextMatches, log

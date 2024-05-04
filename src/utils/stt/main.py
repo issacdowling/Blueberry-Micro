@@ -16,7 +16,14 @@ import base64
 import pathlib
 import os
 
-bloob_python_module_dir = pathlib.Path(__file__).parents[2].joinpath("python_module")
+default_temp_path = pathlib.Path("/dev/shm/bloob")
+stt_temp_path = default_temp_path.joinpath("stt")
+
+bloobinfo_path = default_temp_path.joinpath("bloobinfo.txt")
+with open(bloobinfo_path, "r") as bloobinfo_file:
+  bloob_info = json.load(bloobinfo_file)
+
+bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
 sys.path.append(str(bloob_python_module_dir))
 
 from bloob import getDeviceMatches, getTextMatches, log
@@ -25,9 +32,6 @@ from faster_whisper import WhisperModel
 
 default_data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob") 
 default_stt_path = default_data_path.joinpath("stt")
-
-default_temp_path = pathlib.Path("/dev/shm/bloob")
-stt_temp_path = default_temp_path.joinpath("stt")
 
 transcribed_audio_path = stt_temp_path.joinpath("transcribed_audio.wav")
 

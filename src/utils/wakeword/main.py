@@ -16,7 +16,14 @@ import pathlib
 import os
 import paho.mqtt.publish as publish
 
-bloob_python_module_dir = pathlib.Path(__file__).parents[2].joinpath("python_module")
+default_temp_path = pathlib.Path("/dev/shm/bloob")
+ww_temp_path = default_temp_path.joinpath("ww")
+
+bloobinfo_path = default_temp_path.joinpath("bloobinfo.txt")
+with open(bloobinfo_path, "r") as bloobinfo_file:
+  bloob_info = json.load(bloobinfo_file)
+
+bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
 sys.path.append(str(bloob_python_module_dir))
 
 from bloob import getDeviceMatches, getTextMatches, log
@@ -24,8 +31,7 @@ from bloob import getDeviceMatches, getTextMatches, log
 default_data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob") 
 default_ww_path = default_data_path.joinpath("ww")
 
-default_temp_path = pathlib.Path("/dev/shm/bloob")
-ww_temp_path = default_temp_path.joinpath("ww")
+
 
 if not os.path.exists(ww_temp_path):
   os.makedirs(ww_temp_path)

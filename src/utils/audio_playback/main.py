@@ -17,14 +17,18 @@ import pathlib
 import os
 import mpv
 
-bloob_python_module_dir = pathlib.Path(__file__).parents[2].joinpath("python_module")
-sys.path.append(str(bloob_python_module_dir))
+default_temp_path = pathlib.Path("/dev/shm/bloob")
 
+bloobinfo_path = default_temp_path.joinpath("bloobinfo.txt")
+with open(bloobinfo_path, "r") as bloobinfo_file:
+  bloob_info = json.load(bloobinfo_file)
+
+bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
+sys.path.append(str(bloob_python_module_dir))
 
 from bloob import getDeviceMatches, getTextMatches, log
 
 default_data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob") 
-default_temp_path = pathlib.Path("/dev/shm/bloob")
 
 audio_playback_temp_path = default_temp_path.joinpath("audio_playback")
 

@@ -17,16 +17,20 @@ import pathlib
 import os
 from piper import download
 
-bloob_python_module_dir = pathlib.Path(__file__).parents[2].joinpath("python_module")
+default_temp_path = pathlib.Path("/dev/shm/bloob")
+tts_temp_path = default_temp_path.joinpath("tts")
+
+bloobinfo_path = default_temp_path.joinpath("bloobinfo.txt")
+with open(bloobinfo_path, "r") as bloobinfo_file:
+  bloob_info = json.load(bloobinfo_file)
+
+bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
 sys.path.append(str(bloob_python_module_dir))
 
 from bloob import getDeviceMatches, getTextMatches, log
 
 default_data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob") 
 default_tts_path = default_data_path.joinpath("tts")
-
-default_temp_path = pathlib.Path("/dev/shm/bloob")
-tts_temp_path = default_temp_path.joinpath("tts")
 
 if not os.path.exists(tts_temp_path):
   os.makedirs(tts_temp_path)
