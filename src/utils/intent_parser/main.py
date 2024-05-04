@@ -215,12 +215,9 @@ def parse(uncleaned_text_to_parse, intents):
     if intent.get("prefixes") != None and intent.get("prefixes") != []:
       was_prefix_found = False
       for prefix in intent["prefixes"]:
-        try:
-          if text_to_parse.index(prefix) == 0:
-            was_prefix_found = True
-            which_prefix_found = prefix
-        except ValueError:
-          pass
+        if text_to_parse.startswith(prefix):
+          was_prefix_found = True
+          which_prefix_found = prefix
       
       if was_prefix_found:
         intent_votes += 1
