@@ -14,7 +14,20 @@ import traceback
 
 import core
 
-bloob_python_module_dir = pathlib.Path(__file__).parents[1].joinpath("python_module")
+# Write info, such as path, to a file for others to access
+bloob_temp_path = pathlib.Path("/dev/shm/bloob/")
+bloob_install_info_path = bloob_temp_path.joinpath("bloobinfo.txt")
+os.makedirs(bloob_temp_path, exist_ok=True)
+
+install_info = {
+	"version": "0.1",
+	"install_path": str(pathlib.Path(__file__).parents[2])
+}
+
+with open(bloob_install_info_path, "w") as install_info_file:
+	json.dump(install_info, install_info_file)
+
+bloob_python_module_dir = pathlib.Path(install_info["install_path"]).joinpath("src").joinpath("python_module")
 sys.path.append(str(bloob_python_module_dir))
 
 from bloob import getDeviceMatches, getTextMatches, log
