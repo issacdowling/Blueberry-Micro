@@ -143,6 +143,7 @@ def parse(uncleaned_text_to_parse, intents):
     # The number of tests needed to run is the number of votes needed to win, as each test votes once
     if intent.get("keywords"): needed_votes +=1
     if intent.get("collections"): needed_votes +=1
+    if intent.get("prefixes"): needed_votes +=1
 
     if intent.get("keywords") != None and intent.get("keywords") != "" and intent.get("keywords") != []:
       keywords_votes = 0
@@ -210,7 +211,24 @@ def parse(uncleaned_text_to_parse, intents):
       else:
         log(f"{intent['intent_id']} - Collections check votes: {False}, only {collection_votes} of {number_of_sets_of_collections} necessary collections passed", log_data)
 
+
+    if intent.get("prefixes") != None and intent.get("prefixes") != []:
+      was_prefix_found = False
+      for prefix in intent["prefixes"]:
+        try:
+          if text_to_parse.index(prefix) == 0:
+            was_prefix_found = True
+            which_prefix_found = prefix
+        except ValueError:
+          pass
       
+      if was_prefix_found:
+        intent_votes += 1
+        log(f"{intent['intent_id']} - Prefix check vote passed: [{which_prefix_found}] found at the start of speech.", log_data)
+      else:
+        log(f"{intent['intent_id']} - Prefix check vote failed.", log_data)
+
+
     log(f"{intent_votes}/{needed_votes} votes for {intent['intent_id']}", log_data)
     if intent_votes == needed_votes:
       intent_results.append(intent)
