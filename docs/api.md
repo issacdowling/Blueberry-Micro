@@ -20,6 +20,32 @@ Example Output:
 	* This is just plaintext, no JSON here (though, you _could_ include it as an extra part, but generally these are just text)
 	* These are quite verbose sometimes, with no log levels, however that's the way I want it
 
+## Listening/Thinking
+
+Topic: **`bloob/<device-id>/recording`**
+
+Example Output:
+```
+{"is_recording": True}
+```
+
+* **What:** Reports `is_recording` as True while recording audio, False while not.
+* **Why:** External programs may want to represent whether the assistant is listening/computing a response, and this is a simpler (and more securable) way of doing that than directly accessing the audio recorder / other steps of completing the request.
+* **Notes:**
+	* Though typically you might call this "listening" (and clients are welcome to do so), I've chosen to name this topic "recording" since "listening" may be reserved for representing whether the mic is muted or not.
+
+Topic: **`bloob/<device-id>/thinking`**
+
+Example Output:
+```
+{"is_thinking": True}
+```
+
+* **What:** Reports `is_thinking` as True while computing the response to your query, False while not.
+* **Why:** See the previous example.
+* **Notes:**
+	* This becomes `False` just before actual speaking begins.
+
 ## List Running Cores
 
 Topic: **`bloob/<device-id>/cores/list`**
