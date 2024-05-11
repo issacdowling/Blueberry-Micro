@@ -11,4 +11,4 @@ piper-tts
 faster-whisper
 mpv
 requests
-
+duckduckgo_search
