@@ -44,6 +44,11 @@ def exit_cleanup(*args):
 	#Clear the retained list of collections
 	publish.single(f"bloob/{config_json['uuid']}/collections/list", payload=None, retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 
+	#Clear the recording topic
+	publish.single(f"bloob/{config_json['uuid']}/recording", payload=None, retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+	#Clear the thinking topic
+	publish.single(f"bloob/{config_json['uuid']}/thinking", payload=None, retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+
 	#Kill cores
 	for core in loaded_cores:
 		core.stop()
@@ -195,8 +200,14 @@ while True:
 		#Play sound for starting recording
 		publish.single(f"bloob/{config_json['uuid']}/audio_playback/play_file", payload=json.dumps({"id": request_identifier, "audio": instant_intent_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 		transcript = wakeword
+
+		#Publish the fact that we're processing the request (thinking)
+		publish.single(f"bloob/{config_json['uuid']}/recording", payload=json.dumps({"is_thinking": True}), retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+
 	else:
 		log(f"Starting recording", log_data)
+		#Publish the fact that we're now recording
+		publish.single(f"bloob/{config_json['uuid']}/recording", payload=json.dumps({"is_recording": True}), retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 		#Play sound for starting recording
 		publish.single(f"bloob/{config_json['uuid']}/audio_playback/play_file", payload=json.dumps({"id": request_identifier, "audio": begin_listening_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 		#Start recording
@@ -210,6 +221,12 @@ while True:
 		publish.single(f"bloob/{config_json['uuid']}/audio_playback/play_file", payload=json.dumps({"id": request_identifier, "audio": stop_listening_audio}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 		recording = recording_json["audio"]
 		log("Recording finished, starting transcription", log_data)
+
+		#Publish the fact that we're no longer recording
+		publish.single(f"bloob/{config_json['uuid']}/recording", payload=json.dumps({"is_recording": False}), retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+
+		#Publish the fact that we're processing the request (thinking)
+		publish.single(f"bloob/{config_json['uuid']}/thinking", payload=json.dumps({"is_thinking": True}), retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 
 		#Transcribe
 		publish.single(f"bloob/{config_json['uuid']}/stt/transcribe", payload=json.dumps({"id": request_identifier, "audio": recording}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
@@ -246,6 +263,9 @@ while True:
 		log("Didn't receive an Intent", log_data)
 		speech_text = "I'm not sure what you mean, could you repeat that?"
 		explanation = "Failed to recognise what the user meant"
+
+	#Publish the fact that we're no longer processing the request (thinking)
+	publish.single(f"bloob/{config_json['uuid']}/thinking", payload=json.dumps({"is_thinking": False}), retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 
 	#Text to speech the core's output
 	publish.single(f"bloob/{config_json['uuid']}/tts/run", payload=json.dumps({"id": request_identifier, "text": speech_text}), hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
