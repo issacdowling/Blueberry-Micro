@@ -38,7 +38,7 @@ A Collection Handler will provide Collections, which are groups of words that ca
 A Util represents something that isn't directly called by the user's speech, but completes a task involved in processing it or doing other operations related to it (for example, speech-to-text)
 
 #### No Config
-If you just want to build a super simple Core (any arbitrary program you want to launch with Bloob, but not to interact with voice, nor do you want to provide metadata), you can add this role, and a config will automatically be provided on your behalf, just containing the `core_id` (you still need to `identify`)
+If you just want to build a super simple Core (any arbitrary program you want to launch with Bloob, but not to interact with voice, nor do you want to provide metadata), you can add this role, and a config will automatically be provided on your behalf, just containing the `core_id` (you still need to `identify`, so the main value is avoiding needing MQTT if you won't use it.)
 
 ### Core Config
 
