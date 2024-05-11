@@ -166,6 +166,9 @@ publish.single(f"bloob/{config_json['uuid']}/cores/list", payload=json.dumps({"l
 for core in loaded_cores:
 	log(f"Publishing central Core config for: {core.core_id}", log_data)
 	publish.single(f"bloob/{config_json['uuid']}/cores/{core.core_id}/central_config", payload=json.dumps(config_json.get(core.core_id)), retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+	# If this is a core that has no config, we still publish config purely containing the ID just to stay in line with how other Cores work
+	if core.no_config:
+		publish.single(f"bloob/{config_json['uuid']}/cores/{core.core_id}/config", payload=json.dumps({"metadata": {"core_id": core.core_id}}), retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 
 
 # Find all intents, extract their wakewords, and create a list of wakewords that skip straight to the intent parser

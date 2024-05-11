@@ -20,6 +20,7 @@ class Core:
         self.is_collection_handler = True if "collection_handler" in self.core_json["roles"] else False
         self.is_util = True if "util" in self.core_json["roles"] else False
         self.is_core = True if "util" not in self.core_json["roles"] else False
+        self.no_config = True if "no_config" in self.core_json["roles"] else False
 
         self.extra_args = []
 
