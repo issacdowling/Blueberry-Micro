@@ -26,6 +26,7 @@ The current available roles are:
 * `intent_handler`
 * `collection_handler`
 * `util`
+* `no_config`
 
 #### Intent Handler
 An Intent Handler will provide intents (the format for which is described later on), which are events than can be called using the user's voice.
@@ -35,6 +36,9 @@ A Collection Handler will provide Collections, which are groups of words that ca
 
 #### Util
 A Util represents something that isn't directly called by the user's speech, but completes a task involved in processing it or doing other operations related to it (for example, speech-to-text)
+
+#### No Config
+If you just want to build a super simple Core (any arbitrary program you want to launch with Bloob, but not to interact with voice, nor do you want to provide metadata), you can add this role, and a config will automatically be provided on your behalf, just containing the `core_id` (you still need to `identify`)
 
 ### Core Config
 
