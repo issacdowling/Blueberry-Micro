@@ -202,7 +202,7 @@ while True:
 		transcript = wakeword
 
 		#Publish the fact that we're processing the request (thinking)
-		publish.single(f"bloob/{config_json['uuid']}/recording", payload=json.dumps({"is_thinking": True}), retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
+		publish.single(f"bloob/{config_json['uuid']}/thinking", payload=json.dumps({"is_thinking": True}), retain=True, hostname=config_json["mqtt"]["host"], port=config_json["mqtt"]["port"])
 
 	else:
 		log(f"Starting recording", log_data)
