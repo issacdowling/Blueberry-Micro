@@ -4,6 +4,7 @@ repo_name: issacdowling/blueberry-micro
 
 nav:
   - Home: index.md
+  - Definitions: definitions.md
   - API: api.md
   - Config: config.md
   - Core Development: core_development.md
