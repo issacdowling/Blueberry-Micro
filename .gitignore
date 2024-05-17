@@ -2,6 +2,10 @@
 
 main
 
+#Ignores just the file, not the dir
+orchestrator
+!orchestrator/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
