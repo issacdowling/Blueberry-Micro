@@ -47,10 +47,10 @@ func pathIsCore(path string) (bool, error) {
 	return false, nil
 }
 
-func startCores(corePaths []string) ([]exec.Cmd, error) {
-	var runningCores []exec.Cmd
+func startCores(corePaths []string) ([]*exec.Cmd, error) {
+	var runningCores []*exec.Cmd
 	for _, corePath := range corePaths {
-		runningCores = append(runningCores, *exec.Command(corePath))
+		runningCores = append(runningCores, exec.Command(corePath))
 	}
 	for _, coreToRun := range runningCores {
 		err := coreToRun.Start()
