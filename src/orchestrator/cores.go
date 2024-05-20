@@ -1,13 +1,26 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/fs"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 )
+
+type Core struct {
+	id    string
+	roles []string
+	exec  *exec.Cmd
+}
+
+type Identification struct {
+	Id    string
+	Roles []string
+}
 
 func scanForCores(paths []string) []string {
 	var foundCores []string
@@ -47,13 +60,23 @@ func pathIsCore(path string) (bool, error) {
 	return false, nil
 }
 
-func startCores(corePaths []string) ([]*exec.Cmd, error) {
-	var runningCores []*exec.Cmd
+func startCores(corePaths []string) ([]Core, error) {
+	var runningCores []Core
+	var currentIdent Identification
 	for _, corePath := range corePaths {
-		runningCores = append(runningCores, exec.Command(corePath))
+		log.Println("Loading Core:", corePath)
+
+		coreIdentRaw, err := exec.Command(corePath, "--identify", "true").Output()
+		if err != nil {
+			return nil, err
+		}
+
+		json.Unmarshal(coreIdentRaw, &currentIdent)
+
+		runningCores = append(runningCores, Core{id: currentIdent.Id, exec: exec.Command(corePath), roles: currentIdent.Roles})
 	}
 	for _, coreToRun := range runningCores {
-		err := coreToRun.Start()
+		err := coreToRun.exec.Start()
 		if err != nil {
 			return nil, err
 		}
