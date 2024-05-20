@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 func main() {
@@ -49,7 +51,7 @@ func main() {
 	installInfoFile.Close()
 
 	//// Load Config
-	var bloobConfig map[string]string
+	var bloobConfig map[string]interface{}
 
 	bloobConfigRaw, err := os.ReadFile(bloobConfigPath)
 	if err != nil {
@@ -59,12 +61,12 @@ func main() {
 			if err != nil {
 				log.Panic(err)
 			}
-			var bloobConfigDefaultValues map[string]interface{} = map[string]interface{}{
+			bloobConfigDefaultValues := map[string]interface{}{
 				"instance_name": "Default Name",
 				"uuid":          "test",
 				"stt_model":     "Systran/faster-distil-whisper-small.en",
 				"tts_model":     "en_US-lessac-high",
-				"mqtt": map[string]string{
+				"mqtt": map[string]interface{}{
 					"host":     "localhost",
 					"port":     "1883",
 					"user":     "",
@@ -81,17 +83,45 @@ func main() {
 		} else {
 			log.Fatal("Error while JSON decoding your config ", err)
 		}
-
 	}
 	json.Unmarshal(bloobConfigRaw, &bloobConfig)
 
 	// All necessary fields for the config can be added here, and the Orchestrator won't launch without them
+	// TODO: Just struct this and disallow unfilled fields when unmarshalling the JSON
 	for _, field := range []string{"instance_name", "uuid", "stt_model", "tts_model", "mqtt"} {
 		if _, ok := bloobConfig[field]; !ok {
 			log.Fatal("Your config is missing the ", field, " field")
 		}
 	}
 
+	// Though it seems quite roundabout, this seemed like the simplest way to take the MQTT interface and put it into a proper struct
+	// with proper types again. Keep tempMqttConfig in its own scope to prevent it appearing elsewhere.
+	var mqttConfig MqttConfig
+	{
+		tempMqttConfig, err := json.Marshal(bloobConfig["mqtt"].(map[string]interface{}))
+		if err != nil {
+			log.Panic("Issue with your MQTT config prevented it from being loaded: ", err)
+		}
+		json.Unmarshal(tempMqttConfig, &mqttConfig)
+	}
+
+	//// Set up MQTT
+	broker := mqtt.NewClientOptions()
+	broker.AddBroker(mqttConfig.Host)
+	broker.SetClientID(fmt.Sprintf("%v Orchestrator", bloobConfig["host"]))
+	broker.OnConnect = onConnect
+	if mqttConfig.Password != "" && mqttConfig.Username != "" {
+		broker.SetPassword(mqttConfig.Password)
+		broker.SetUsername(mqttConfig.Username)
+		log.Println("Using MQTT authenticated")
+	} else {
+		log.Println("Using MQTT unauthenticated")
+	}
+	client := mqtt.NewClient(broker)
+	//for loop to go here with a list of the topics that need subbing to.
+	// Maybe better than the subscribemultiple
+
+	os.Exit(0)
 	//// Load Cores
 	log.Println("User Cores dir:", userCoresDir)
 	log.Println("Install Cores dir:", installCoresDir)
