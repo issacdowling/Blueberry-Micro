@@ -19,6 +19,8 @@ var errorAudio string
 var instantIntentAudio string
 var bloobConfig map[string]interface{}
 
+var mqttConfig MqttConfig
+
 func main() {
 
 	//// Set up directories
@@ -115,7 +117,6 @@ func main() {
 
 	// Though it seems quite roundabout, this seemed like the simplest way to take the MQTT interface and put it into a proper struct
 	// with proper types again. Keep tempMqttConfig in its own scope to prevent it appearing elsewhere.
-	var mqttConfig MqttConfig
 	{
 		tempMqttConfig, err := json.Marshal(bloobConfig["mqtt"].(map[string]interface{}))
 		if err != nil {
@@ -188,7 +189,6 @@ func main() {
 		fmt.Sprintf("bloob/%s/tts/finished", bloobConfig["uuid"]):            bloobQOS,
 		fmt.Sprintf("bloob/%s/intent_parser/finished", bloobConfig["uuid"]):  bloobQOS,
 	}
-	fmt.Println(subscribeMqttTopics)
 
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		log.Fatal(token.Error())
@@ -205,6 +205,25 @@ func main() {
 	runningCores, err := startCores(corePaths)
 	if err != nil {
 		log.Panic(err)
+	}
+
+	// Publish Central Configs if they exist, or an empty object if not. Set a will that empties these configs on disconnect.
+	var configToPublish []byte
+	for _, core := range runningCores {
+		value, ok := bloobConfig[core.Id]
+		if ok {
+			configToPublish, err = json.Marshal(value.(map[string]interface{}))
+			if err != nil {
+				log.Panicf("Failed to parse central config for core %v", core.Id)
+			}
+
+		} else {
+			configToPublish, _ = json.Marshal(make(map[string]interface{}))
+		}
+
+		client.Publish(fmt.Sprintf("bloob/%s/cores/%s/central_config", bloobConfig["uuid"], core.Id), bloobQOS, true, configToPublish)
+		broker.SetWill(fmt.Sprintf("bloob/%s/cores/%s/central_config", bloobConfig["uuid"], core.Id), "", bloobQOS, true)
+		fmt.Println(string(configToPublish))
 	}
 
 	// For now, we'll just launch everything, wait a few seconds, then kill it

@@ -63,6 +63,10 @@ func pathIsCore(path string) (bool, error) {
 func startCores(corePaths []string) ([]Core, error) {
 	var runningCores []Core
 	var currentIdent Identification
+	orchestratorProvidedArgs := []string{"--device-id", bloobConfig["uuid"].(string)}
+	if mqttConfig.Username != "" && mqttConfig.Password != "" {
+		orchestratorProvidedArgs = append(orchestratorProvidedArgs, "--user", mqttConfig.Username, "--pass", mqttConfig.Password)
+	}
 	for _, corePath := range corePaths {
 		log.Println("Loading Core:", corePath)
 
@@ -73,7 +77,7 @@ func startCores(corePaths []string) ([]Core, error) {
 
 		json.Unmarshal(coreIdentRaw, &currentIdent)
 
-		runningCores = append(runningCores, Core{Id: currentIdent.Id, Exec: exec.Command(corePath), Roles: currentIdent.Roles})
+		runningCores = append(runningCores, Core{Id: currentIdent.Id, Exec: exec.Command(corePath, orchestratorProvidedArgs...), Roles: currentIdent.Roles})
 	}
 	for _, coreToRun := range runningCores {
 		err := coreToRun.Exec.Start()
