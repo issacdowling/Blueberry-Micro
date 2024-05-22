@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,10 +13,20 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
+var beginListeningAudio string
+var stopListeningAudio string
+var errorAudio string
+var instantIntentAudio string
+var bloobConfig map[string]interface{}
+
 func main() {
 
 	//// Set up directories
-	pathToExecutable, _ := os.Executable()
+	log.Println("Setting up directories")
+	pathToExecutable, err := os.Executable()
+	if err != nil {
+		log.Panic(err)
+	}
 
 	// Gets the repo directory by going three levels up from the Orchestrator directory (there must be a better way than this)
 	var installDir string = filepath.Dir(filepath.Dir(filepath.Dir(pathToExecutable)))
@@ -25,6 +36,11 @@ func main() {
 	var bloobConfigDir = filepath.Join(homeDir, ".config", "bloob")
 	var userCoresDir string = filepath.Join(bloobConfigDir, "cores")
 	var shmDir string = filepath.Join("/dev", "shm", "bloob")
+
+	var beginListeningAudioPath string = filepath.Join(installDir, "src", "resources", "audio", "begin_listening.wav")
+	var stopListeningAudioPath string = filepath.Join(installDir, "src", "resources", "audio", "stop_listening.wav")
+	var errorAudioPath string = filepath.Join(installDir, "src", "resources", "audio", "error.wav")
+	var instantIntentAudioPath string = filepath.Join(installDir, "src", "resources", "audio", "instant_intent.wav")
 
 	var bloobInfoPath string = filepath.Join(shmDir, "bloobinfo.txt")
 	var bloobConfigPath string = filepath.Join(bloobConfigDir, "config.json")
@@ -46,12 +62,15 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
-	installInfoFile, _ := os.Create(bloobInfoPath)
+	installInfoFile, err := os.Create(bloobInfoPath)
+	if err != nil {
+		log.Panicf("Failed to create %v, maybe check permissions. %v", bloobInfoPath, err)
+	}
 	installInfoFile.Write(installInfoJsonBytes)
 	installInfoFile.Close()
 
 	//// Load Config
-	var bloobConfig map[string]interface{}
+	log.Println("Loading config")
 
 	bloobConfigRaw, err := os.ReadFile(bloobConfigPath)
 	if err != nil {
@@ -105,10 +124,51 @@ func main() {
 		json.Unmarshal(tempMqttConfig, &mqttConfig)
 	}
 
+	// Load sounds into memory
+
+	{
+		beginListeningAudioBytes, err := os.ReadFile(beginListeningAudioPath)
+		if err != nil {
+			log.Panicf("Failed to read listening audio file (%v): %v", beginListeningAudioPath, err)
+		}
+		beginListeningAudio = base64.StdEncoding.EncodeToString(beginListeningAudioBytes)
+	}
+
+	{
+		stopListeningAudioBytes, err := os.ReadFile(stopListeningAudioPath)
+		if err != nil {
+			log.Panicf("Failed to read listening audio file (%v): %v", stopListeningAudioPath, err)
+		}
+		stopListeningAudio = base64.StdEncoding.EncodeToString(stopListeningAudioBytes)
+	}
+
+	{
+		errorAudioBytes, err := os.ReadFile(errorAudioPath)
+		if err != nil {
+			log.Panicf("Failed to read listening audio file (%v): %v", errorAudioPath, err)
+		}
+		errorAudio = base64.StdEncoding.EncodeToString(errorAudioBytes)
+	}
+
+	{
+		instantIntentAudioBytes, err := os.ReadFile(instantIntentAudioPath)
+		if err != nil {
+			log.Panicf("Failed to read listening audio file (%v): %v", instantIntentAudioPath, err)
+		}
+		instantIntentAudio = base64.StdEncoding.EncodeToString(instantIntentAudioBytes)
+	}
+
 	//// Set up MQTT
+	log.Println("Setting up MQTT")
 	broker := mqtt.NewClientOptions()
-	broker.AddBroker(mqttConfig.Host)
-	broker.SetClientID(fmt.Sprintf("%v Orchestrator", bloobConfig["host"]))
+	broker.AddBroker(fmt.Sprintf("tcp://%s:%v", mqttConfig.Host, mqttConfig.Port))
+
+	fmt.Printf("tcp://%s:%v\n", mqttConfig.Host, mqttConfig.Port)
+
+	broker.SetClientID(fmt.Sprintf("%v - Orchestrator", bloobConfig["instance_name"]))
+
+	fmt.Printf("%v - Orchestrator\n", bloobConfig["instance_name"])
+
 	broker.OnConnect = onConnect
 	if mqttConfig.Password != "" && mqttConfig.Username != "" {
 		broker.SetPassword(mqttConfig.Password)
@@ -120,8 +180,23 @@ func main() {
 	client := mqtt.NewClient(broker)
 	//for loop to go here with a list of the topics that need subbing to.
 	// Maybe better than the subscribemultiple
+	subscribeMqttTopics := map[string]byte{
+		fmt.Sprintf("bloob/%s/wakeword/detected", bloobConfig["uuid"]):       bloobQOS,
+		fmt.Sprintf("bloob/%s/audio_playback/finished", bloobConfig["uuid"]): bloobQOS,
+		fmt.Sprintf("bloob/%s/audio_recorder/finished", bloobConfig["uuid"]): bloobQOS,
+		fmt.Sprintf("bloob/%s/stt/finished", bloobConfig["uuid"]):            bloobQOS,
+		fmt.Sprintf("bloob/%s/tts/finished", bloobConfig["uuid"]):            bloobQOS,
+		fmt.Sprintf("bloob/%s/intent_parser/finished", bloobConfig["uuid"]):  bloobQOS,
+	}
+	fmt.Println(subscribeMqttTopics)
 
-	os.Exit(0)
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		log.Fatal(token.Error())
+	}
+	if token := client.SubscribeMultiple(subscribeMqttTopics, pipelineMessageHandler); token.Wait() && token.Error() != nil {
+		log.Fatal(token.Error())
+	}
+
 	//// Load Cores
 	log.Println("User Cores dir:", userCoresDir)
 	log.Println("Install Cores dir:", installCoresDir)
@@ -133,7 +208,7 @@ func main() {
 	}
 
 	// For now, we'll just launch everything, wait a few seconds, then kill it
-	time.Sleep(5 * time.Second)
+	time.Sleep(15 * time.Second)
 
 	exitCleanup(runningCores)
 }
@@ -141,8 +216,8 @@ func main() {
 func exitCleanup(runningCores []Core) {
 	// Go through all Cores and exit them
 	for _, runningCore := range runningCores {
-		log.Printf("Killing Core: %s (%s)", runningCore.id, runningCore.exec.Args[0])
-		err := runningCore.exec.Process.Kill()
+		log.Printf("Killing Core: %s (%s)", runningCore.Id, runningCore.Exec.Args[0])
+		err := runningCore.Exec.Process.Kill()
 		if err != nil {
 			fmt.Println(err)
 		}

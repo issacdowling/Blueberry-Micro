@@ -12,9 +12,9 @@ import (
 )
 
 type Core struct {
-	id    string
-	roles []string
-	exec  *exec.Cmd
+	Id    string
+	Roles []string
+	Exec  *exec.Cmd
 }
 
 type Identification struct {
@@ -73,10 +73,10 @@ func startCores(corePaths []string) ([]Core, error) {
 
 		json.Unmarshal(coreIdentRaw, &currentIdent)
 
-		runningCores = append(runningCores, Core{id: currentIdent.Id, exec: exec.Command(corePath), roles: currentIdent.Roles})
+		runningCores = append(runningCores, Core{Id: currentIdent.Id, Exec: exec.Command(corePath), Roles: currentIdent.Roles})
 	}
 	for _, coreToRun := range runningCores {
-		err := coreToRun.exec.Start()
+		err := coreToRun.Exec.Start()
 		if err != nil {
 			return nil, err
 		}
