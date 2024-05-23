@@ -50,7 +50,7 @@ arguments.port = int(arguments.port)
 
 core_id = "tts"
 if arguments.identify:
-  print(json.dumps({"id": core_id, "roles": ["util"]}))
+  print(json.dumps({"id": core_id, "roles": ["util", "no_config"]}))
   exit()
 
 if not os.path.exists(arguments.tts_path):

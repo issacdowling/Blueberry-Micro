@@ -51,7 +51,7 @@ arguments.port = int(arguments.port)
 
 core_id = "audio_playback"
 if arguments.identify:
-	print(json.dumps({"id": core_id, "roles": ["util"]}))
+	print(json.dumps({"id": core_id, "roles": ["util", "no_config"]}))
 	exit()
 
 ## Logging starts here
