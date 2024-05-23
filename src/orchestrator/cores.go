@@ -2,12 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -62,7 +64,7 @@ func pathIsCore(path string) (bool, error) {
 
 func startCores(corePaths []string) ([]Core, error) {
 	var runningCores []Core
-	var currentIdent Identification
+	var currentIdent map[string]interface{}
 	orchestratorProvidedArgs := []string{"--device-id", bloobConfig["uuid"].(string), "--host", mqttConfig.Host, "--port", mqttConfig.Port}
 	if mqttConfig.Username != "" && mqttConfig.Password != "" {
 		orchestratorProvidedArgs = append(orchestratorProvidedArgs, "--user", mqttConfig.Username, "--pass", mqttConfig.Password)
@@ -77,7 +79,12 @@ func startCores(corePaths []string) ([]Core, error) {
 
 		json.Unmarshal(coreIdentRaw, &currentIdent)
 
-		runningCores = append(runningCores, Core{Id: currentIdent.Id, Exec: exec.Command(corePath, orchestratorProvidedArgs...), Roles: currentIdent.Roles})
+		roles := make([]string, len(currentIdent["roles"].([]interface{})))
+		for _, role := range currentIdent["roles"].([]interface{}) {
+			roles = append(roles, role.(string))
+		}
+
+		runningCores = append(runningCores, Core{Id: currentIdent["id"].(string), Exec: exec.Command(corePath, orchestratorProvidedArgs...), Roles: roles})
 	}
 	for _, coreToRun := range runningCores {
 		err := coreToRun.Exec.Start()
@@ -86,4 +93,23 @@ func startCores(corePaths []string) ([]Core, error) {
 		}
 	}
 	return runningCores, nil
+}
+
+// Returns a list of collections (each collection is a map[string]interface{}, a JSON object) from the core that this was called on.
+func (core Core) getCollections() ([]map[string]interface{}, error) {
+	if !slices.Contains(core.Roles, "collection_handler") {
+		return nil, errors.New("Core is not a collection handler")
+	}
+	collectionsBytes, err := exec.Command(core.Exec.Path, "--collections", "true").Output()
+	if err != nil {
+		return nil, err
+	}
+	var collectionsJson map[string]interface{}
+	json.Unmarshal(collectionsBytes, &collectionsJson)
+
+	var coreCollections []map[string]interface{}
+	for _, collection := range collectionsJson["collections"].([]interface{}) {
+		coreCollections = append(coreCollections, collection.(map[string]interface{}))
+	}
+	return coreCollections, nil
 }
