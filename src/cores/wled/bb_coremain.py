@@ -95,7 +95,7 @@ wled_devices = []
 ## Get device configs from central config, instantiate
 log("Getting Centralised Config from Orchestrator", log_data)
 device_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
-if not device_config == None:
+if not device_config == None and device_config.get("devices"):
   for device in device_config["devices"]:
     wled_devices.append(WledDevice(names=device["names"], ip_address=device["ip"]))
 
