@@ -17,6 +17,8 @@ import pathlib
 import os
 from piper import download
 
+import paho.mqtt.subscribe as subscribe
+
 default_temp_path = pathlib.Path("/dev/shm/bloob")
 tts_temp_path = default_temp_path.joinpath("tts")
 
@@ -51,13 +53,6 @@ if arguments.identify:
   print(json.dumps({"id": core_id, "roles": ["util", "no_config"]}))
   exit()
 
-if not os.path.exists(default_tts_path):
-  os.makedirs(default_tts_path)
-
-tts_path = default_tts_path
-tts_model_path = f"{tts_path}/{central_config['model']}.onnx"
-output_audio_path = f"{tts_temp_path}/out.wav"
-
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
 log("Starting up...", log_data)
@@ -66,6 +61,13 @@ log("Starting up...", log_data)
 log("Getting Centralised Config from Orchestrator", log_data)
 print(f"bloob/{arguments.device_id}/{core_id}/central_config")
 central_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
+
+if not os.path.exists(default_tts_path):
+  os.makedirs(default_tts_path)
+
+tts_path = default_tts_path
+tts_model_path = f"{tts_path}/{central_config['model']}.onnx"
+output_audio_path = f"{tts_temp_path}/out.wav"
 
 if not os.path.exists(tts_model_path):
 	log(f"Couldn't find voice ({central_config['model']}) locally, trying to download it.", log_data)
