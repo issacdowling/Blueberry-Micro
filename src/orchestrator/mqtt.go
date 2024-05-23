@@ -22,6 +22,10 @@ var transcriptionReceivedJson map[string]interface{}
 
 var intentParserReceivedJson map[string]interface{}
 
+var coreFinishedReceivedJson map[string]interface{}
+
+var ttsReceivedJson map[string]interface{}
+
 type MqttConfig struct {
 	Host     string
 	Port     string
@@ -70,9 +74,33 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 		json.Unmarshal(message.Payload(), &intentParserReceivedJson)
 
 		if intentParserReceivedJson["id"].(string) == id {
+			// This does not yet handle null intents, which is alright since we need an Error core anyway.
 			log.Printf("Intent Parsed - %v - sending to core", intentParserReceivedJson["intent"].(string))
 			// Get the core from the intent and send it there, then wait for the response by using a wildcard in the core topic,
 			// and using the ID to ensure that we're looking at the right response.
+			sendIntentToCore(intentParserReceivedJson["intent"].(string), intentParserReceivedJson["text"].(string), intentParserReceivedJson["core_id"].(string), instanceUUID, id, client)
+		}
+
+	}
+
+	if strings.Contains(message.Topic(), "/cores") && strings.Contains(message.Topic(), "/finished") {
+		json.Unmarshal(message.Payload(), &coreFinishedReceivedJson)
+
+		if coreFinishedReceivedJson["id"].(string) == id {
+			log.Printf("Core ran with the output: %v", coreFinishedReceivedJson["text"].(string))
+
+			speakText(coreFinishedReceivedJson["text"].(string), instanceUUID, id, client)
+		}
+
+	}
+
+	if strings.Contains(message.Topic(), "/tts/finished") {
+		json.Unmarshal(message.Payload(), &ttsReceivedJson)
+
+		if ttsReceivedJson["id"].(string) == id {
+			log.Printf("Text Spoken")
+
+			playAudioFile(ttsReceivedJson["audio"].(string), instanceUUID, id, client)
 		}
 
 	}
