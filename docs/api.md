@@ -216,7 +216,7 @@ Topic: **`bloob/<device-id>/cores/<core-id>/finished`**
 
 Example Output:
 ```
-{"id": "1640", "text": "The time is 11:09 PM", "explanation": "Got that the current time is 11:09 PM", "end_type": "finish"}
+{"id": "1640", "text": "The time is 11:09 PM", "explanation": "Got that the current time is 11:09 PM"}
 ```
 
 * **What:** Outputs the core's intended speech, an explanation of what was done (for future use), and whether to end the conversation or continue
