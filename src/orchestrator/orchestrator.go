@@ -193,6 +193,7 @@ func main() {
 		fmt.Sprintf("bloob/%s/stt/finished", bloobConfig["uuid"]):            bloobQOS,
 		fmt.Sprintf("bloob/%s/tts/finished", bloobConfig["uuid"]):            bloobQOS,
 		fmt.Sprintf("bloob/%s/intent_parser/finished", bloobConfig["uuid"]):  bloobQOS,
+		fmt.Sprintf("bloob/%s/cores/+/finished", bloobConfig["uuid"]):        bloobQOS,
 	}
 
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
