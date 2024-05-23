@@ -210,6 +210,7 @@ func main() {
 	// Publish Central Configs if they exist, or an empty object if not. Set a will that empties these configs on accidental disconnect.
 	// Which must be the case to ensure that old MQTT configs aren't used from previous runs.
 	var configToPublish []byte
+	var listOfCores []string
 	for _, core := range runningCores {
 		value, ok := bloobConfig[core.Id]
 		if ok {
@@ -225,9 +226,16 @@ func main() {
 		client.Publish(fmt.Sprintf("bloob/%s/cores/%s/central_config", bloobConfig["uuid"], core.Id), bloobQOS, true, configToPublish)
 		broker.SetWill(fmt.Sprintf("bloob/%s/cores/%s/central_config", bloobConfig["uuid"], core.Id), "", bloobQOS, true)
 
-		fmt.Println(string(configToPublish))
+		listOfCores = append(listOfCores, core.Id)
 	}
 
+	// Publish a list of all running Cores
+	var listOfCoresJson []byte
+	listOfCoresJson, _ = json.Marshal(map[string]interface{}{
+		"loaded_cores": listOfCores,
+	})
+	client.Publish(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), bloobQOS, true, listOfCoresJson)
+	broker.SetWill(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), "", bloobQOS, true)
 	// For now, we'll just launch everything, wait a few seconds, then kill it
 	time.Sleep(15 * time.Second)
 
@@ -237,9 +245,14 @@ func main() {
 func exitCleanup(runningCores []Core, client mqtt.Client) {
 	// Go through all Cores, publish blank central configs, and exit them
 	for _, runningCore := range runningCores {
+		// Clear central configs
 		log.Printf("Publishing a blank central config for %v", runningCore.Id)
 		client.Publish(fmt.Sprintf("bloob/%s/cores/%s/central_config", bloobConfig["uuid"], runningCore.Id), bloobQOS, true, "")
 
+		// Clear list of cores
+		client.Publish(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), bloobQOS, true, "")
+
+		// Kill cores
 		log.Printf("Killing Core: %s (%s)", runningCore.Id, runningCore.Exec.Args[0])
 		err := runningCore.Exec.Process.Kill()
 		if err != nil {
