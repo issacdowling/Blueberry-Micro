@@ -8,10 +8,12 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-const playAudioFileTopic string = "bloob/%v/audio_playback/play_file"
-const recordSpeechTopic string = "bloob/%v/audio_recorder/record_speech"
-const transcribeAudioTopic string = "bloob/%v/stt/transcribe"
-const intentParseTopic string = "bloob/%v/intent_parser/run"
+const playAudioFileTopic string = "bloob/%s/audio_playback/play_file"
+const recordSpeechTopic string = "bloob/%s/audio_recorder/record_speech"
+const transcribeAudioTopic string = "bloob/%s/stt/transcribe"
+const intentParseTopic string = "bloob/%s/intent_parser/run"
+const coreTopic string = "bloob/%s/cores/%s/run"
+const ttsTopic string = "bloob/%s/tts/run"
 
 func playAudioFile(audio string, uuid string, id string, client mqtt.Client) {
 	audioPlaybackMessage := map[string]string{
@@ -63,4 +65,30 @@ func intentParseText(text string, uuid string, id string, client mqtt.Client) {
 
 	}
 	client.Publish(fmt.Sprintf(intentParseTopic, uuid), bloobQOS, false, intentParseJson)
+}
+
+func sendIntentToCore(intent string, text string, coreId string, uuid string, id string, client mqtt.Client) {
+	coreMessage := map[string]string{
+		"id":      id,
+		"intent":  intent,
+		"core_id": coreId,
+		"text":    text,
+	}
+	coreMessageJson, err := json.Marshal(coreMessage)
+	if err != nil {
+		log.Panic(err)
+	}
+	client.Publish(fmt.Sprintf(coreTopic, uuid, coreId), bloobQOS, false, coreMessageJson)
+}
+
+func speakText(text string, uuid string, id string, client mqtt.Client) {
+	ttsMessage := map[string]string{
+		"id":   id,
+		"text": text,
+	}
+	ttsMessageJson, err := json.Marshal(ttsMessage)
+	if err != nil {
+		log.Panic(err)
+	}
+	client.Publish(fmt.Sprintf(ttsTopic, uuid), bloobQOS, false, ttsMessageJson)
 }
