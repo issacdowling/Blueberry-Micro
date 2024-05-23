@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -215,7 +216,28 @@ func main() {
 	// Which must be the case to ensure that old MQTT configs aren't used from previous runs.
 	var configToPublish []byte
 	var listOfCores []string
+	var listOfCollections []string
+	var topicToPublish string
 	for _, core := range runningCores {
+
+		// If no_config, we publish a blank config _on behalf_ of the Core. This is different from the central config
+		if slices.Contains(core.Roles, "no_config") {
+			topicToPublish = "bloob/%s/cores/%s/config"
+			blankConfig := map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"core_id": core.Id,
+				},
+			}
+			blankConfigJson, err := json.Marshal(blankConfig)
+			if err != nil {
+				log.Panic(err)
+			}
+			if token := client.Publish(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], core.Id), bloobQOS, true, blankConfigJson); token.Wait() && token.Error() != nil {
+				log.Fatal("Failed publishing Config", token.Error())
+			}
+			broker.SetWill(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], core.Id), "", bloobQOS, true)
+		}
+
 		value, ok := bloobConfig[core.Id]
 		if ok {
 			configToPublish, err = json.Marshal(value.(map[string]interface{}))
@@ -227,10 +249,41 @@ func main() {
 			configToPublish, _ = json.Marshal(make(map[string]interface{}))
 		}
 
-		client.Publish(fmt.Sprintf("bloob/%s/cores/%s/central_config", bloobConfig["uuid"], core.Id), bloobQOS, true, configToPublish)
-		broker.SetWill(fmt.Sprintf("bloob/%s/cores/%s/central_config", bloobConfig["uuid"], core.Id), "", bloobQOS, true)
+		// If it's a util, we omit /cores/ before the Core ID in the topic
+		if slices.Contains(core.Roles, "util") {
+			topicToPublish = "bloob/%s/%s/central_config"
+		} else {
+			topicToPublish = "bloob/%s/cores/%s/central_config"
+		}
+
+		if token := client.Publish(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], core.Id), bloobQOS, true, configToPublish); token.Wait() && token.Error() != nil {
+			log.Fatal("Failed publishing Central Config", token.Error())
+		}
+		broker.SetWill(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], core.Id), "", bloobQOS, true)
 
 		listOfCores = append(listOfCores, core.Id)
+
+		// If it's a Collection Handler, we get Collections from it and publish them, along with the Will that empties them on exit.
+		if slices.Contains(core.Roles, "collection_handler") {
+			coreCollections, err := core.getCollections()
+			if err != nil {
+				log.Panic(err)
+			}
+			log.Printf("%v has provided %d Collections", core.Id, len(coreCollections))
+			for _, collection := range coreCollections {
+				topicToPublish = "bloob/%s/collections/%s"
+				collectionToPublish, err := json.Marshal(collection)
+				if err != nil {
+					log.Panic(err)
+				}
+				if token := client.Publish(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], collection["id"].(string)), bloobQOS, true, collectionToPublish); token.Wait() && token.Error() != nil {
+					log.Fatal("Failed publishing Collection ", token.Error())
+				}
+				broker.SetWill(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], collection["id"].(string)), "", bloobQOS, true)
+				listOfCollections = append(listOfCollections, collection["id"].(string))
+			}
+		}
+
 	}
 
 	// Publish a list of all running Cores
@@ -238,20 +291,35 @@ func main() {
 	listOfCoresJson, _ = json.Marshal(map[string]interface{}{
 		"loaded_cores": listOfCores,
 	})
-	client.Publish(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), bloobQOS, true, listOfCoresJson)
+	if token := client.Publish(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), bloobQOS, true, listOfCoresJson); token.Wait() && token.Error() != nil {
+		log.Fatal(token.Error())
+	}
 	broker.SetWill(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), "", bloobQOS, true)
+
+	// Publish a list of all Collections
+	var listOfCollectionsJson []byte
+	listOfCollectionsJson, _ = json.Marshal(map[string]interface{}{
+		"loaded_collections": listOfCollections,
+	})
+	if token := client.Publish(fmt.Sprintf("bloob/%s/collections/list", bloobConfig["uuid"]), bloobQOS, true, listOfCollectionsJson); token.Wait() && token.Error() != nil {
+		log.Fatal(token.Error())
+	}
+	broker.SetWill(fmt.Sprintf("bloob/%s/collections/list", bloobConfig["uuid"]), "", bloobQOS, true)
+
 	// For now, we'll just launch everything, wait a few seconds, then kill it
 	time.Sleep(15 * time.Second)
 
-	exitCleanup(runningCores, client)
+	exitCleanup(runningCores, listOfCollections, client)
 }
 
-func exitCleanup(runningCores []Core, client mqtt.Client) {
+func exitCleanup(runningCores []Core, listOfCollections []string, client mqtt.Client) {
 	// Go through all Cores, publish blank central configs, and exit them
 	for _, runningCore := range runningCores {
 		// Clear central configs
 		log.Printf("Publishing a blank central config for %v", runningCore.Id)
-		client.Publish(fmt.Sprintf("bloob/%s/cores/%s/central_config", bloobConfig["uuid"], runningCore.Id), bloobQOS, true, "")
+		if token := client.Publish(fmt.Sprintf("bloob/%s/cores/%s/central_config", bloobConfig["uuid"], runningCore.Id), bloobQOS, true, ""); token.Wait() && token.Error() != nil {
+			log.Fatal(token.Error())
+		}
 
 		// Kill cores
 		log.Printf("Killing Core: %s (%s)", runningCore.Id, runningCore.Exec.Args[0])
@@ -262,6 +330,21 @@ func exitCleanup(runningCores []Core, client mqtt.Client) {
 
 	}
 
-	// Clear list of cores
-	client.Publish(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), bloobQOS, true, "")
+	// Publish empty message to all collection IDs
+	for _, collectionId := range listOfCollections {
+		topicToPublish := "bloob/%s/collections/%s"
+		if token := client.Publish(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], collectionId), bloobQOS, true, ""); token.Wait() && token.Error() != nil {
+			log.Fatal(token.Error())
+		}
+	}
+
+	// Clear list of Cores
+	if token := client.Publish(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), bloobQOS, true, ""); token.Wait() && token.Error() != nil {
+		log.Fatal(token.Error())
+	}
+
+	// Clear list of Collections
+	if token := client.Publish(fmt.Sprintf("bloob/%s/collections/list", bloobConfig["uuid"]), bloobQOS, true, ""); token.Wait() && token.Error() != nil {
+		log.Fatal(token.Error())
+	}
 }
