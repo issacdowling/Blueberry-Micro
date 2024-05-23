@@ -85,8 +85,12 @@ func main() {
 			bloobConfigDefaultValues := map[string]interface{}{
 				"instance_name": "Default Name",
 				"uuid":          "test",
-				"stt_model":     "Systran/faster-distil-whisper-small.en",
-				"tts_model":     "en_US-lessac-high",
+				"stt": map[string]interface{}{
+					"model": "Systran/faster-distil-whisper-small.en",
+				},
+				"tts": map[string]interface{}{
+					"model": "en_US-lessac-high",
+				},
 				"mqtt": map[string]interface{}{
 					"host":     "localhost",
 					"port":     "1883",
@@ -109,7 +113,7 @@ func main() {
 
 	// All necessary fields for the config can be added here, and the Orchestrator won't launch without them
 	// TODO: Just struct this and disallow unfilled fields when unmarshalling the JSON
-	for _, field := range []string{"instance_name", "uuid", "stt_model", "tts_model", "mqtt"} {
+	for _, field := range []string{"instance_name", "uuid", "stt", "tts", "mqtt"} {
 		if _, ok := bloobConfig[field]; !ok {
 			log.Fatal("Your config is missing the ", field, " field")
 		}
@@ -249,15 +253,15 @@ func exitCleanup(runningCores []Core, client mqtt.Client) {
 		log.Printf("Publishing a blank central config for %v", runningCore.Id)
 		client.Publish(fmt.Sprintf("bloob/%s/cores/%s/central_config", bloobConfig["uuid"], runningCore.Id), bloobQOS, true, "")
 
-		// Clear list of cores
-		client.Publish(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), bloobQOS, true, "")
-
 		// Kill cores
 		log.Printf("Killing Core: %s (%s)", runningCore.Id, runningCore.Exec.Args[0])
 		err := runningCore.Exec.Process.Kill()
 		if err != nil {
 			fmt.Println(err)
 		}
+
+		// Clear list of cores
+		client.Publish(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), bloobQOS, true, "")
 
 	}
 }
