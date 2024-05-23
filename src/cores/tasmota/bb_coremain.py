@@ -87,24 +87,8 @@ async def main():
 
         # intent topic
         await client.subscribe(f"bloob/{arguments.device_id}/cores/{core_id}/run")
-        
-        # handle messages
-        async for message in client.messages:
 
-            await handle_message(message, client)
-
-async def handle_message(message, client):
-    global state_keyphrases
-    if(message.topic.matches(f"bloob/{arguments.device_id}/cores/{core_id}/central_config")):
-        device_config = json.loads(message.payload.decode())
-        if device_config != None:
-          print(f"Device config received: {device_config}")
-          # add the devices
-          for device in device_config.get("devices"):
-              loaded_tasmota_devices.append(TasmotaDevice(names=device["names"], ip_address=device["ip"]))
-        else:
-          state_keyphrases = []
-          
+        # Publish config on startup
         core_config = {
             "metadata": {
                 "core_id": core_id,
@@ -125,10 +109,26 @@ async def handle_message(message, client):
                 }
             ]
         }
-
-        # send out startup messages
-
         await client.publish(f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, qos=1)
+
+        
+        # handle messages
+        async for message in client.messages:
+
+            await handle_message(message, client)
+
+async def handle_message(message, client):
+    global state_keyphrases
+    if(message.topic.matches(f"bloob/{arguments.device_id}/cores/{core_id}/central_config")):
+        device_config = json.loads(message.payload.decode())
+        if device_config != None:
+          print(f"Device config received: {device_config}")
+          # add the devices
+          for device in device_config.get("devices"):
+              loaded_tasmota_devices.append(TasmotaDevice(names=device["names"], ip_address=device["ip"]))
+        else:
+          state_keyphrases = []
+
     if(message.topic.matches(f"bloob/{arguments.device_id}/cores/{core_id}/run")):
 
         payload_json = json.loads(message.payload.decode())
