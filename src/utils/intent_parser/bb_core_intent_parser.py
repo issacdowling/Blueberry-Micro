@@ -85,8 +85,9 @@ loaded_cores = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/l
 for core_id in loaded_cores:
   log(f"Getting Config for {core_id}", log_data)
   core_conf = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/config",hostname=arguments.host, port=arguments.port).payload.decode())
-  for intent in core_conf["intents"]:
-    intents.append(intent)
+  if core_conf.get("intents"):
+    for intent in core_conf["intents"]:
+      intents.append(intent)
 
 # Get the list of Instant Intents
 instant_intent_words = []
