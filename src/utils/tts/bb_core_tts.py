@@ -41,8 +41,6 @@ arg_parser.add_argument('--port', default=1883)
 arg_parser.add_argument('--user')
 arg_parser.add_argument('--pass')
 arg_parser.add_argument('--device-id', default="test")
-arg_parser.add_argument('--tts-path', default=default_tts_path)
-arg_parser.add_argument('--tts-model', default="en_GB-southern_english_female-low")
 arg_parser.add_argument('--identify', default="")
 arguments = arg_parser.parse_args()
 
@@ -53,23 +51,28 @@ if arguments.identify:
   print(json.dumps({"id": core_id, "roles": ["util", "no_config"]}))
   exit()
 
-if not os.path.exists(arguments.tts_path):
-  os.makedirs(arguments.tts_path)
+if not os.path.exists(default_tts_path):
+  os.makedirs(default_tts_path)
 
-tts_path = arguments.tts_path
-tts_model_path = f"{tts_path}/{arguments.tts_model}.onnx"
+tts_path = default_tts_path
+tts_model_path = f"{tts_path}/{central_config['model']}.onnx"
 output_audio_path = f"{tts_temp_path}/out.wav"
 
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
 log("Starting up...", log_data)
 
+## Get device configs from central config, instantiate
+log("Getting Centralised Config from Orchestrator", log_data)
+print(f"bloob/{arguments.device_id}/{core_id}/central_config")
+central_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
+
 if not os.path.exists(tts_model_path):
-	log(f"Couldn't find voice ({arguments.tts_model}) locally, trying to download it.", log_data)
+	log(f"Couldn't find voice ({central_config['model']}) locally, trying to download it.", log_data)
 	try:
-		download.ensure_voice_exists(arguments.tts_model, [tts_path], tts_path, download.get_voices(tts_path))
+		download.ensure_voice_exists(central_config['model'], [tts_path], tts_path, download.get_voices(tts_path))
 	except download.VoiceNotFoundError:
-		log(f"The requested voice ({arguments.tts_model}) was not found locally or able to be downloaded. The list of officially available Piper voices is {list(download.get_voices(tts_path, True).keys())}  Exiting.", log_data)
+		log(f"The requested voice ({central_config['model']}) was not found locally or able to be downloaded. The list of officially available Piper voices is {list(download.get_voices(tts_path, True).keys())}  Exiting.", log_data)
 		exit()
 
 def speak(text):
