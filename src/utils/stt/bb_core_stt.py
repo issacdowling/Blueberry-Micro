@@ -16,6 +16,8 @@ import base64
 import pathlib
 import os
 
+import paho.mqtt.subscribe as subscribe
+
 default_temp_path = pathlib.Path("/dev/shm/bloob")
 stt_temp_path = default_temp_path.joinpath("stt")
 
@@ -44,8 +46,6 @@ arg_parser.add_argument('--port', default=1883)
 arg_parser.add_argument('--user')
 arg_parser.add_argument('--pass')
 arg_parser.add_argument('--device-id', default="test")
-arg_parser.add_argument('--stt-path', default=default_stt_path)
-arg_parser.add_argument('--stt-model', default="Systran/faster-distil-whisper-small.en")
 arg_parser.add_argument('--identify', default="")
 arguments = arg_parser.parse_args()
 
@@ -54,29 +54,33 @@ arguments.port = int(arguments.port)
 
 core_id = "stt"
 if arguments.identify:
-  print(json.dumps({"id": core_id, "roles": ["util"]}))
+  print(json.dumps({"id": core_id, "roles": ["util", "no_config"]}))
   exit()
 
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
 log("Starting up...", log_data)
 
+## Get device configs from central config, instantiate
+log("Getting Centralised Config from Orchestrator", log_data)
+print(f"bloob/{arguments.device_id}/{core_id}/central_config")
+central_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
 
-if not os.path.exists(arguments.stt_path):
+if not os.path.exists(default_data_path):
   log("Creating STT path", log_data)
-  os.makedirs(arguments.stt_path)
+  os.makedirs(default_data_path)
 
-log(f"Loading Model: {arguments.stt_model}", log_data)
+log(f"Loading Model: {central_config['model']}", log_data)
 
 # Do this so that unfound models are automatically downloaded, but by default we aren't checking remotely at all, and the
 # STT directory doesn't need to be deleted just to automatically download other models
 try:
-  model = WhisperModel(model_size_or_path=arguments.stt_model, device="cpu", download_root=arguments.stt_path, local_files_only = True)
+  model = WhisperModel(model_size_or_path=central_config['model'], device="cpu", download_root=default_data_path, local_files_only = True)
 except: #huggingface_hub.utils._errors.LocalEntryNotFoundError (but can't do that here since huggingfacehub not directly imported)
-  log(f"Downloading Model: {arguments.stt_model}", log_data)
-  model = WhisperModel(model_size_or_path=arguments.stt_model, device="cpu", download_root=arguments.stt_path)
+  log(f"Downloading Model: {central_config['model']}", log_data)
+  model = WhisperModel(model_size_or_path=central_config['model'], device="cpu", download_root=default_data_path)
 
-log(f"Loaded Model: {arguments.stt_model}", log_data)
+log(f"Loaded Model: {central_config['model']}", log_data)
 
 
 def transcribe(audio): 
