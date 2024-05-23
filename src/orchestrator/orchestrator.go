@@ -208,7 +208,19 @@ func main() {
 	log.Println("Install Cores dir:", installCoresDir)
 
 	var corePaths []string = scanForCores([]string{userCoresDir, installCoresDir, installUtilsDir})
-	runningCores, err := startCores(corePaths)
+	var runningCores []Core
+	coreReceiver := make(chan Core)
+	for _, corePath := range corePaths {
+		go createCore(corePath, coreReceiver)
+	}
+
+	for i := 0; i < len(corePaths); i++ {
+		receivedCore := <-coreReceiver
+		receivedCore.Exec.Start()
+		runningCores = append(runningCores, receivedCore)
+		fmt.Println("Started", receivedCore.Id)
+	}
+
 	if err != nil {
 		log.Panic("Failed to launch a core, check your environment (if it's a Python Core, do you have the right venv?)", err)
 	}
