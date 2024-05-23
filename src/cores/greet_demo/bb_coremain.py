@@ -78,4 +78,4 @@ signal.signal(signal.SIGINT, on_exit)
 while True:
   request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
   greeting = "Hello, World!"
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "text": greeting, "explanation": "The demo greeting core says " + greeting, "end_type": "finish"}), hostname=arguments.host, port=arguments.port)
+  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "text": greeting, "explanation": "The demo greeting core says " + greeting}), hostname=arguments.host, port=arguments.port)

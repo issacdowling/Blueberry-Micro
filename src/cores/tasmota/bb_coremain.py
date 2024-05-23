@@ -151,7 +151,7 @@ async def handle_message(message, client):
             elif spoken_state == ("off"):
                 device.off()
 
-            await client.publish(f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": payload_json["id"], "text": to_speak, "explanation": explanation, "end_type": "finish"}))
+            await client.publish(f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": payload_json["id"], "text": to_speak, "explanation": explanation}))
 
 
 

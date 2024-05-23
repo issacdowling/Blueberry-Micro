@@ -158,4 +158,4 @@ while True:
     to_speak = f"You didn't say 1 number to set the volume to, you said {len(numbers)}"
     explanation = f"Setting the volume failed, as the user said {len(numbers)} volume numbers instead of 1"
 
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "text": to_speak, "explanation": explanation, "end_type": "finish"}), hostname=arguments.host, port=arguments.port)
+  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "text": to_speak, "explanation": explanation}), hostname=arguments.host, port=arguments.port)

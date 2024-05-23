@@ -94,4 +94,4 @@ signal.signal(signal.SIGINT, on_exit)
 while True:
   request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
   text_to_speak = DDGS().text(request_json["text"][1:], max_results=1)[0]["body"]
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "text": text_to_speak, "explanation": "A DuckDuckGo search returned: " + text_to_speak, "end_type": "finish"}), hostname=arguments.host, port=arguments.port)
+  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "text": text_to_speak, "explanation": "A DuckDuckGo search returned: " + text_to_speak}), hostname=arguments.host, port=arguments.port)
