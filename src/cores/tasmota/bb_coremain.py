@@ -124,8 +124,9 @@ async def handle_message(message, client):
         if device_config != None:
           print(f"Device config received: {device_config}")
           # add the devices
-          for device in device_config.get("devices"):
-              loaded_tasmota_devices.append(TasmotaDevice(names=device["names"], ip_address=device["ip"]))
+          if device_config.get("devices"):
+            for device in device_config["devices"]:
+                loaded_tasmota_devices.append(TasmotaDevice(names=device["names"], ip_address=device["ip"]))
         else:
           state_keyphrases = []
 
