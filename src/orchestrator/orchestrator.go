@@ -260,8 +260,8 @@ func exitCleanup(runningCores []Core, client mqtt.Client) {
 			fmt.Println(err)
 		}
 
-		// Clear list of cores
-		client.Publish(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), bloobQOS, true, "")
-
 	}
+
+	// Clear list of cores
+	client.Publish(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), bloobQOS, true, "")
 }
