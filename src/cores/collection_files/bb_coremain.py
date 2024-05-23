@@ -199,7 +199,7 @@ collections_list = [colour_collection, any_number_collection, boolean_collection
 core_id = "basic_collections"
 
 if arguments.identify:
-  print(json.dumps({"id": core_id, "roles": ["collection_handler"]}))
+  print(json.dumps({"id": core_id, "roles": ["collection_handler", "no_config"]}))
   exit()
 
 if arguments.collections:
