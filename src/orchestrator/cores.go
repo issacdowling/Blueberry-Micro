@@ -63,7 +63,7 @@ func pathIsCore(path string) (bool, error) {
 func startCores(corePaths []string) ([]Core, error) {
 	var runningCores []Core
 	var currentIdent Identification
-	orchestratorProvidedArgs := []string{"--device-id", bloobConfig["uuid"].(string)}
+	orchestratorProvidedArgs := []string{"--device-id", bloobConfig["uuid"].(string), "--host", mqttConfig.Host, "--port", mqttConfig.Port}
 	if mqttConfig.Username != "" && mqttConfig.Password != "" {
 		orchestratorProvidedArgs = append(orchestratorProvidedArgs, "--user", mqttConfig.Username, "--pass", mqttConfig.Password)
 	}
