@@ -169,11 +169,11 @@ func main() {
 	broker := mqtt.NewClientOptions()
 	broker.AddBroker(fmt.Sprintf("tcp://%s:%v", mqttConfig.Host, mqttConfig.Port))
 
-	fmt.Printf("tcp://%s:%v\n", mqttConfig.Host, mqttConfig.Port)
+	fmt.Printf("Broker at: tcp://%s:%v\n", mqttConfig.Host, mqttConfig.Port)
 
 	broker.SetClientID(fmt.Sprintf("%v - Orchestrator", bloobConfig["instance_name"]))
 
-	fmt.Printf("%v - Orchestrator\n", bloobConfig["instance_name"])
+	fmt.Printf("MQTT client name: %v - Orchestrator\n", bloobConfig["instance_name"])
 
 	broker.OnConnect = onConnect
 	if mqttConfig.Password != "" && mqttConfig.Username != "" {
