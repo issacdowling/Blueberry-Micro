@@ -13,7 +13,7 @@ I suggest that you create a virtual environment to keep the packages needed to m
 # First, change directory into this repo
 
 python -m venv .venv
-
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
