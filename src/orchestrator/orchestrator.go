@@ -120,7 +120,7 @@ func main() {
 
 	// All necessary fields for the config can be added here, and the Orchestrator won't launch without them
 	// TODO: Just struct this and disallow unfilled fields when unmarshalling the JSON
-	for _, field := range []string{"instance_name", "uuid", "stt", "tts", "orchestrator", "mqtt"} {
+	for _, field := range []string{"instance_name", "uuid", "stt_util", "tts_util", "orchestrator", "mqtt"} {
 		if _, ok := bloobConfig[field]; !ok {
 			bLogFatal(fmt.Sprintf("Your config is missing the %s field", field), l)
 		}
@@ -193,19 +193,23 @@ func main() {
 	//for loop to go here with a list of the topics that need subbing to.
 	// Maybe better than the subscribemultiple
 	subscribeMqttTopics := map[string]byte{
-		fmt.Sprintf("bloob/%s/wakeword/detected", bloobConfig["uuid"]):       bloobQOS,
-		fmt.Sprintf("bloob/%s/audio_playback/finished", bloobConfig["uuid"]): bloobQOS,
-		fmt.Sprintf("bloob/%s/audio_recorder/finished", bloobConfig["uuid"]): bloobQOS,
-		fmt.Sprintf("bloob/%s/stt/finished", bloobConfig["uuid"]):            bloobQOS,
-		fmt.Sprintf("bloob/%s/tts/finished", bloobConfig["uuid"]):            bloobQOS,
-		fmt.Sprintf("bloob/%s/intent_parser/finished", bloobConfig["uuid"]):  bloobQOS,
-		fmt.Sprintf("bloob/%s/cores/+/finished", bloobConfig["uuid"]):        bloobQOS,
+		fmt.Sprintf("bloob/%s/cores/wakeword_util/detected", bloobConfig["uuid"]):       bloobQOS,
+		fmt.Sprintf("bloob/%s/cores/audio_playback_util/finished", bloobConfig["uuid"]): bloobQOS,
+		fmt.Sprintf("bloob/%s/cores/audio_recorder_util/finished", bloobConfig["uuid"]): bloobQOS,
+		fmt.Sprintf("bloob/%s/cores/stt_util/finished", bloobConfig["uuid"]):            bloobQOS,
+		fmt.Sprintf("bloob/%s/cores/tts_util/finished", bloobConfig["uuid"]):            bloobQOS,
+		fmt.Sprintf("bloob/%s/cores/intent_parser_util/finished", bloobConfig["uuid"]):  bloobQOS,
+		fmt.Sprintf("bloob/%s/cores/+/finished", bloobConfig["uuid"]):                   bloobQOS,
 	}
 
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		bLogFatal(token.Error().Error(), l)
 	}
 	if token := client.SubscribeMultiple(subscribeMqttTopics, pipelineMessageHandler); token.Wait() && token.Error() != nil {
+		bLogFatal(token.Error().Error(), l)
+	}
+
+	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/+/collections", bloobConfig["uuid"]), bloobQOS, collectionHandler); token.Wait() && token.Error() != nil {
 		bLogFatal(token.Error().Error(), l)
 	}
 
@@ -240,8 +244,6 @@ func main() {
 		bLog(fmt.Sprintf("Started %s", receivedCore.Id), l)
 	}
 
-	os.Exit(0)
-
 	// Add external cores too (cores that weren't started by the Orchestrator, but _are_ running somewhere else and connected over MQTT)
 	if _, ok := bloobConfig["orchestrator"].(map[string]interface{})["external_cores"]; ok {
 		for _, externalCore := range bloobConfig["orchestrator"].(map[string]interface{})["external_cores"].([]interface{}) {
@@ -255,7 +257,7 @@ func main() {
 	var configToPublish []byte
 	var listOfCores []string
 	var listOfCollections []string
-	var topicToPublish string
+	var topicToPublish string = "bloob/%s/cores/%s/central_config"
 	for _, core := range runningCores {
 
 		value, ok := bloobConfig[core.Id]
@@ -276,9 +278,9 @@ func main() {
 
 		listOfCores = append(listOfCores, core.Id)
 
-		// Do collections things another way (Cores will have /collections and this will be subscribed to with a wildcard
-
 	}
+
+	// Get Collections
 
 	// Publish a list of all running Cores
 	var listOfCoresJson []byte
@@ -301,7 +303,7 @@ func main() {
 	broker.SetWill(fmt.Sprintf("bloob/%s/collections/list", bloobConfig["uuid"]), "", bloobQOS, true)
 
 	// For now, we'll just launch everything, wait a few seconds, then kill it
-	time.Sleep(15 * time.Second)
+	time.Sleep(35 * time.Second)
 
 	exitCleanup(runningCores, listOfCollections, client)
 }
