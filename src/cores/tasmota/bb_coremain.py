@@ -77,7 +77,7 @@ loaded_tasmota_devices = []
 
 # connect to the broker
 async def main():
-    async with aiomqtt.Client(hostname=arguments.host, port=arguments.port, username=arguments.user, password=arguments.password) as client:
+    async with aiomqtt.Client(hostname=arguments.host, port=int(arguments.port), username=arguments.user, password=arguments.password) as client:
         print("connected")
 
         # subscribe to the topics
@@ -109,7 +109,8 @@ async def main():
                 }
             ]
         }
-        await client.publish(f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, qos=1)
+
+        await client.publish(f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, qos=2)
 
         
         # handle messages
@@ -160,7 +161,7 @@ def on_exit(*args):
     auth = None
     if arguments.user != None:
         auth = {"username": arguments.user, "password": arguments.password}
-    paho.mqtt.publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host,port=arguments.port, auth=auth)
+    paho.mqtt.publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host,port=int(arguments.port), auth=auth)
     exit()
 
 signal.signal(signal.SIGTERM, on_exit)
