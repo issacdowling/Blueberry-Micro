@@ -43,16 +43,15 @@
 ```
 "orchestrator": {
     "show_remote_logs": true
+    "external_cores": [
+        {"id": "testcore1", "roles": ["intent_handler"]},
+        {"id": "testcore2", "roles": ["no_config"]}
+    ]
 },
 ```
 
 * `show_remote_logs` decides whether the Orchestrator's stdout should show all other bloob logs, as opposed to just its own.
-
-## External Core IDs (optional)
-```
-"external_core_ids": ["example_id", "example_id2"]
-```
-
-* These are core IDs that the Orchestrator should know about (and therefore tell downstream services about them)
-* This is useful if you're running cores as daemons, or on other machines, or just launching them with any method that is not directly through the Orchestrator
-* If these cores are not available, we can't know, and your Intent Parser will freeze up!
+* `external_cores` are Cores that the Orchestrator should know about (and therefore tell downstream services about them)
+    * This is useful if you're running cores as daemons, or on other machines, or just launching them with any method that is not directly through the Orchestrator
+    * They do not currently support being `collection_handler`s, due to some rearchitecting going on.
+    * If these cores are not available, we can't know, and your Intent Parser will freeze up!

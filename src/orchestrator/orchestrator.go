@@ -230,9 +230,24 @@ func main() {
 
 	for i := 0; i < len(corePaths); i++ {
 		receivedCore := <-coreReceiver
-		receivedCore.Exec.Start()
+		err := receivedCore.Exec.Start()
+		if err != nil {
+			bLogFatal(err.Error(), l)
+		}
 		runningCores = append(runningCores, receivedCore)
 		bLog(fmt.Sprintf("Started %s", receivedCore.Id), l)
+	}
+
+	// Add external cores too (cores that weren't started by the Orchestrator, but _are_ running somewhere else and connected over MQTT)
+	if _, ok := bloobConfig["orchestrator"].(map[string]interface{})["external_cores"]; ok {
+		for _, externalCore := range bloobConfig["orchestrator"].(map[string]interface{})["external_cores"].([]interface{}) {
+			var receivedRoles []string
+			for _, role := range externalCore.(map[string]interface{})["roles"].([]interface{}) {
+				receivedRoles = append(receivedRoles, role.(string))
+			}
+			bLog(fmt.Sprintf("Registered external Core %s", externalCore.(map[string]interface{})["id"].(string)), l)
+			runningCores = append(runningCores, Core{Id: externalCore.(map[string]interface{})["id"].(string), Roles: receivedRoles, Exec: nil})
+		}
 	}
 
 	// Publish Central Configs if they exist, or an empty object if not. Set a will that empties these configs on accidental disconnect.
@@ -288,23 +303,29 @@ func main() {
 
 		// If it's a Collection Handler, we get Collections from it and publish them, along with the Will that empties them on exit.
 		if slices.Contains(core.Roles, "collection_handler") {
-			coreCollections, err := core.getCollections()
-			if err != nil {
-				bLogFatal(err.Error(), l)
-			}
-			bLog(fmt.Sprintf("%v has provided %d Collections", core.Id, len(coreCollections)), l)
-			for _, collection := range coreCollections {
-				topicToPublish = "bloob/%s/collections/%s"
-				collectionToPublish, err := json.Marshal(collection)
+			if core.Exec != nil {
+				coreCollections, err := core.getCollections()
 				if err != nil {
 					bLogFatal(err.Error(), l)
 				}
-				if token := client.Publish(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], collection["id"].(string)), bloobQOS, true, collectionToPublish); token.Wait() && token.Error() != nil {
-					bLogFatal(fmt.Sprintf("Failed publishing Collection %s", token.Error()), l)
+				bLog(fmt.Sprintf("%v has provided %d Collections", core.Id, len(coreCollections)), l)
+				for _, collection := range coreCollections {
+					topicToPublish = "bloob/%s/collections/%s"
+					collectionToPublish, err := json.Marshal(collection)
+					if err != nil {
+						bLogFatal(err.Error(), l)
+					}
+					if token := client.Publish(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], collection["id"].(string)), bloobQOS, true, collectionToPublish); token.Wait() && token.Error() != nil {
+						bLogFatal(fmt.Sprintf("Failed publishing Collection %s", token.Error()), l)
+					}
+					broker.SetWill(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], collection["id"].(string)), "", bloobQOS, true)
+					listOfCollections = append(listOfCollections, collection["id"].(string))
 				}
-				broker.SetWill(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], collection["id"].(string)), "", bloobQOS, true)
-				listOfCollections = append(listOfCollections, collection["id"].(string))
+			} else {
+				// This is onl;y a temporary measure, and is because collections are gotten with a CLI arg rather than over MQTT
+				bLog(fmt.Sprintf("%s is an external Core, which doesn't currently allow Collections", core.Id), l)
 			}
+
 		}
 
 	}
@@ -344,11 +365,13 @@ func exitCleanup(runningCores []Core, listOfCollections []string, client mqtt.Cl
 			bLogFatal(token.Error().Error(), l)
 		}
 
-		// Kill cores
-		bLog(fmt.Sprintf("Killing Core: %s (%s)", runningCore.Id, runningCore.Exec.Args[0]), l)
-		err := runningCore.Exec.Process.Kill()
-		if err != nil {
-			bLogFatal(err.Error(), l)
+		// Kill local cores (not external ones, as they have a nil Exec field)
+		if runningCore.Exec != nil {
+			bLog(fmt.Sprintf("Killing Core: %s (%s)", runningCore.Id, runningCore.Exec.Args[0]), l)
+			err := runningCore.Exec.Process.Kill()
+			if err != nil {
+				bLogFatal(err.Error(), l)
+			}
 		}
 
 	}
