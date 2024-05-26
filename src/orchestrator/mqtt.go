@@ -27,6 +27,10 @@ var coreFinishedReceivedJson map[string]interface{}
 
 var ttsReceivedJson map[string]interface{}
 
+var collectionTopic string = "bloob/%s/collections/%s"
+
+var collectionIds []string
+
 type MqttConfig struct {
 	Host     string
 	Port     string
@@ -42,6 +46,43 @@ var remoteLogDisplay mqtt.MessageHandler = func(client mqtt.Client, message mqtt
 	if !strings.Contains(string(message.Payload()), "[Orchestrator]") {
 		log.Print(string(message.Payload()))
 	}
+}
+
+var collectionHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
+	var receivedCollectionJson map[string]interface{}
+	err := json.Unmarshal(message.Payload(), &receivedCollectionJson)
+	if err != nil {
+		bLogFatal(err.Error(), l)
+	}
+	collections := receivedCollectionJson["collections"].([]interface{})
+
+	for _, collection := range collections {
+		id := collection.(map[string]interface{})["id"].(string)
+		collectionIds = append(collectionIds, id)
+		fmt.Println(id)
+
+		collectionToSendJSON, err := json.Marshal(collection)
+		if err != nil {
+			bLogFatal(err.Error(), l)
+		}
+
+		if token := client.Publish(fmt.Sprintf(collectionTopic, bloobConfig["uuid"], id), bloobQOS, true, collectionToSendJSON); token.Wait() && token.Error() != nil {
+			bLogFatal(token.Error().Error(), l)
+		}
+
+	}
+
+	// Publish the list of known collections
+	listCollectionsJson, err := json.Marshal(map[string]interface{}{
+		"loaded_collections": collectionIds,
+	})
+	if err != nil {
+		bLogFatal(err.Error(), l)
+	}
+	if token := client.Publish(fmt.Sprintf(collectionTopic, bloobConfig["uuid"], "list"), bloobQOS, true, listCollectionsJson); token.Wait() && token.Error() != nil {
+		bLogFatal(token.Error().Error(), l)
+	}
+
 }
 
 var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
@@ -108,7 +149,7 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 
 	}
 
-	if strings.Contains(message.Topic(), "/tts/finished") {
+	if strings.Contains(message.Topic(), "/tts_util/finished") {
 		json.Unmarshal(message.Payload(), &ttsReceivedJson)
 
 		if ttsReceivedJson["id"].(string) == id {
