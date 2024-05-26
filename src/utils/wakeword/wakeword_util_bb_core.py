@@ -3,7 +3,7 @@
 
 Requires no input, will always be detecting.
 
-Will respond with {"wakeword_id": id_of_detected_wakeword: str, "confidence": confidence_of_detection: str} to "bloob/{arguments.device_id}/wakeword/detected"
+Will respond with {"wakeword_id": id_of_detected_wakeword: str, "confidence": confidence_of_detection: str} to "bloob/{arguments.device_id}/cores/wakeword_util/detected"
 """
 import argparse
 import subprocess
@@ -48,7 +48,7 @@ arguments = arg_parser.parse_args()
 
 arguments.port = int(arguments.port)
 
-core_id = "wakeword"
+core_id = "wakeword_util"
 
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
@@ -123,7 +123,7 @@ while True:
     ## Upon detection:
     if confidence >= 0.5:
 
-      publish.single(topic = f"bloob/{arguments.device_id}/wakeword/detected", payload = json.dumps({"wakeword_id": model_name, "confidence": str(prediction[model_name])}), hostname = arguments.host, port = arguments.port)
+      publish.single(topic = f"bloob/{arguments.device_id}/cores/wakeword_util/detected", payload = json.dumps({"wakeword_id": model_name, "confidence": str(prediction[model_name])}), hostname = arguments.host, port = arguments.port)
       log(f"Wakeword Detected: {model_name}, with confidence of {prediction[model_name]}", log_data)
       ### Feeds silence for "4 seconds" to OpenWakeWord so that it doesn't lead to repeat activations
       ### See for yourself: https://github.com/dscripka/openWakeWord/issues/37

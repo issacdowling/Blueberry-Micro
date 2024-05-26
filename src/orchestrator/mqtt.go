@@ -47,14 +47,14 @@ var remoteLogDisplay mqtt.MessageHandler = func(client mqtt.Client, message mqtt
 var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
 	var instanceUUID string = bloobConfig["uuid"].(string)
 
-	if strings.Contains(message.Topic(), "wakeword/detected") {
+	if strings.Contains(message.Topic(), "wakeword_util/detected") {
 		json.Unmarshal(message.Payload(), &wakewordReceivedJson)
 		bLog(fmt.Sprintf("Wakeword Received - %v - recording audio", wakewordReceivedJson["wakeword_id"].(string)), l)
 		playAudioFile(beginListeningAudio, instanceUUID, id, client)
 		startRecordingAudio(instanceUUID, id, client)
 	}
 
-	if strings.Contains(message.Topic(), "audio_recorder/finished") {
+	if strings.Contains(message.Topic(), "audio_recorder_util/finished") {
 		playAudioFile(stopListeningAudio, instanceUUID, id, client)
 		json.Unmarshal(message.Payload(), &audioRecorderReceivedJson)
 
@@ -65,7 +65,7 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 		}
 	}
 
-	if strings.Contains(message.Topic(), "stt/finished") {
+	if strings.Contains(message.Topic(), "stt_util/finished") {
 		json.Unmarshal(message.Payload(), &transcriptionReceivedJson)
 
 		if transcriptionReceivedJson["id"].(string) == id {
@@ -77,7 +77,7 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 	}
 
 	// This won't work until Core Configs and collections and intents are done.
-	if strings.Contains(message.Topic(), "intent_parser/finished") {
+	if strings.Contains(message.Topic(), "intent_parser_util/finished") {
 		json.Unmarshal(message.Payload(), &intentParserReceivedJson)
 
 		if intentParserReceivedJson["id"].(string) == id {
@@ -96,7 +96,8 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 
 	}
 
-	if strings.Contains(message.Topic(), "/cores") && strings.Contains(message.Topic(), "/finished") {
+	// Specifically, here, I do not want responses from Utils, only regular Cores
+	if strings.Contains(message.Topic(), "/cores") && strings.Contains(message.Topic(), "/finished") && !strings.Contains(message.Topic(), "util") {
 		json.Unmarshal(message.Payload(), &coreFinishedReceivedJson)
 
 		if coreFinishedReceivedJson["id"].(string) == id {

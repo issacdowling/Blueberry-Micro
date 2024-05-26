@@ -1,9 +1,9 @@
 #!/bin/env python3
 """ MQTT connected STT engine for Blueberry, making use of OpenAI Whisper, through faster-whisper
 
-Wishes to be provided with {"id": identifier_of_this_tts_request: str, "audio": text_to_speak: str}, where audio is a WAV file, encoded as b64 bytes, then decoded into a string, over MQTT to "bloob/{arguments.device_id}/stt/transcribe"
+Wishes to be provided with {"id": identifier_of_this_tts_request: str, "audio": text_to_speak: str}, where audio is a WAV file, encoded as b64 bytes, then decoded into a string, over MQTT to "bloob/{arguments.device_id}/cores/stt_util/transcribe"
 
-Will respond with {"id", id: str, "text": transcript} to "bloob/{arguments.device_id}/stt/finished"
+Will respond with {"id", id: str, "text": transcript} to "bloob/{arguments.device_id}/cores/stt_util/finished"
 """
 import argparse
 import subprocess
@@ -52,7 +52,7 @@ arguments = arg_parser.parse_args()
 arguments.port = int(arguments.port)
 
 
-core_id = "stt"
+core_id = "stt_util"
 
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
@@ -61,7 +61,7 @@ log("Starting up...", log_data)
 ## Get device configs from central config, instantiate
 log("Getting Centralised Config from Orchestrator", log_data)
 print(f"bloob/{arguments.device_id}/{core_id}/central_config")
-central_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
+central_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
 
 if not os.path.exists(default_data_path):
   log("Creating STT path", log_data)
@@ -107,14 +107,13 @@ def on_message(client, _, message):
   except KeyError:
     log("Couldn't find the correct keys in recieved JSON", log_data)
   log("Publishing output", log_data)
-  stt_mqtt.publish(f"bloob/{arguments.device_id}/stt/finished", json.dumps({"id": msg_json["id"], "text": transcription}))
+  stt_mqtt.publish(f"bloob/{arguments.device_id}/cores/stt_util/finished", json.dumps({"id": msg_json["id"], "text": transcription}))
 
 stt_mqtt = mqtt.Client()
 stt_mqtt.connect(arguments.host, arguments.port)
 stt_mqtt.on_message = on_message
 
-# stt_mqtt.subscribe(f"bloob/{arguments.device_id}/tts/finished") # This is for testing, automatically transcribing what's recorded / said by TTS
-stt_mqtt.subscribe(f"bloob/{arguments.device_id}/stt/transcribe")
+stt_mqtt.subscribe(f"bloob/{arguments.device_id}/cores/stt_util/transcribe")
 
 
 stt_mqtt.loop_forever()

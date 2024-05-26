@@ -1,9 +1,9 @@
 #!/bin/env python3
 """ MQTT connected audio recorder for Blueberry
 
-Wishes to be provided with {"id": identifier_of_this_audio_recorder_request: str} over MQTT to "bloob/{arguments.device_id}/audio_recorder/record_speech"
+Wishes to be provided with {"id": identifier_of_this_audio_recorder_request: str} over MQTT to "bloob/{arguments.device_id}/cores/audio_recorder_util/record_speech"
 
-Will respond with {"id": received_id: str, "audio": audio: str}, where audio is a WAV file, encoded as b64 bytes, then decoded into a string. To "bloob/{arguments.device_id}/audio_recorder/finished"
+Will respond with {"id": received_id: str, "audio": audio: str}, where audio is a WAV file, encoded as b64 bytes, then decoded into a string. To "bloob/{arguments.device_id}/cores/audio_recorder_util/finished"
 """
 import argparse
 import subprocess
@@ -44,7 +44,7 @@ arguments = arg_parser.parse_args()
 
 arguments.port = int(arguments.port)
 
-core_id = "audio_recorder"
+core_id = "audio_recorder_util"
 
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
@@ -86,7 +86,7 @@ import paho.mqtt.publish as publish
 
 while True:
   try:
-    request_id = json.loads(mqtt_subscribe.simple(f"bloob/{arguments.device_id}/audio_recorder/record_speech", hostname = arguments.host, port = arguments.port ).payload.decode())["id"]
+    request_id = json.loads(mqtt_subscribe.simple(f"bloob/{arguments.device_id}/cores/audio_recorder_util/record_speech", hostname = arguments.host, port = arguments.port ).payload.decode())["id"]
     speech_buffer = []
   except json.decoder.JSONDecodeError:
     log("Recieved invalid JSON", log_data)
@@ -122,5 +122,5 @@ while True:
       audio_to_send = base64.b64encode(wf.read()).decode()
 
     log("Saved audio", log_data)
-    publish.single(topic = f"bloob/{arguments.device_id}/audio_recorder/finished", payload= json.dumps({"id": request_id, "audio" : audio_to_send}), hostname = arguments.host, port = arguments.port)
+    publish.single(topic = f"bloob/{arguments.device_id}/cores/audio_recorder_util/finished", payload= json.dumps({"id": request_id, "audio" : audio_to_send}), hostname = arguments.host, port = arguments.port)
     break

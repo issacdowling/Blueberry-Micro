@@ -1,27 +1,17 @@
 package main
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io/fs"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"strings"
 )
 
 type Core struct {
-	Id    string
-	Roles []string
-	Exec  *exec.Cmd
-}
-
-type Identification struct {
-	Id    string
-	Roles []string
+	Id   string
+	Exec *exec.Cmd
 }
 
 func scanForCores(paths []string) []string {
@@ -36,7 +26,6 @@ func scanForCores(paths []string) []string {
 
 			if iscore {
 				foundCores = append(foundCores, path)
-				// runningCores = append(runningCores, exec.Command(path))
 			}
 			return nil
 		})
@@ -64,44 +53,14 @@ func pathIsCore(path string) (bool, error) {
 
 // Starts a Core that presently only has a path
 func createCore(corePath string, coreChannel chan<- Core) {
-	var currentIdent map[string]interface{}
-
 	orchestratorProvidedArgs := []string{"--device-id", bloobConfig["uuid"].(string), "--host", mqttConfig.Host, "--port", mqttConfig.Port}
 
 	if mqttConfig.Username != "" && mqttConfig.Password != "" {
 		orchestratorProvidedArgs = append(orchestratorProvidedArgs, "--user", mqttConfig.Username, "--pass", mqttConfig.Password)
 	}
 
-	coreIdentRaw, err := exec.Command(corePath, "--identify", "true").Output()
-	if err != nil {
-		log.Panic(err)
-	}
+	// Follows the naming convention where Cores are named {core_id}_bb_core
+	coreId := strings.Split(filepath.Base(corePath), "_bb_core")[0]
 
-	json.Unmarshal(coreIdentRaw, &currentIdent)
-
-	roles := make([]string, len(currentIdent["roles"].([]interface{})))
-	for _, role := range currentIdent["roles"].([]interface{}) {
-		roles = append(roles, role.(string))
-	}
-
-	coreChannel <- Core{Id: currentIdent["id"].(string), Exec: exec.Command(corePath, orchestratorProvidedArgs...), Roles: roles}
-}
-
-// Returns a list of collections (each collection is a map[string]interface{}, a JSON object) from the core that this was called on.
-func (core Core) getCollections() ([]map[string]interface{}, error) {
-	if !slices.Contains(core.Roles, "collection_handler") {
-		return nil, errors.New("Core is not a collection handler")
-	}
-	collectionsBytes, err := exec.Command(core.Exec.Path, "--collections", "true").Output()
-	if err != nil {
-		return nil, err
-	}
-	var collectionsJson map[string]interface{}
-	json.Unmarshal(collectionsBytes, &collectionsJson)
-
-	var coreCollections []map[string]interface{}
-	for _, collection := range collectionsJson["collections"].([]interface{}) {
-		coreCollections = append(coreCollections, collection.(map[string]interface{}))
-	}
-	return coreCollections, nil
+	coreChannel <- Core{Id: coreId, Exec: exec.Command(corePath, orchestratorProvidedArgs...)}
 }

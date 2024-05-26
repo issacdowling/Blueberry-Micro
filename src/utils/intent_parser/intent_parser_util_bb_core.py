@@ -1,9 +1,9 @@
 #!/bin/env python3
 """ MQTT connected Intent Parser for Blueberry
 
-Wishes to be provided with {"id": identifier_of_this_request: str, "text": text_to_parse: str}, over MQTT to "bloob/{arguments.device_id}/intent_parser/run"
+Wishes to be provided with {"id": identifier_of_this_request: str, "text": text_to_parse: str}, over MQTT to "bloob/{arguments.device_id}/cores/intent_parser_util/run"
 
-Will respond with {"id": identifier_of_this_request: str, "intent": intent["intentName"]: str, "text": cleaned_up_text, "core_id": intent["core"]: str} to "bloob/{arguments.device_id}/intent_parser/finished"
+Will respond with {"id": identifier_of_this_request: str, "intent": intent["intentName"]: str, "text": cleaned_up_text, "core_id": intent["core"]: str} to "bloob/{arguments.device_id}/cores/intent_parser_util/finished"
 """
 import argparse
 import subprocess
@@ -42,7 +42,7 @@ arguments = arg_parser.parse_args()
 
 arguments.port = int(arguments.port)
 
-core_id = "intent_parser"
+core_id = "intent_parser_util"
 
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
 
@@ -252,7 +252,7 @@ def parse(uncleaned_text_to_parse, intents):
 
 while True:
   log(f"Waiting for input...", log_data)
-  request_json =  json.loads(subscribe.simple(f"bloob/{arguments.device_id}/intent_parser/run", hostname=arguments.host, port=arguments.port).payload.decode())
+  request_json =  json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/intent_parser_util/run", hostname=arguments.host, port=arguments.port).payload.decode())
   parsed_intent, parsed_core, text_out = parse(uncleaned_text_to_parse=request_json["text"], intents=intents)
   log(f"Outputting results, Core: {parsed_core}, Intent: {parsed_intent}", log_data)
-  publish.single(f"bloob/{arguments.device_id}/intent_parser/finished", payload=json.dumps({"id": request_json["id"], "intent": parsed_intent, "core_id": parsed_core, "text": text_out}), hostname=arguments.host, port=arguments.port)
+  publish.single(f"bloob/{arguments.device_id}/cores/intent_parser_util/finished", payload=json.dumps({"id": request_json["id"], "intent": parsed_intent, "core_id": parsed_core, "text": text_out}), hostname=arguments.host, port=arguments.port)

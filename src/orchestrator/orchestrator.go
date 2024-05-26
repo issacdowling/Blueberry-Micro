@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -87,10 +86,10 @@ func main() {
 			bloobConfigDefaultValues := map[string]interface{}{
 				"instance_name": "Default Name",
 				"uuid":          "test",
-				"stt": map[string]interface{}{
+				"stt_util": map[string]interface{}{
 					"model": "Systran/faster-distil-whisper-small.en",
 				},
-				"tts": map[string]interface{}{
+				"tts_util": map[string]interface{}{
 					"model": "en_US-lessac-high",
 				},
 				"orchestrator": map[string]interface{}{
@@ -241,15 +240,13 @@ func main() {
 		bLog(fmt.Sprintf("Started %s", receivedCore.Id), l)
 	}
 
+	os.Exit(0)
+
 	// Add external cores too (cores that weren't started by the Orchestrator, but _are_ running somewhere else and connected over MQTT)
 	if _, ok := bloobConfig["orchestrator"].(map[string]interface{})["external_cores"]; ok {
 		for _, externalCore := range bloobConfig["orchestrator"].(map[string]interface{})["external_cores"].([]interface{}) {
-			var receivedRoles []string
-			for _, role := range externalCore.(map[string]interface{})["roles"].([]interface{}) {
-				receivedRoles = append(receivedRoles, role.(string))
-			}
 			bLog(fmt.Sprintf("Registered external Core %s", externalCore.(map[string]interface{})["id"].(string)), l)
-			runningCores = append(runningCores, Core{Id: externalCore.(map[string]interface{})["id"].(string), Roles: receivedRoles, Exec: nil})
+			runningCores = append(runningCores, Core{Id: externalCore.(map[string]interface{})["id"].(string), Exec: nil})
 		}
 	}
 
@@ -260,24 +257,6 @@ func main() {
 	var listOfCollections []string
 	var topicToPublish string
 	for _, core := range runningCores {
-
-		// If no_config, we publish a blank config _on behalf_ of the Core. This is different from the central config
-		if slices.Contains(core.Roles, "no_config") {
-			topicToPublish = "bloob/%s/cores/%s/config"
-			blankConfig := map[string]interface{}{
-				"metadata": map[string]interface{}{
-					"core_id": core.Id,
-				},
-			}
-			blankConfigJson, err := json.Marshal(blankConfig)
-			if err != nil {
-				bLogFatal(err.Error(), l)
-			}
-			if token := client.Publish(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], core.Id), bloobQOS, true, blankConfigJson); token.Wait() && token.Error() != nil {
-				bLogFatal(fmt.Sprintf("Failed publishing Config %s", token.Error()), l)
-			}
-			broker.SetWill(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], core.Id), "", bloobQOS, true)
-		}
 
 		value, ok := bloobConfig[core.Id]
 		if ok {
@@ -290,13 +269,6 @@ func main() {
 			configToPublish, _ = json.Marshal(make(map[string]interface{}))
 		}
 
-		// If it's a util, we omit /cores/ before the Core ID in the topic
-		if slices.Contains(core.Roles, "util") {
-			topicToPublish = "bloob/%s/%s/central_config"
-		} else {
-			topicToPublish = "bloob/%s/cores/%s/central_config"
-		}
-
 		if token := client.Publish(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], core.Id), bloobQOS, true, configToPublish); token.Wait() && token.Error() != nil {
 			bLogFatal(fmt.Sprintf("Failed publishing Central Config: %s", token.Error()), l)
 		}
@@ -304,32 +276,7 @@ func main() {
 
 		listOfCores = append(listOfCores, core.Id)
 
-		// If it's a Collection Handler, we get Collections from it and publish them, along with the Will that empties them on exit.
-		if slices.Contains(core.Roles, "collection_handler") {
-			if core.Exec != nil {
-				coreCollections, err := core.getCollections()
-				if err != nil {
-					bLogFatal(err.Error(), l)
-				}
-				bLog(fmt.Sprintf("%v has provided %d Collections", core.Id, len(coreCollections)), l)
-				for _, collection := range coreCollections {
-					topicToPublish = "bloob/%s/collections/%s"
-					collectionToPublish, err := json.Marshal(collection)
-					if err != nil {
-						bLogFatal(err.Error(), l)
-					}
-					if token := client.Publish(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], collection["id"].(string)), bloobQOS, true, collectionToPublish); token.Wait() && token.Error() != nil {
-						bLogFatal(fmt.Sprintf("Failed publishing Collection %s", token.Error()), l)
-					}
-					broker.SetWill(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], collection["id"].(string)), "", bloobQOS, true)
-					listOfCollections = append(listOfCollections, collection["id"].(string))
-				}
-			} else {
-				// This is onl;y a temporary measure, and is because collections are gotten with a CLI arg rather than over MQTT
-				bLog(fmt.Sprintf("%s is an external Core, which doesn't currently allow Collections", core.Id), l)
-			}
-
-		}
+		// Do collections things another way (Cores will have /collections and this will be subscribed to with a wildcard
 
 	}
 

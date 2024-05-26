@@ -1,9 +1,9 @@
 #!/bin/env python3
 """ MQTT connected Audio playback program for Blueberry, making use of MPV
 
-Wishes to be provided with {"id", id: str, "audio": audio: str}, where audio is a WAV file, encoded as b64 bytes then decoded into a string, over MQTT to "bloob/{arguments.device_id}/audio_playback/play_file"
+Wishes to be provided with {"id", id: str, "audio": audio: str}, where audio is a WAV file, encoded as b64 bytes then decoded into a string, over MQTT to "bloob/{arguments.device_id}/cores/audio_playback_util/play_file"
 
-Will respond with {"id": received_id: str}. To "bloob/{arguments.device_id}/audio_playback/finished"
+Will respond with {"id": received_id: str}. To "bloob/{arguments.device_id}/cores/audio_playback_util/finished"
 """
 import argparse
 import subprocess
@@ -49,7 +49,7 @@ arguments = arg_parser.parse_args()
 
 arguments.port = int(arguments.port)
 
-core_id = "audio_playback"
+core_id = "audio_playback_util"
 
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
@@ -69,14 +69,14 @@ async def connect():
 	async with aiomqtt.Client(arguments.host) as client:
 		# await client.subscribe(f"bloob/{arguments.device_id}/audio_recorder/finished") # This is for testing, it'll automatically play what the TTS says
 		log("Waiting for input...", log_data)
-		await client.subscribe(f"bloob/{arguments.device_id}/audio_playback/play_file")
+		await client.subscribe(f"bloob/{arguments.device_id}/cores/audio_playback_util/play_file")
 		async for message in client.messages:
 			try:
 				message_payload = json.loads(message.payload.decode())
 				if(message_payload.get('audio') != None and message_payload.get('id') != None):
 					play(message_payload["audio"])
 
-					await client.publish(f"bloob/{arguments.device_id}/audio_playback/finished", json.dumps({"id": message_payload.get('id')}))
+					await client.publish(f"bloob/{arguments.device_id}/cores/audio_playback_util/finished", json.dumps({"id": message_payload.get('id')}))
 			except:
 				log("Error with payload.", log_data)
 

@@ -1,9 +1,9 @@
 #!/bin/env python3
 """ MQTT connected TTS engine for Blueberry, making use of Piper TTS
 
-Wishes to be provided with {"id": identifier_of_this_tts_request: str, "text": text_to_speak: str} over MQTT to "bloob/{arguments.device_id}/tts/run"
+Wishes to be provided with {"id": identifier_of_this_tts_request: str, "text": text_to_speak: str} over MQTT to "bloob/{arguments.device_id}/cores/tts_util/run"
 
-Will respond with {"id": received_id: str, "audio": audio: str}, where audio is a WAV file, encoded as b64 bytes, then decoded into a string, to "bloob/{arguments.device_id}/tts/finished"
+Will respond with {"id": received_id: str, "audio": audio: str}, where audio is a WAV file, encoded as b64 bytes, then decoded into a string, to "bloob/{arguments.device_id}/cores/tts_util/finished"
 """
 import argparse
 import subprocess
@@ -48,7 +48,7 @@ arguments = arg_parser.parse_args()
 
 arguments.port = int(arguments.port)
 
-core_id = "tts"
+core_id = "tts_util"
 
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
@@ -57,7 +57,7 @@ log("Starting up...", log_data)
 ## Get device configs from central config, instantiate
 log("Getting Centralised Config from Orchestrator", log_data)
 print(f"bloob/{arguments.device_id}/{core_id}/central_config")
-central_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
+central_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
 
 if not os.path.exists(default_tts_path):
   os.makedirs(default_tts_path)
@@ -84,7 +84,7 @@ def speak(text):
 async def connect():
 	async with aiomqtt.Client(hostname=arguments.host, port=arguments.port) as client:
 		log(f"Waiting for input...", log_data)
-		await client.subscribe(f"bloob/{arguments.device_id}/tts/run")
+		await client.subscribe(f"bloob/{arguments.device_id}/cores/tts_util/run")
 		async for message in client.messages:
 			try:
 				message_payload = json.loads(message.payload.decode())
@@ -99,7 +99,7 @@ async def connect():
 					encoded = base64.b64encode(f.read())
 					str_encoded = encoded.decode()
 					log(f"Publishing Output", log_data)
-				await client.publish(f"bloob/{arguments.device_id}/tts/finished", json.dumps({"id": message_payload.get('id'), "audio":str_encoded}))
+				await client.publish(f"bloob/{arguments.device_id}/cores/tts_util/finished", json.dumps({"id": message_payload.get('id'), "audio":str_encoded}))
 
 
 asyncio.run(connect())
