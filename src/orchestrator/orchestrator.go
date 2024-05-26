@@ -111,10 +111,13 @@ func main() {
 			bloobConfigFile.Close()
 			bloobConfigRaw = bloobConfigDefaultJSON
 		} else {
-			bLogFatal(fmt.Sprintf("Error while JSON decoding your config: %s", err.Error()), l)
+			bLogFatal(fmt.Sprintf("Error while JSON encoding the default config: %s", err.Error()), l)
 		}
 	}
-	json.Unmarshal(bloobConfigRaw, &bloobConfig)
+	err = json.Unmarshal(bloobConfigRaw, &bloobConfig)
+	if err != nil {
+		bLogFatal(fmt.Sprintf("Failed to JSON decode your config at %s, error: %s", bloobConfigPath, err.Error()), l)
+	}
 
 	// All necessary fields for the config can be added here, and the Orchestrator won't launch without them
 	// TODO: Just struct this and disallow unfilled fields when unmarshalling the JSON
