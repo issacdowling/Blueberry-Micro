@@ -2,6 +2,8 @@
 import json
 import argparse
 
+import paho.mqtt.publish as publish
+
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument('--host', default="localhost")
 arg_parser.add_argument('--port', default=1883)
@@ -13,6 +15,23 @@ arg_parser.add_argument('--collections', default="")
 arguments = arg_parser.parse_args()
 
 arguments.port = int(arguments.port)
+
+core_id = "default_collections"
+
+core_config = {
+  "metadata": {
+    "core_id": core_id,
+    "friendly_name": "Default Collections",
+    "link": "https://gitlab.com/issacdowling/blueberry-micro/-/tree/main/src/cores/default_collections",
+    "author": "Issac Dowling",
+    "icon": None,
+    "description": "Provides preset Collections that may be useful",
+    "version": "0.1",
+    "license": "AGPLv3"
+  }
+}
+
+publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
 
 colour_collection = {
   "id": "colours",
@@ -188,16 +207,10 @@ get_collection = {
   }
 }
 
-
-
 any_number_collection = {
     "id": "any_number",
     "placeholder": "This is only used to add the any_number Collection to the loaded_collections. The intent_handler has a special case for checking numbers."
 }
 collections_list = [colour_collection, any_number_collection, boolean_collection, set_collection, get_collection]
 
-core_id = "default_collections"
-
-if arguments.collections:
-  print(json.dumps({"collections": collections_list}))
-  exit()
+publish.single(f"bloob/{arguments.device_id}/cores/{core_id}/collections")

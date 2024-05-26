@@ -44,6 +44,21 @@ arguments.port = int(arguments.port)
 
 core_id = "intent_parser_util"
 
+core_config = {
+  "metadata": {
+    "core_id": core_id,
+    "friendly_name": "Intent Parser",
+    "link": "https://gitlab.com/issacdowling/blueberry-micro/-/tree/main/src/utils/intent_parser",
+    "author": "Issac Dowling",
+    "icon": None,
+    "description": "Parses what task you want completed based on your speech",
+    "version": "0.1",
+    "license": "AGPLv3"
+  }
+}
+
+publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
 
 # Clean up inputs ########################################

@@ -50,6 +50,21 @@ arguments.port = int(arguments.port)
 
 core_id = "tts_util"
 
+core_config = {
+  "metadata": {
+    "core_id": core_id,
+    "friendly_name": "TTS",
+    "link": "https://gitlab.com/issacdowling/blueberry-micro/-/tree/main/src/utils/tts",
+    "author": None,
+    "icon": None,
+    "description": "Speaks text",
+    "version": "0.1",
+    "license": "AGPLv3"
+  }
+}
+
+publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
 log("Starting up...", log_data)
