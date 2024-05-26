@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -39,7 +40,7 @@ var onConnect mqtt.OnConnectHandler = func(client mqtt.Client) {
 
 var remoteLogDisplay mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
 	if !strings.Contains(string(message.Payload()), "[Orchestrator]") {
-		fmt.Println(string(message.Payload()))
+		log.Print(string(message.Payload()))
 	}
 }
 

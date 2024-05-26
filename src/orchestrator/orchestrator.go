@@ -227,7 +227,7 @@ func main() {
 		receivedCore := <-coreReceiver
 		receivedCore.Exec.Start()
 		runningCores = append(runningCores, receivedCore)
-		fmt.Println("Started", receivedCore.Id)
+		bLog(fmt.Sprintf("Started %s", receivedCore.Id), l)
 	}
 
 	if err != nil {
@@ -347,7 +347,7 @@ func exitCleanup(runningCores []Core, listOfCollections []string, client mqtt.Cl
 		bLog(fmt.Sprintf("Killing Core: %s (%s)", runningCore.Id, runningCore.Exec.Args[0]), l)
 		err := runningCore.Exec.Process.Kill()
 		if err != nil {
-			fmt.Println(err)
+			bLogFatal(err.Error(), l)
 		}
 
 	}

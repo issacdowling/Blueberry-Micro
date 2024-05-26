@@ -31,7 +31,7 @@ func scanForCores(paths []string) []string {
 		filepath.WalkDir(path, func(path string, _ fs.DirEntry, _ error) error {
 			iscore, err := pathIsCore(path)
 			if err != nil {
-				fmt.Println(err)
+				bLog(err.Error(), l)
 			}
 
 			if iscore {
