@@ -204,6 +204,10 @@ func main() {
 		bLogFatal(token.Error().Error(), l)
 	}
 
+	if token := client.Subscribe(fmt.Sprintf("bloob/%s/logs", bloobConfig["uuid"].(string)), bloobQOS, remoteLogDisplay); token.Wait() && token.Error() != nil {
+		bLogFatal(token.Error().Error(), l)
+	}
+
 	// bLog now has access to MQTT logging
 	l.client = client
 	l.uuid = bloobConfig["uuid"].(string)

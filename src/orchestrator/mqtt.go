@@ -37,6 +37,12 @@ var onConnect mqtt.OnConnectHandler = func(client mqtt.Client) {
 	bLog("Connected to MQTT broker", l)
 }
 
+var remoteLogDisplay mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
+	if !strings.Contains(string(message.Payload()), "[Orchestrator]") {
+		fmt.Println(string(message.Payload()))
+	}
+}
+
 var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
 	var instanceUUID string = bloobConfig["uuid"].(string)
 
