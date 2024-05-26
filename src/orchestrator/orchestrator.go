@@ -94,7 +94,7 @@ func main() {
 					"model": "en_US-lessac-high",
 				},
 				"orchestrator": map[string]interface{}{
-					"show_remote_logs": true,
+					"show_remote_logs": false,
 				},
 				"mqtt": map[string]interface{}{
 					"host":     "localhost",
