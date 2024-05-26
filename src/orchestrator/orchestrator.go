@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"slices"
@@ -22,13 +21,15 @@ var bloobConfig map[string]interface{}
 
 var mqttConfig MqttConfig
 
+var l logData = logData{name: "Orchestrator"}
+
 func main() {
 
 	//// Set up directories
-	log.Println("Setting up directories")
+	bLog("Setting up directories", l)
 	pathToExecutable, err := os.Executable()
 	if err != nil {
-		log.Panic(err)
+		bLogFatal(err.Error(), l)
 	}
 
 	// Gets the repo directory by going three levels up from the Orchestrator directory (there must be a better way than this)
@@ -52,7 +53,7 @@ func main() {
 	for _, dir := range []string{userCoresDir, shmDir} {
 		err := os.MkdirAll(dir, 0755)
 		if err != nil {
-			log.Panic(err)
+			bLogFatal(err.Error(), l)
 		}
 	}
 
@@ -63,25 +64,25 @@ func main() {
 	}
 	installInfoJsonBytes, err := json.Marshal(installInfo)
 	if err != nil {
-		log.Panic(err)
+		bLogFatal(err.Error(), l)
 	}
 	installInfoFile, err := os.Create(bloobInfoPath)
 	if err != nil {
-		log.Panicf("Failed to create %v, maybe check permissions. %v", bloobInfoPath, err)
+		bLogFatal(fmt.Sprintf("Failed to create %v, maybe check permissions. %v", bloobInfoPath, err), l)
 	}
 	installInfoFile.Write(installInfoJsonBytes)
 	installInfoFile.Close()
 
 	//// Load Config
-	log.Println("Loading config")
+	bLog("Loading config", l)
 
 	bloobConfigRaw, err := os.ReadFile(bloobConfigPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			log.Println("You don't seem to have a config, so we're making a default one at ", bloobConfigPath)
+			bLog(fmt.Sprintf("You don't seem to have a config, so we're making a default one at %s", bloobConfigPath), l)
 			bloobConfigFile, err := os.Create(bloobConfigPath)
 			if err != nil {
-				log.Panic(err)
+				bLogFatal(err.Error(), l)
 			}
 			bloobConfigDefaultValues := map[string]interface{}{
 				"instance_name": "Default Name",
@@ -101,13 +102,13 @@ func main() {
 			}
 			bloobConfigDefaultJSON, err := json.Marshal(bloobConfigDefaultValues)
 			if err != nil {
-				log.Panic(err)
+				bLogFatal(err.Error(), l)
 			}
 			bloobConfigFile.Write(bloobConfigDefaultJSON)
 			bloobConfigFile.Close()
 			bloobConfigRaw = bloobConfigDefaultJSON
 		} else {
-			log.Fatal("Error while JSON decoding your config ", err)
+			bLogFatal(fmt.Sprintf("Error while JSON decoding your config: %s", err.Error()), l)
 		}
 	}
 	json.Unmarshal(bloobConfigRaw, &bloobConfig)
@@ -116,7 +117,7 @@ func main() {
 	// TODO: Just struct this and disallow unfilled fields when unmarshalling the JSON
 	for _, field := range []string{"instance_name", "uuid", "stt", "tts", "mqtt"} {
 		if _, ok := bloobConfig[field]; !ok {
-			log.Fatal("Your config is missing the ", field, " field")
+			bLogFatal(fmt.Sprintf("Your config is missing the %s field", field), l)
 		}
 	}
 
@@ -125,7 +126,7 @@ func main() {
 	{
 		tempMqttConfig, err := json.Marshal(bloobConfig["mqtt"].(map[string]interface{}))
 		if err != nil {
-			log.Panic("Issue with your MQTT config prevented it from being loaded: ", err)
+			bLogFatal(fmt.Sprintf("Issue with your MQTT config prevented it from being loaded: %s", err.Error()), l)
 		}
 		json.Unmarshal(tempMqttConfig, &mqttConfig)
 	}
@@ -135,7 +136,7 @@ func main() {
 	{
 		beginListeningAudioBytes, err := os.ReadFile(beginListeningAudioPath)
 		if err != nil {
-			log.Panicf("Failed to read listening audio file (%v): %v", beginListeningAudioPath, err)
+			bLogFatal(fmt.Sprintf("Failed to read listening audio file (%v): %v", beginListeningAudioPath, err), l)
 		}
 		beginListeningAudio = base64.StdEncoding.EncodeToString(beginListeningAudioBytes)
 	}
@@ -143,7 +144,7 @@ func main() {
 	{
 		stopListeningAudioBytes, err := os.ReadFile(stopListeningAudioPath)
 		if err != nil {
-			log.Panicf("Failed to read listening audio file (%v): %v", stopListeningAudioPath, err)
+			bLogFatal(fmt.Sprintf("Failed to read listening audio file (%v): %v", beginListeningAudioPath, err), l)
 		}
 		stopListeningAudio = base64.StdEncoding.EncodeToString(stopListeningAudioBytes)
 	}
@@ -151,7 +152,7 @@ func main() {
 	{
 		errorAudioBytes, err := os.ReadFile(errorAudioPath)
 		if err != nil {
-			log.Panicf("Failed to read listening audio file (%v): %v", errorAudioPath, err)
+			bLogFatal(fmt.Sprintf("Failed to read listening audio file (%v): %v", beginListeningAudioPath, err), l)
 		}
 		errorAudio = base64.StdEncoding.EncodeToString(errorAudioBytes)
 	}
@@ -159,29 +160,29 @@ func main() {
 	{
 		instantIntentAudioBytes, err := os.ReadFile(instantIntentAudioPath)
 		if err != nil {
-			log.Panicf("Failed to read listening audio file (%v): %v", instantIntentAudioPath, err)
+			bLogFatal(fmt.Sprintf("Failed to read listening audio file (%v): %v", beginListeningAudioPath, err), l)
 		}
 		instantIntentAudio = base64.StdEncoding.EncodeToString(instantIntentAudioBytes)
 	}
 
 	//// Set up MQTT
-	log.Println("Setting up MQTT")
+	bLog("Setting up MQTT", l)
 	broker := mqtt.NewClientOptions()
 	broker.AddBroker(fmt.Sprintf("tcp://%s:%v", mqttConfig.Host, mqttConfig.Port))
 
-	fmt.Printf("Broker at: tcp://%s:%v\n", mqttConfig.Host, mqttConfig.Port)
+	bLog(fmt.Sprintf("Broker at: tcp://%s:%v\n", mqttConfig.Host, mqttConfig.Port), l)
 
 	broker.SetClientID(fmt.Sprintf("%v - Orchestrator", bloobConfig["instance_name"]))
 
-	fmt.Printf("MQTT client name: %v - Orchestrator\n", bloobConfig["instance_name"])
+	bLog(fmt.Sprintf("MQTT client name: %v - Orchestrator\n", bloobConfig["instance_name"]), l)
 
 	broker.OnConnect = onConnect
 	if mqttConfig.Password != "" && mqttConfig.Username != "" {
 		broker.SetPassword(mqttConfig.Password)
 		broker.SetUsername(mqttConfig.Username)
-		log.Println("Using MQTT authenticated")
+		bLog("Using MQTT authenticated", l)
 	} else {
-		log.Println("Using MQTT unauthenticated")
+		bLog("Using MQTT unauthenticated", l)
 	}
 	client := mqtt.NewClient(broker)
 	//for loop to go here with a list of the topics that need subbing to.
@@ -197,15 +198,19 @@ func main() {
 	}
 
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		log.Fatal(token.Error())
+		bLogFatal(token.Error().Error(), l)
 	}
 	if token := client.SubscribeMultiple(subscribeMqttTopics, pipelineMessageHandler); token.Wait() && token.Error() != nil {
-		log.Fatal(token.Error())
+		bLogFatal(token.Error().Error(), l)
 	}
 
+	// bLog now has access to MQTT logging
+	l.client = client
+	l.uuid = bloobConfig["uuid"].(string)
+
 	//// Load Cores
-	log.Println("User Cores dir:", userCoresDir)
-	log.Println("Install Cores dir:", installCoresDir)
+	bLog(fmt.Sprintf("User Cores dir: %s", userCoresDir), l)
+	bLog(fmt.Sprintf("Install Cores dir: %s", installCoresDir), l)
 
 	var corePaths []string = scanForCores([]string{userCoresDir, installCoresDir, installUtilsDir})
 	var runningCores []Core
@@ -222,7 +227,7 @@ func main() {
 	}
 
 	if err != nil {
-		log.Panic("Failed to launch a core, check your environment (if it's a Python Core, do you have the right venv?)", err)
+		bLogFatal(fmt.Sprintf("Failed to launch a core, check your environment (if it's a Python Core, do you have the right venv?): %s", err.Error()), l)
 	}
 
 	// Publish Central Configs if they exist, or an empty object if not. Set a will that empties these configs on accidental disconnect.
@@ -243,10 +248,10 @@ func main() {
 			}
 			blankConfigJson, err := json.Marshal(blankConfig)
 			if err != nil {
-				log.Panic(err)
+				bLogFatal(err.Error(), l)
 			}
 			if token := client.Publish(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], core.Id), bloobQOS, true, blankConfigJson); token.Wait() && token.Error() != nil {
-				log.Fatal("Failed publishing Config", token.Error())
+				bLogFatal(fmt.Sprintf("Failed publishing Config %s", token.Error()), l)
 			}
 			broker.SetWill(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], core.Id), "", bloobQOS, true)
 		}
@@ -255,7 +260,7 @@ func main() {
 		if ok {
 			configToPublish, err = json.Marshal(value.(map[string]interface{}))
 			if err != nil {
-				log.Panicf("Failed to parse central config for core %v", core.Id)
+				bLogFatal(fmt.Sprintf("Failed to parse central config for core %v", core.Id), l)
 			}
 
 		} else {
@@ -270,7 +275,7 @@ func main() {
 		}
 
 		if token := client.Publish(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], core.Id), bloobQOS, true, configToPublish); token.Wait() && token.Error() != nil {
-			log.Fatal("Failed publishing Central Config", token.Error())
+			bLogFatal(fmt.Sprintf("Failed publishing Central Config: %s", token.Error()), l)
 		}
 		broker.SetWill(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], core.Id), "", bloobQOS, true)
 
@@ -280,17 +285,17 @@ func main() {
 		if slices.Contains(core.Roles, "collection_handler") {
 			coreCollections, err := core.getCollections()
 			if err != nil {
-				log.Panic(err)
+				bLogFatal(err.Error(), l)
 			}
-			log.Printf("%v has provided %d Collections", core.Id, len(coreCollections))
+			bLog(fmt.Sprintf("%v has provided %d Collections", core.Id, len(coreCollections)), l)
 			for _, collection := range coreCollections {
 				topicToPublish = "bloob/%s/collections/%s"
 				collectionToPublish, err := json.Marshal(collection)
 				if err != nil {
-					log.Panic(err)
+					bLogFatal(err.Error(), l)
 				}
 				if token := client.Publish(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], collection["id"].(string)), bloobQOS, true, collectionToPublish); token.Wait() && token.Error() != nil {
-					log.Fatal("Failed publishing Collection ", token.Error())
+					bLogFatal(fmt.Sprintf("Failed publishing Collection %s", token.Error()), l)
 				}
 				broker.SetWill(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], collection["id"].(string)), "", bloobQOS, true)
 				listOfCollections = append(listOfCollections, collection["id"].(string))
@@ -305,7 +310,7 @@ func main() {
 		"loaded_cores": listOfCores,
 	})
 	if token := client.Publish(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), bloobQOS, true, listOfCoresJson); token.Wait() && token.Error() != nil {
-		log.Fatal(token.Error())
+		bLogFatal(token.Error().Error(), l)
 	}
 	broker.SetWill(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), "", bloobQOS, true)
 
@@ -315,7 +320,7 @@ func main() {
 		"loaded_collections": listOfCollections,
 	})
 	if token := client.Publish(fmt.Sprintf("bloob/%s/collections/list", bloobConfig["uuid"]), bloobQOS, true, listOfCollectionsJson); token.Wait() && token.Error() != nil {
-		log.Fatal(token.Error())
+		bLogFatal(token.Error().Error(), l)
 	}
 	broker.SetWill(fmt.Sprintf("bloob/%s/collections/list", bloobConfig["uuid"]), "", bloobQOS, true)
 
@@ -329,13 +334,13 @@ func exitCleanup(runningCores []Core, listOfCollections []string, client mqtt.Cl
 	// Go through all Cores, publish blank central configs, and exit them
 	for _, runningCore := range runningCores {
 		// Clear central configs
-		log.Printf("Publishing a blank central config for %v", runningCore.Id)
+		bLog(fmt.Sprintf("Publishing a blank central config for %v", runningCore.Id), l)
 		if token := client.Publish(fmt.Sprintf("bloob/%s/cores/%s/central_config", bloobConfig["uuid"], runningCore.Id), bloobQOS, true, ""); token.Wait() && token.Error() != nil {
-			log.Fatal(token.Error())
+			bLogFatal(token.Error().Error(), l)
 		}
 
 		// Kill cores
-		log.Printf("Killing Core: %s (%s)", runningCore.Id, runningCore.Exec.Args[0])
+		bLog(fmt.Sprintf("Killing Core: %s (%s)", runningCore.Id, runningCore.Exec.Args[0]), l)
 		err := runningCore.Exec.Process.Kill()
 		if err != nil {
 			fmt.Println(err)
@@ -347,17 +352,17 @@ func exitCleanup(runningCores []Core, listOfCollections []string, client mqtt.Cl
 	for _, collectionId := range listOfCollections {
 		topicToPublish := "bloob/%s/collections/%s"
 		if token := client.Publish(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], collectionId), bloobQOS, true, ""); token.Wait() && token.Error() != nil {
-			log.Fatal(token.Error())
+			bLogFatal(token.Error().Error(), l)
 		}
 	}
 
 	// Clear list of Cores
 	if token := client.Publish(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), bloobQOS, true, ""); token.Wait() && token.Error() != nil {
-		log.Fatal(token.Error())
+		bLogFatal(token.Error().Error(), l)
 	}
 
 	// Clear list of Collections
 	if token := client.Publish(fmt.Sprintf("bloob/%s/collections/list", bloobConfig["uuid"]), bloobQOS, true, ""); token.Wait() && token.Error() != nil {
-		log.Fatal(token.Error())
+		bLogFatal(token.Error().Error(), l)
 	}
 }

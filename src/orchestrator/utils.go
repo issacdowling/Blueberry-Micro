@@ -8,6 +8,12 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
+type logData struct {
+	uuid   string
+	client mqtt.Client
+	name   string
+}
+
 const playAudioFileTopic string = "bloob/%s/audio_playback/play_file"
 const recordSpeechTopic string = "bloob/%s/audio_recorder/record_speech"
 const transcribeAudioTopic string = "bloob/%s/stt/transcribe"
@@ -22,7 +28,7 @@ func playAudioFile(audio string, uuid string, id string, client mqtt.Client) {
 	}
 	audioPlaybackJson, err := json.Marshal(audioPlaybackMessage)
 	if err != nil {
-		log.Panicln(err)
+		bLogFatal(err.Error(), l)
 
 	}
 
@@ -35,7 +41,7 @@ func startRecordingAudio(uuid string, id string, client mqtt.Client) {
 	}
 	audioRecordJson, err := json.Marshal(audioRecordMessage)
 	if err != nil {
-		log.Panic(err)
+		bLogFatal(err.Error(), l)
 	}
 	client.Publish(fmt.Sprintf(recordSpeechTopic, uuid), bloobQOS, false, audioRecordJson)
 }
@@ -47,7 +53,7 @@ func transcribeAudio(audio string, uuid string, id string, client mqtt.Client) {
 	}
 	audioTranscribeJson, err := json.Marshal(audioTranscribeMessage)
 	if err != nil {
-		log.Panicln(err)
+		bLogFatal(err.Error(), l)
 
 	}
 
@@ -61,7 +67,7 @@ func intentParseText(text string, uuid string, id string, client mqtt.Client) {
 	}
 	intentParseJson, err := json.Marshal(intentParseMessage)
 	if err != nil {
-		log.Panicln(err)
+		bLogFatal(err.Error(), l)
 
 	}
 	client.Publish(fmt.Sprintf(intentParseTopic, uuid), bloobQOS, false, intentParseJson)
@@ -76,7 +82,7 @@ func sendIntentToCore(intent string, text string, coreId string, uuid string, id
 	}
 	coreMessageJson, err := json.Marshal(coreMessage)
 	if err != nil {
-		log.Panic(err)
+		bLogFatal(err.Error(), l)
 	}
 	client.Publish(fmt.Sprintf(coreTopic, uuid, coreId), bloobQOS, false, coreMessageJson)
 }
@@ -88,7 +94,27 @@ func speakText(text string, uuid string, id string, client mqtt.Client) {
 	}
 	ttsMessageJson, err := json.Marshal(ttsMessage)
 	if err != nil {
-		log.Panic(err)
+		bLogFatal(err.Error(), l)
 	}
 	client.Publish(fmt.Sprintf(ttsTopic, uuid), bloobQOS, false, ttsMessageJson)
+}
+
+func bLog(text string, ld logData) {
+	logMessage := fmt.Sprintf("[%s] %s", ld.name, text)
+	if ld.client != nil && ld.uuid != "" {
+		ld.client.Publish(fmt.Sprintf("bloob/%s/logs", ld.uuid), bloobQOS, false, logMessage)
+	} else {
+		logMessage = fmt.Sprintf("[NO MQTT LOGS] %s", logMessage)
+	}
+
+	log.Print(logMessage)
+}
+
+func bLogFatal(text string, ld logData) {
+	logMessage := fmt.Sprintf("!FATAL! [%s] %s", ld.name, text)
+
+	if ld.client != nil {
+		ld.client.Publish(fmt.Sprintf("bloob/%s/logs", ld.uuid), bloobQOS, false, logMessage)
+	}
+	log.Fatal(logMessage)
 }
