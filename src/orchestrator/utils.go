@@ -14,12 +14,12 @@ type logData struct {
 	name   string
 }
 
-const playAudioFileTopic string = "bloob/%s/audio_playback/play_file"
-const recordSpeechTopic string = "bloob/%s/audio_recorder/record_speech"
-const transcribeAudioTopic string = "bloob/%s/stt/transcribe"
-const intentParseTopic string = "bloob/%s/intent_parser/run"
+const playAudioFileTopic string = "bloob/%s/cores/audio_playback_util/play_file"
+const recordSpeechTopic string = "bloob/%s/cores/audio_recorder_util/record_speech"
+const transcribeAudioTopic string = "bloob/%s/cores/stt_util/transcribe"
+const intentParseTopic string = "bloob/%s/cores/intent_parser_util/run"
+const ttsTopic string = "bloob/%s/cores/tts_util/run"
 const coreTopic string = "bloob/%s/cores/%s/run"
-const ttsTopic string = "bloob/%s/tts/run"
 
 func playAudioFile(audio string, uuid string, id string, client mqtt.Client) {
 	audioPlaybackMessage := map[string]string{
