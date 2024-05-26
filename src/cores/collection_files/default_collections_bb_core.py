@@ -8,7 +8,7 @@ arg_parser.add_argument('--port', default=1883)
 arg_parser.add_argument('--user')
 arg_parser.add_argument('--pass')
 arg_parser.add_argument('--device-id', default="test")
-arg_parser.add_argument('--identify', default="")
+
 arg_parser.add_argument('--collections', default="")
 arguments = arg_parser.parse_args()
 
@@ -196,11 +196,7 @@ any_number_collection = {
 }
 collections_list = [colour_collection, any_number_collection, boolean_collection, set_collection, get_collection]
 
-core_id = "basic_collections"
-
-if arguments.identify:
-  print(json.dumps({"id": core_id, "roles": ["collection_handler", "no_config"]}))
-  exit()
+core_id = "default_collections"
 
 if arguments.collections:
   print(json.dumps({"collections": collections_list}))

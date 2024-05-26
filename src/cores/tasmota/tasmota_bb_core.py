@@ -35,7 +35,7 @@ arg_parser.add_argument('--port', default=1883)
 arg_parser.add_argument('--user')
 arg_parser.add_argument('--pass', dest="password")
 arg_parser.add_argument('--device-id', default="test")
-arg_parser.add_argument('--identify', default="")
+
 arguments = arg_parser.parse_args()
 
 state_bool_keyphrases = ["on", "off"]
@@ -45,11 +45,6 @@ state_percentage_keyphrases = ["percent", "%", "percentage"]
 state_keyphrases = state_bool_keyphrases + state_brightness_keyphrases + state_percentage_keyphrases
 
 core_id = "tasmota"
-
-
-if arguments.identify:
-    print(json.dumps({"id": core_id, "roles": ["intent_handler"]}))
-    exit()
 
 all_device_names = []
 class TasmotaDevice:

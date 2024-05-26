@@ -36,17 +36,13 @@ arg_parser.add_argument('--port', default=1883)
 arg_parser.add_argument('--user')
 arg_parser.add_argument('--pass')
 arg_parser.add_argument('--device-id', default="test")
-arg_parser.add_argument('--identify', default="")
+
 
 arguments = arg_parser.parse_args()
 
 arguments.port = int(arguments.port)
 
 core_id = "intent_parser"
-if arguments.identify:
-  print(json.dumps({"id": core_id, "roles": ["util", "no_config"]}))
-  exit()
-
 
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
 
