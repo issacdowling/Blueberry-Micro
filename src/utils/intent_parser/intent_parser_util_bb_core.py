@@ -17,6 +17,8 @@ import os
 import paho.mqtt.subscribe as subscribe
 import paho.mqtt.publish as publish
 
+from time import sleep
+
 default_temp_path = pathlib.Path("/dev/shm/bloob")
 
 bloobinfo_path = default_temp_path.joinpath("bloobinfo.txt")
@@ -108,6 +110,10 @@ for intent in intents:
       instant_intent_words.append(wakeword)
 
 log(f"Loaded Intents: {intents}", log_data)
+
+
+# Until the Intent Parser is also Go, this is how we deal with async Collections, and ensure we've got them all
+sleep(3)
 
 loaded_collections = []
 # Get the list of collections and load them here.
@@ -270,4 +276,4 @@ while True:
   request_json =  json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/intent_parser_util/run", hostname=arguments.host, port=arguments.port).payload.decode())
   parsed_intent, parsed_core, text_out = parse(uncleaned_text_to_parse=request_json["text"], intents=intents)
   log(f"Outputting results, Core: {parsed_core}, Intent: {parsed_intent}", log_data)
-  publish.single(f"bloob/{arguments.device_id}/cores/intent_parser_util/finished", payload=json.dumps({"id": request_json["id"], "intent": parsed_intent, "core_id": parsed_core, "text": text_out}), hostname=arguments.host, port=arguments.port)
+  publish.single(f"bloob/{arguments.device_id}/cores/intent_parser_util/finished", payload=json.dumps({"id": request_json["id"], "intent": parsed_intent, "core_id": parsed_core, "text": text_out}), hostname=arguments.host, port=arguments.port, qos=2)

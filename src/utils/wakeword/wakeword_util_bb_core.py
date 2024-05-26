@@ -50,6 +50,22 @@ arguments.port = int(arguments.port)
 
 core_id = "wakeword_util"
 
+core_config = {
+  "metadata": {
+    "core_id": core_id,
+    "friendly_name": "TTS",
+    "link": "https://gitlab.com/issacdowling/blueberry-micro/-/tree/main/src/utils/tts",
+    "author": None,
+    "icon": None,
+    "description": "Speaks text",
+    "version": "0.1",
+    "license": "AGPLv3"
+  }
+}
+
+publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+
+
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
 log("Starting up...", log_data)
@@ -123,7 +139,7 @@ while True:
     ## Upon detection:
     if confidence >= 0.5:
 
-      publish.single(topic = f"bloob/{arguments.device_id}/cores/wakeword_util/detected", payload = json.dumps({"wakeword_id": model_name, "confidence": str(prediction[model_name])}), hostname = arguments.host, port = arguments.port)
+      publish.single(topic = f"bloob/{arguments.device_id}/cores/wakeword_util/detected", payload = json.dumps({"wakeword_id": model_name, "confidence": str(prediction[model_name])}), hostname = arguments.host, port = arguments.port, qos=2)
       log(f"Wakeword Detected: {model_name}, with confidence of {prediction[model_name]}", log_data)
       ### Feeds silence for "4 seconds" to OpenWakeWord so that it doesn't lead to repeat activations
       ### See for yourself: https://github.com/dscripka/openWakeWord/issues/37

@@ -2,6 +2,8 @@
 import json
 import argparse
 
+import signal
+
 import paho.mqtt.publish as publish
 
 arg_parser = argparse.ArgumentParser()
@@ -30,6 +32,17 @@ core_config = {
     "license": "AGPLv3"
   }
 }
+
+# Clears the published Collections and Config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
+def on_exit(*args):
+  log("Shutting Down...", log_data)
+  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/collections", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
+  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
+
+  exit()
+
+signal.signal(signal.SIGTERM, on_exit)
+signal.signal(signal.SIGINT, on_exit)
 
 publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
 
@@ -213,4 +226,4 @@ any_number_collection = {
 }
 collections_list = [colour_collection, any_number_collection, boolean_collection, set_collection, get_collection]
 
-publish.single(f"bloob/{arguments.device_id}/cores/{core_id}/collections")
+publish.single(f"bloob/{arguments.device_id}/cores/{core_id}/collections", json.dumps({"collections": collections_list}), 2, True)
