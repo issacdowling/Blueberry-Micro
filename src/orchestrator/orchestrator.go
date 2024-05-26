@@ -93,6 +93,9 @@ func main() {
 				"tts": map[string]interface{}{
 					"model": "en_US-lessac-high",
 				},
+				"orchestrator": map[string]interface{}{
+					"show_remote_logs": true,
+				},
 				"mqtt": map[string]interface{}{
 					"host":     "localhost",
 					"port":     "1883",
@@ -115,7 +118,7 @@ func main() {
 
 	// All necessary fields for the config can be added here, and the Orchestrator won't launch without them
 	// TODO: Just struct this and disallow unfilled fields when unmarshalling the JSON
-	for _, field := range []string{"instance_name", "uuid", "stt", "tts", "mqtt"} {
+	for _, field := range []string{"instance_name", "uuid", "stt", "tts", "orchestrator", "mqtt"} {
 		if _, ok := bloobConfig[field]; !ok {
 			bLogFatal(fmt.Sprintf("Your config is missing the %s field", field), l)
 		}
@@ -204,8 +207,10 @@ func main() {
 		bLogFatal(token.Error().Error(), l)
 	}
 
-	if token := client.Subscribe(fmt.Sprintf("bloob/%s/logs", bloobConfig["uuid"].(string)), bloobQOS, remoteLogDisplay); token.Wait() && token.Error() != nil {
-		bLogFatal(token.Error().Error(), l)
+	if bloobConfig["orchestrator"].(map[string]interface{})["show_remote_logs"].(bool) {
+		if token := client.Subscribe(fmt.Sprintf("bloob/%s/logs", bloobConfig["uuid"].(string)), bloobQOS, remoteLogDisplay); token.Wait() && token.Error() != nil {
+			bLogFatal(token.Error().Error(), l)
+		}
 	}
 
 	// bLog now has access to MQTT logging
@@ -228,10 +233,6 @@ func main() {
 		receivedCore.Exec.Start()
 		runningCores = append(runningCores, receivedCore)
 		bLog(fmt.Sprintf("Started %s", receivedCore.Id), l)
-	}
-
-	if err != nil {
-		bLogFatal(fmt.Sprintf("Failed to launch a core, check your environment (if it's a Python Core, do you have the right venv?): %s", err.Error()), l)
 	}
 
 	// Publish Central Configs if they exist, or an empty object if not. Set a will that empties these configs on accidental disconnect.

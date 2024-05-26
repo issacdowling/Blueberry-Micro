@@ -15,17 +15,21 @@
 
 ## STT (required)
 ```
-"stt_model": "Systran/faster-distil-whisper-small.en"
+"stt": {
+    "model": "Systran/faster-distil-whisper-small.en"
+},
 ```
 
-* `stt_model` is the chosen Whisper model to use for STT purposes, and should be able to be entered into the `faster-whisper` Python library
+* `model` is the chosen Whisper model to use for STT purposes, and should be able to be entered into the `faster-whisper` Python library
 
 ## TTS (required)
 ```
-"tts_model": "en_US-lessac-high"
+"tts": {
+    "model": "en_US-lessac-high"
+},
 ```
 
-* `tts_model` is the chosen Piper model to use for TTS purposes
+* `model` is the chosen Piper model to use for TTS purposes
 
 ## MQTT (required)
 ```
@@ -34,6 +38,15 @@
 
 * `host` and `port` are the hostname and port of your MQTT broker
 * `user` and `password` are the username and password to connect with
+
+## Orchestrator
+```
+"orchestrator": {
+    "show_remote_logs": true
+},
+```
+
+* `show_remote_logs` decides whether the Orchestrator's stdout should show all other bloob logs, as opposed to just its own.
 
 ## External Core IDs (optional)
 ```
