@@ -61,7 +61,7 @@ core_config = {
     "license": "AGPLv3"
   },
   "intents": [{
-    "intent_id" : "search_ddg",
+    "id" : "search_ddg",
     "core_id": core_id,
     "prefixes": ["search"]
   }]

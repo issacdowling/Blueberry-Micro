@@ -55,7 +55,7 @@ core_config = {
     "license": "AGPLv3"
   },
   "intents": [{
-    "intent_id" : "hello_greet",
+    "id" : "hello_greet",
     "keywords": [["hello", "hi"]],
     "core_id": core_id
   }]

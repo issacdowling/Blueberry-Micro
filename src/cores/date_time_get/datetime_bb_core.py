@@ -45,7 +45,7 @@ core_config = {
     "license": "AGPLv3"
   },
   "intents": [{
-    "intent_id" : "getDate",
+    "id" : "getDate",
     "keywords": [["day", "date", "time"]],
     "collections": [["get"]],
     "core_id": core_id

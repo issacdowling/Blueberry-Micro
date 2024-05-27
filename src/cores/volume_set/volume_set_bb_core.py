@@ -68,13 +68,13 @@ core_config = {
     }
   },
   "intents": [{
-    "intent_id" : "set_volume",
+    "id" : "set_volume",
     "keywords": [["volume", "loudness", "speaker", "speakers"]],
     "collections": [["set"], ["any_number"]],
     "core_id": core_id
   },
   {
-    "intent_id" : "increment_volume",
+    "id" : "increment_volume",
     "keywords": [increase_words + decrease_words, ["volume", "loudness", "speaker", "speakers"]],
     "collections": [["any_number"]],
     "core_id": core_id

@@ -59,7 +59,7 @@ core_config = {
     "license": "AGPLv3"
   },
   "intents": [{
-    "intent_id" : "getWeather",
+    "id" : "getWeather",
     "core_id": core_id,
     "keywords": [["weather", "hot", "cold", "temperature", "raining", "sun"]],
     "collections": [["get"]],

@@ -107,7 +107,7 @@ async def main():
             },
             "intents": [
                 {
-                    "intent_id": "controlTasmota",
+                    "id": "controlTasmota",
                     "keywords": [all_device_names, state_keyphrases],
                     "collections": [["set"]],
                     "core_id": core_id

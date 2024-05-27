@@ -61,7 +61,7 @@ core_config = {
     "license": "AGPLv3"
   },
   "intents": [{
-    "intent_id" : "calc",
+    "id" : "calc",
     "keywords": [add_words + minus_words + multiply_words + divide_words],
     "collections": [["get"], ["any_number"]],
     "core_id": core_id

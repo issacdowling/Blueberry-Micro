@@ -162,7 +162,7 @@ def parse(uncleaned_text_to_parse, intents):
       for wakeword in intent["wakewords"]:
         # Specifically use the UNCLEANED text_to_parse, so that special characters are preserved
         if wakeword == uncleaned_text_to_parse and wakeword in intent.get("wakewords"):
-          return intent["intent_id"], intent["core_id"], uncleaned_text_to_parse
+          return intent["id"], intent["core_id"], uncleaned_text_to_parse
 
 
     intent_votes = 0
@@ -197,7 +197,7 @@ def parse(uncleaned_text_to_parse, intents):
 
       if keywords_votes == number_of_sets_of_keywords: intent_votes += 1
 
-      log(f"{intent['intent_id']} - Keywords check votes: {keywords_votes}/{number_of_sets_of_keywords}, {found_keywords} found", log_data)
+      log(f"{intent['id']} - Keywords check votes: {keywords_votes}/{number_of_sets_of_keywords}, {found_keywords} found", log_data)
 
     if intent.get("collections") != None and intent.get("collections") != [] and intent.get("collections") != [[]]:
       collection_votes = 0
@@ -235,10 +235,10 @@ def parse(uncleaned_text_to_parse, intents):
         if something_in_this_set_has_passed: collection_votes += 1
 
       if collection_votes == number_of_sets_of_collections:
-        log(f"{intent['intent_id']} - Collections check votes: {True}, {collection_votes} of {number_of_sets_of_collections} needed collections passed", log_data)
+        log(f"{intent['id']} - Collections check votes: {True}, {collection_votes} of {number_of_sets_of_collections} needed collections passed", log_data)
         intent_votes += 1
       else:
-        log(f"{intent['intent_id']} - Collections check votes: {False}, only {collection_votes} of {number_of_sets_of_collections} necessary collections passed", log_data)
+        log(f"{intent['id']} - Collections check votes: {False}, only {collection_votes} of {number_of_sets_of_collections} necessary collections passed", log_data)
 
 
     if intent.get("prefixes") != None and intent.get("prefixes") != []:
@@ -250,9 +250,9 @@ def parse(uncleaned_text_to_parse, intents):
       
       if was_prefix_found:
         intent_votes += 1
-        log(f"{intent['intent_id']} - Prefix check vote passed: [{which_prefix_found}] found at the start of speech.", log_data)
+        log(f"{intent['id']} - Prefix check vote passed: [{which_prefix_found}] found at the start of speech.", log_data)
       else:
-        log(f"{intent['intent_id']} - Prefix check vote failed.", log_data)
+        log(f"{intent['id']} - Prefix check vote failed.", log_data)
 
 
     if intent.get("suffixes") != None and intent.get("suffixes") != []:
@@ -264,18 +264,18 @@ def parse(uncleaned_text_to_parse, intents):
       
       if was_suffix_found:
         intent_votes += 1
-        log(f"{intent['intent_id']} - Suffix check vote passed: [{which_suffix_found}] found at the end of speech.", log_data)
+        log(f"{intent['id']} - Suffix check vote passed: [{which_suffix_found}] found at the end of speech.", log_data)
       else:
-        log(f"{intent['intent_id']} - Suffix check vote failed.", log_data)
+        log(f"{intent['id']} - Suffix check vote failed.", log_data)
 
 
-    log(f"{intent_votes}/{needed_votes} votes for {intent['intent_id']}", log_data)
+    log(f"{intent_votes}/{needed_votes} votes for {intent['id']}", log_data)
     if intent_votes == needed_votes:
       intent_results.append(intent)
 
   log(f"Intent results length: {len(intent_results)}", log_data)
   if len(intent_results) == 1:
-    return intent_results[0]["intent_id"], intent_results[0]["core_id"], text_to_parse
+    return intent_results[0]["id"], intent_results[0]["core_id"], text_to_parse
   if len(intent_results) == 0:
     return None, None, None
 
