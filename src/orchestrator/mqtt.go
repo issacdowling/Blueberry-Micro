@@ -73,6 +73,7 @@ var collectionHandler mqtt.MessageHandler = func(client mqtt.Client, message mqt
 		if token := client.Publish(fmt.Sprintf(collectionTopic, bloobConfig["uuid"], id), bloobQOS, true, collectionToSendJSON); token.Wait() && token.Error() != nil {
 			bLogFatal(token.Error().Error(), l)
 		}
+		broker.SetWill(fmt.Sprintf(fmt.Sprintf(collectionTopic, bloobConfig["uuid"], id), bloobConfig["uuid"]), "", bloobQOS, true)
 
 	}
 
@@ -86,6 +87,7 @@ var collectionHandler mqtt.MessageHandler = func(client mqtt.Client, message mqt
 	if token := client.Publish(fmt.Sprintf(collectionTopic, bloobConfig["uuid"], "list"), bloobQOS, true, listCollectionsJson); token.Wait() && token.Error() != nil {
 		bLogFatal(token.Error().Error(), l)
 	}
+	broker.SetWill(fmt.Sprintf("bloob/%s/collections/list", bloobConfig["uuid"]), "", bloobQOS, true)
 
 }
 
@@ -136,7 +138,7 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 				sendIntentToCore(intentParserReceivedJson["intent"].(string), intentParserReceivedJson["text"].(string), intentParserReceivedJson["core_id"].(string), instanceUUID, intentParserReceivedJson["id"].(string), client)
 			} else {
 				bLog("No Intent Found in speech", l)
-				speakText("I'm sorry, I don't understand what you said", instanceUUID, id, client)
+				speakText("I'm sorry, I don't understand what you said", instanceUUID, intentParserReceivedJson["id"].(string), client)
 			}
 
 		}
