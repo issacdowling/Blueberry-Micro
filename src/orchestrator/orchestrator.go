@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -19,6 +20,7 @@ var instantIntentAudio string
 var bloobConfig map[string]interface{}
 
 var mqttConfig MqttConfig
+var broker *mqtt.ClientOptions
 
 var l logData = logData{name: "Orchestrator"}
 
@@ -172,7 +174,7 @@ func main() {
 
 	//// Set up MQTT
 	bLog("Setting up MQTT", l)
-	broker := mqtt.NewClientOptions()
+	broker = mqtt.NewClientOptions()
 	broker.AddBroker(fmt.Sprintf("tcp://%s:%v", mqttConfig.Host, mqttConfig.Port))
 
 	bLog(fmt.Sprintf("Broker at: tcp://%s:%v\n", mqttConfig.Host, mqttConfig.Port), l)
@@ -274,8 +276,6 @@ func main() {
 
 	}
 
-	// Get Collections
-
 	// Publish a list of all running Cores
 	var listOfCoresJson []byte
 	listOfCoresJson, _ = json.Marshal(map[string]interface{}{
@@ -286,18 +286,8 @@ func main() {
 	}
 	broker.SetWill(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), "", bloobQOS, true)
 
-	// Publish a list of all Collections
-	var listOfCollectionsJson []byte
-	listOfCollectionsJson, _ = json.Marshal(map[string]interface{}{
-		"loaded_collections": listOfCollections,
-	})
-	if token := client.Publish(fmt.Sprintf("bloob/%s/collections/list", bloobConfig["uuid"]), bloobQOS, true, listOfCollectionsJson); token.Wait() && token.Error() != nil {
-		bLogFatal(token.Error().Error(), l)
-	}
-	broker.SetWill(fmt.Sprintf("bloob/%s/collections/list", bloobConfig["uuid"]), "", bloobQOS, true)
-
 	// For now, we'll just launch everything, wait a few seconds, then kill it
-	time.Sleep(20 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	exitCleanup(runningCores, listOfCollections, client)
 }
@@ -314,7 +304,7 @@ func exitCleanup(runningCores []Core, listOfCollections []string, client mqtt.Cl
 		// Kill local cores (not external ones, as they have a nil Exec field)
 		if runningCore.Exec != nil {
 			bLog(fmt.Sprintf("Killing Core: %s (%s)", runningCore.Id, runningCore.Exec.Args[0]), l)
-			err := runningCore.Exec.Process.Kill()
+			err := runningCore.Exec.Process.Signal(syscall.SIGINT)
 			if err != nil {
 				bLogFatal(err.Error(), l)
 			}
