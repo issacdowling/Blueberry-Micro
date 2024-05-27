@@ -77,7 +77,7 @@ core_config = {
     }
   },
   "intents": [{
-    "intent_id" : "setWLED",
+    "id" : "setWLED",
     "core_id": core_id,
     "keywords": [all_device_names],
     "collections": [["set"], ["boolean", "colours", "any_number"]]
@@ -104,7 +104,7 @@ core_config = {
 
 *But what's an Intent?*
 
-* `intent_id` is like `core_id` but for your intent
+* `id` is like `core_id` but for your intent
 * `core_id` is the `core_id` of the Core that's registering this intent, as it's how we know who to send the info to once we've parsed it.
 * `keywords` must be a two-dimensional list; there's a first list which wraps your lists of keywords, and an arbitrary number of lists within. Each list within will be checked, and must contain at least one match. For example, `[["test"]]` will be matched by the intent parser if `"test"` is in your speech. `[["test", "hi"]]` will be matched if EITHER `"test"` or `"hi"` is in your speech. `[["test"], ["hi"]]` will be matched if `"test"` AND `"hi"` are in your speech. Everything within each list should just be a string of alphanumeric characters (I filter the input, and any special characters from the STT are stripped), and one that you expect that the user would say to call your Core. Adding common false positives (like "dolite" for "door light", in my case") may help.
 * `collections` has a very similar format to `keywords`, however the strings are referencing the name of Collections. Otherwise, the checking logic is identical, so you can learn more about this in the Collections section.
