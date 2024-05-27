@@ -90,6 +90,16 @@ log("Starting up...", log_data)
 
 publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
 
+# Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
+import signal
+def on_exit(*args):
+  log("Shutting Down...", log_data)
+  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
+  exit()
+
+signal.signal(signal.SIGTERM, on_exit)
+signal.signal(signal.SIGINT, on_exit)
+
 ## Get device configs from central config, instantiate
 log("Getting Centralised Config from Orchestrator", log_data)
 central_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())

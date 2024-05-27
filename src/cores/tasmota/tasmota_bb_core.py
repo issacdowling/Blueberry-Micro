@@ -70,6 +70,16 @@ class TasmotaDevice:
 
 loaded_tasmota_devices = []
 
+# Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
+import signal
+def on_exit(*args):
+  log("Shutting Down...", log_data)
+  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
+  exit()
+
+signal.signal(signal.SIGTERM, on_exit)
+signal.signal(signal.SIGINT, on_exit)
+
 # connect to the broker
 async def main():
     async with aiomqtt.Client(hostname=arguments.host, port=int(arguments.port), username=arguments.user, password=arguments.password) as client:
@@ -106,6 +116,8 @@ async def main():
         }
 
         await client.publish(f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, qos=2)
+
+        
 
         
         # handle messages
