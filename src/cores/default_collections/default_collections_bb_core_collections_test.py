@@ -158,65 +158,42 @@ colour_collection = {
 }
 
 boolean_collection = {
-    "id": "boolean",
-  "keywords": [
-    "on",
-    "true",
-    "yes",
-    "agreed",
-    "agree",
-    "sure",
-    "alright",
-    "off",
-    "false",
-    "no",
-    "disagreed",
-    "disagree",
-    "nope",
-    "dont"
-  ],
-  "substitute": None,
-  "variables": {
-    "on": True,
-    "true": True,
-    "yes": True,
-    "agreed": True,
-    "agree": True,
-    "sure": True,
-    "alright": True,
-    "off": False,
-    "false": False,
-    "no": False,
-    "disagreed": False,
-    "disagree": False,
-    "nope": False,
-    "dont": False
+  "id": "boolean",
+  "keywords": {
+    "on": "true",
+    "true": "true",
+    "yes": "true",
+    "agreed": "true",
+    "agree": "true",
+    "sure": "true",
+    "alright": "true",
+    "off": "false",
+    "false": "false",
+    "no": "false",
+    "disagreed": "false",
+    "disagree": "false",
+    "nope": "false",
+    "dont": "false"
   }
 }
 
 set_collection = {
-    "id": "set",
-  "keywords": [
-    "set",
-    "turn",
-    "make"
-  ],
-  "substitute": None,
-  "variables": {
+  "id": "set",
+  "keywords": {
+    "set": null,
+    "turn": null,
+    "make": null,
   }
 }
 
 get_collection = {
-    "id": "get",
-  "keywords": [
-    "get",
-    "what",
-    "whats",
-    "is",
-    "tell me"
-  ],
-  "substitute": None,
-  "variables": {
+  "id": "get",
+  "keywords": {
+    "get": "",
+    "what": "",
+    "whats": "",
+    "is": "",
+    "tell me": ""
   }
 }
 
