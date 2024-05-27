@@ -88,7 +88,7 @@ var collectionHandler mqtt.MessageHandler = func(client mqtt.Client, message mqt
 var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
 	var instanceUUID string = bloobConfig["uuid"].(string)
 
-	if strings.Contains(message.Topic(), "wakeword_util/detected") {
+	if strings.Contains(message.Topic(), "wakeword_util/finished") {
 		json.Unmarshal(message.Payload(), &wakewordReceivedJson)
 		bLog(fmt.Sprintf("Wakeword Received - %v - recording audio", wakewordReceivedJson["wakeword_id"].(string)), l)
 		playAudioFile(beginListeningAudio, instanceUUID, id, client)

@@ -193,13 +193,7 @@ func main() {
 	//for loop to go here with a list of the topics that need subbing to.
 	// Maybe better than the subscribemultiple
 	subscribeMqttTopics := map[string]byte{
-		fmt.Sprintf("bloob/%s/cores/wakeword_util/detected", bloobConfig["uuid"]):       bloobQOS,
-		fmt.Sprintf("bloob/%s/cores/audio_playback_util/finished", bloobConfig["uuid"]): bloobQOS,
-		fmt.Sprintf("bloob/%s/cores/audio_recorder_util/finished", bloobConfig["uuid"]): bloobQOS,
-		fmt.Sprintf("bloob/%s/cores/stt_util/finished", bloobConfig["uuid"]):            bloobQOS,
-		fmt.Sprintf("bloob/%s/cores/tts_util/finished", bloobConfig["uuid"]):            bloobQOS,
-		fmt.Sprintf("bloob/%s/cores/intent_parser_util/finished", bloobConfig["uuid"]):  bloobQOS,
-		fmt.Sprintf("bloob/%s/cores/+/finished", bloobConfig["uuid"]):                   bloobQOS,
+		fmt.Sprintf("bloob/%s/cores/+/finished", bloobConfig["uuid"]): bloobQOS,
 	}
 
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
@@ -303,7 +297,7 @@ func main() {
 	broker.SetWill(fmt.Sprintf("bloob/%s/collections/list", bloobConfig["uuid"]), "", bloobQOS, true)
 
 	// For now, we'll just launch everything, wait a few seconds, then kill it
-	time.Sleep(35 * time.Second)
+	time.Sleep(20 * time.Second)
 
 	exitCleanup(runningCores, listOfCollections, client)
 }
