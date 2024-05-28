@@ -24,9 +24,9 @@ func keyphraseCheck(text string, intent Intent) (bool, string) {
 	}
 
 	if setsPassed == setsNeeded {
-		return true, fmt.Sprintf("%s's keyphrase checks passed: %d/%d - %v", intent.Id, setsPassed, setsNeeded, allKeyphraseMatches)
+		return true, fmt.Sprintf("%s's keyphrase checks passed: %d/%d - \"%v\"", intent.Id, setsPassed, setsNeeded, allKeyphraseMatches)
 	} else {
-		return false, fmt.Sprintf("%s's keyphrase checks failed: %d/%d - %v", intent.Id, setsPassed, setsNeeded, allKeyphraseMatches)
+		return false, fmt.Sprintf("%s's keyphrase checks failed: %d/%d - \"%v\"", intent.Id, setsPassed, setsNeeded, allKeyphraseMatches)
 	}
 
 }
@@ -37,16 +37,16 @@ func prefixCheck(text string, intent Intent) (bool, string) {
 		if len(splitPrefix) == 1 {
 			// If the single-word checked prefix is the first word
 			if prefix == strings.Split(text, " ")[0] {
-				return true, fmt.Sprintf("Prefix %v found", prefix)
+				return true, fmt.Sprintf("Prefix \"%v\" found", prefix)
 			}
 		} else {
 			if strings.HasPrefix(text, prefix) {
-				return true, fmt.Sprintf("Prefix %v found", prefix)
+				return true, fmt.Sprintf("Prefix \"%v\" found", prefix)
 			}
 		}
 
 	}
-	return false, fmt.Sprintf("Prefix not found from %v", intent.Prefixes)
+	return false, fmt.Sprintf("Prefix not found from \"%v\"", intent.Prefixes)
 }
 
 func suffixCheck(text string, intent Intent) (bool, string) {
@@ -56,11 +56,11 @@ func suffixCheck(text string, intent Intent) (bool, string) {
 		if len(splitSuffix) == 1 {
 			// If the single-word checked prefix is the first word
 			if suffix == splitText[len(splitText)-1] {
-				return true, fmt.Sprintf("Suffix %v found", suffix)
+				return true, fmt.Sprintf("Suffix \"%v\" found", suffix)
 			}
 		} else {
 			if strings.HasPrefix(text, suffix) {
-				return true, fmt.Sprintf("Suffix %v found", suffix)
+				return true, fmt.Sprintf("Suffix \"%v\" found", suffix)
 			}
 		}
 
