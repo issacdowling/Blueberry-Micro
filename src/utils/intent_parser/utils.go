@@ -1,25 +1,28 @@
 package main
 
-import "strings"
+import (
+	"strings"
+)
 
-// The point of this function is to make it much faster to replace things in a more relevant way,
-// with whole-word matches for single-word checks, and regular replaces for multi-word strings.
-func bReplace(text string, oldText string, newText string) string {
-	if newText != "" {
-		// If the keyphrase is a single word, we look for whole word matches ("go" won't match within "golf")
-		// If multiple words, we just replace all instances of oldText with newText
-		if len(strings.Split(oldText, " ")) == 1 {
-
-			textWords := strings.Split(text, " ")
-			for index, word := range textWords {
-				if word == oldText {
-					textWords[index] = newText
+func bTextMatches(text string, checks []string) map[int]string {
+	matches := make(map[int]string)
+	for _, check := range checks {
+		// If the check is one word, check for whole-word matches, multi-word gets regular .Contains
+		if len(strings.Split(check, " ")) == 1 {
+			// Replace matches & for loop so indices preserved for multiple checks, catches multiple of same word
+			for _, word := range strings.Split(text, " ") {
+				if word == check {
+					matches[strings.Index(text, check)] = check
+					text = strings.Replace(text, check, strings.Repeat("_", len(check)), 1)
 				}
 			}
-			text = strings.Join(textWords, " ")
 		} else {
-			text = strings.Replace(text, oldText, newText, -1)
+			for strings.Contains(text, check) {
+				matches[strings.Index(text, check)] = check
+				text = strings.Replace(text, check, strings.Repeat("_", len(check)), 1)
+			}
 		}
 	}
-	return text
+
+	return matches
 }

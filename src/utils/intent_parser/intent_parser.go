@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -12,24 +13,12 @@ type Intent struct {
 	Id            string
 	CoreId        string
 	Keyphrases    []map[string]string
-	CollectionIds [][]string `json:"collection_ids"`
+	CollectionIds [][]string `json:"collections"`
 	Prefixes      []string
 	Suffixes      []string
 }
 
 type Collection struct {
-}
-
-type Check struct {
-	Id  string
-	Run func(string, Intent)
-}
-
-var checks []Check = []Check{
-	{Id: "keyphrases", Run: keyphraseCheck},
-	{Id: "prefixes", Run: prefixCheck},
-	{Id: "suffixes", Run: suffixCheck},
-	{Id: "collections", Run: collectionCheck},
 }
 
 var intents []Intent
@@ -43,7 +32,7 @@ func main() {
 		"id": "setWLED",
 		"keyphrases": [{"hello there": "hi", "hey": ""}, {"time": "1", "times": "2"}],
 		"core_id": "wled",
-		"collection_ids": [["colours", "boolean"], ["set"]],
+		"collections": [["colours", "boolean"], ["set"]],
 		"prefixes": ["ask wled to", "do"],
 		"suffixes": ["thanks", "or else"]
 	}	
@@ -56,7 +45,9 @@ func main() {
 	}
 
 	fmt.Println(testDataJson)
-	fmt.Println(postProcessText(preCleanText("Good evening, hey, hello there, time times"), testDataJson))
+
+	fmt.Println(parseIntent(preCleanText("ask wled to hello there, time, thanks"), []Intent{testDataJson}))
+
 	os.Exit(0)
 	//////////////
 
@@ -83,27 +74,53 @@ func main() {
 	fmt.Println(core_config, mqttHost, mqttPort)
 }
 
-func parseIntent(text string) (Intent, string) {
+func parseIntent(text string, intents []Intent) ([]Intent, string) {
+	var potentialIntents []Intent
 	for _, intent := range intents {
+		intentPass := true
+		// This should eventually be a for loop that adapts to any future checks...
+		// it's not that yet.
+		if intent.Keyphrases != nil {
+			checkPass, log := keyphraseCheck(text, intent)
+			if !checkPass {
+				intentPass = false
+			}
+			fmt.Println(log)
+		}
 
-		for _, check := range checks {
-			check.Run(text, intent)
+		if intent.Prefixes != nil {
+			checkPass, log := prefixCheck(text, intent)
+			if !checkPass {
+				intentPass = false
+			}
+			fmt.Println(log)
+		}
+
+		if intent.Suffixes != nil {
+			checkPass, log := suffixCheck(text, intent)
+			if !checkPass {
+				intentPass = false
+			}
+			fmt.Println(log)
+		}
+
+		// if intent.Keyphrases != nil {
+		// 	checkPass, _ := keyphraseCheck(text, intent)
+		// 	if !checkPass {
+		// 		intentPass = false
+		// 	}
+		// }
+
+		if intentPass {
+			potentialIntents = append(potentialIntents, intent)
 		}
 
 	}
 
-	return Intent{}, ""
+	return potentialIntents, ""
 }
 
 func postProcessText(text string, intent Intent) string {
-
-	// For all keyphrases, replace with their substitute values if not empty
-	for _, keyphraseSet := range intent.Keyphrases {
-		for keyphrase, newPhrase := range keyphraseSet {
-			text = bReplace(text, keyphrase, newPhrase)
-
-		}
-	}
 
 	// Do the same for keyphrases in Collections eventually
 
@@ -127,6 +144,9 @@ func preCleanText(text string) string {
 	for original, replacement := range replaceValues {
 		text = strings.Replace(text, original, replacement, -1)
 	}
+
+	// Remove any non-replaced special characters
+	text = regexp.MustCompile(`[^a-zA-Z0-9 ]+`).ReplaceAllString(text, "")
 
 	return text
 }
