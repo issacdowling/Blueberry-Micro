@@ -207,10 +207,6 @@ func main() {
 		bLogFatal(token.Error().Error(), l)
 	}
 
-	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/+/collections", bloobConfig["uuid"]), bloobQOS, collectionHandler); token.Wait() && token.Error() != nil {
-		bLogFatal(token.Error().Error(), l)
-	}
-
 	if bloobConfig["orchestrator"].(map[string]interface{})["show_remote_logs"].(bool) {
 		if token := client.Subscribe(fmt.Sprintf("bloob/%s/logs", bloobConfig["uuid"].(string)), bloobQOS, remoteLogDisplay); token.Wait() && token.Error() != nil {
 			bLogFatal(token.Error().Error(), l)
