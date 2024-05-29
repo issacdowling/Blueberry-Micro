@@ -18,7 +18,7 @@ type Intent struct {
 	Id                 string
 	CoreId             string
 	AdvancedKeyphrases []map[string]string `json:"adv_keyphrases"`
-	Keyphrases         []string
+	Keyphrases         [][]string
 	Prefixes           []string
 	Suffixes           []string
 	Variables          []map[string]interface{}

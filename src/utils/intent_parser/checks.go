@@ -12,25 +12,45 @@ func keyphraseCheck(text string, intent Intent) (bool, string) {
 	var setsNeeded int = 0
 
 	allKeyphraseMatches := make(map[int]string)
-	for _, keyphraseSet := range intent.AdvancedKeyphrases {
-		setsNeeded++
 
-		// Take the substitute words (or the original if substitute blank) and create a slice of them
-		var keyphrasesToCheck []string
-		for keyphrase, newphrase := range keyphraseSet {
-			if newphrase != "" {
-				keyphrasesToCheck = append(keyphrasesToCheck, newphrase)
-			} else {
-				keyphrasesToCheck = append(keyphrasesToCheck, keyphrase)
+	// This is for keyphrases that support substitution
+	if intent.AdvancedKeyphrases != nil {
+		for _, keyphraseSet := range intent.AdvancedKeyphrases {
+			setsNeeded++
+
+			// Take the substitute words (or the original if substitute blank) and create a slice of them
+			var keyphrasesToCheck []string
+			for keyphrase, newphrase := range keyphraseSet {
+				if newphrase != "" {
+					keyphrasesToCheck = append(keyphrasesToCheck, newphrase)
+				} else {
+					keyphrasesToCheck = append(keyphrasesToCheck, keyphrase)
+				}
+
 			}
 
+			// Check that slice, save results.
+			setKeyphraseMatches := bTextMatches(text, keyphrasesToCheck)
+			if len(setKeyphraseMatches) != 0 {
+				setsPassed++
+				maps.Copy(allKeyphraseMatches, setKeyphraseMatches)
+			}
 		}
+	}
 
-		// Check that slice, save results.
-		setKeyphraseMatches := bTextMatches(text, keyphrasesToCheck)
-		if len(setKeyphraseMatches) != 0 {
-			setsPassed++
-			maps.Copy(allKeyphraseMatches, setKeyphraseMatches)
+	if intent.Keyphrases != nil {
+		for _, keyphraseSet := range intent.Keyphrases {
+			setsNeeded++
+
+			var keyphrasesToCheck []string
+			keyphrasesToCheck = append(keyphrasesToCheck, keyphraseSet...)
+
+			// Check that slice, save results.
+			setKeyphraseMatches := bTextMatches(text, keyphrasesToCheck)
+			if len(setKeyphraseMatches) != 0 {
+				setsPassed++
+				maps.Copy(allKeyphraseMatches, setKeyphraseMatches)
+			}
 		}
 	}
 

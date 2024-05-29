@@ -30,7 +30,8 @@ func main() {
 	testData := []byte(`
 	{
 		"id": "setWLED",
-		"adv_keyphrases": [{"hello there": "hi", "hey": ""}, {"time": "1", "times": "2"}, {"$get": ""}],
+		"keyphrases": [["hello there", "hi", "hey"], ["time", "timer"]],
+		"adv_keyphrases": [{"$get": ""}],
 		"core_id": "wled",
 		"prefixes": ["ask wled to", "do"],
 		"suffixes": ["thanks", "or else"]
@@ -210,29 +211,69 @@ func collectionKeyphraseUnwrap(intent *Intent) {
 		// check that this Collection exists, then go through it and add each of its keyphrases and substitute
 		// values (keys and values) to the keyphraseSet of the Intent. Each Collection essentially just has one
 		// keyphraseset.
-		for _, keyphraseSet := range intent.AdvancedKeyphrases {
-			for keyphrase, newphrase := range keyphraseSet {
-				if keyphrase[0] == '$' {
-					// keyphrase[1:] is used to remove the $ and just get the Collection name
-					if collection, ok := collections[keyphrase[1:]]; ok {
-						bLog(fmt.Sprintf("Inlining the Collection \"%s\" with the intent \"%s\"", keyphrase[1:], intent.Id), l)
-						// If the newphrase next to the Collection is blank, set the newphrases to their original values in the Collection
-						// If it's not blank, set the newphrases from the Collection equal to the original newphrase.
-						if newphrase == "" {
-							for collectionKeyphrase, collectionNewphrase := range collection.AdvancedKeyphrases {
-								keyphraseSet[collectionKeyphrase] = collectionNewphrase
+		if intent.AdvancedKeyphrases != nil {
+			for _, keyphraseSet := range intent.AdvancedKeyphrases {
+				for keyphrase, newphrase := range keyphraseSet {
+					if keyphrase[0] == '$' {
+						// keyphrase[1:] is used to remove the $ and just get the Collection name
+						if collection, ok := collections[keyphrase[1:]]; ok {
+							bLog(fmt.Sprintf("Inlining the Collection \"%s\" with the intent \"%s\"", keyphrase[1:], intent.Id), l)
+							// If the newphrase next to the Collection is blank, set the newphrases to their original values in the Collection
+							// If it's not blank, set the newphrases from the Collection equal to the original newphrase.
+
+							if collection.AdvancedKeyphrases != nil {
+								if newphrase == "" {
+									for collectionKeyphrase, collectionNewphrase := range collection.AdvancedKeyphrases {
+										keyphraseSet[collectionKeyphrase] = collectionNewphrase
+									}
+								} else {
+									for collectionKeyphrase := range collection.AdvancedKeyphrases {
+										keyphraseSet[collectionKeyphrase] = newphrase
+									}
+								}
 							}
+
+							if collection.Keyphrases != nil {
+								for _, keyphrase := range collection.Keyphrases {
+									keyphraseSet[keyphrase] = keyphrase
+								}
+							}
+
+							// Deletes the Collection name from the Intent's keywords
+							delete(keyphraseSet, keyphrase)
+
 						} else {
-							for collectionKeyphrase := range collection.AdvancedKeyphrases {
-								keyphraseSet[collectionKeyphrase] = newphrase
-							}
+							bLog(fmt.Sprintf("The Collection \"%s\" doesn't exist, but was called for by \"%s\"", keyphrase[1:], intent.Id), l)
 						}
+					}
+				}
+			}
+		}
 
-						// Deletes the Collection name from the Intent's keywords
-						delete(keyphraseSet, keyphrase)
+		if intent.Keyphrases != nil {
+			for _, keyphraseSet := range intent.Keyphrases {
+				for _, keyphrase := range keyphraseSet {
+					if keyphrase[0] == '$' {
+						if collection, ok := collections[keyphrase[1:]]; ok {
+							bLog(fmt.Sprintf("Inlining the Collection \"%s\" with the intent \"%s\"", keyphrase[1:], intent.Id), l)
 
-					} else {
-						bLog(fmt.Sprintf("The Collection \"%s\" doesn't exist, but was called for by \"%s\"", keyphrase[1:], intent.Id), l)
+							if collection.Keyphrases != nil {
+								keyphraseSet = append(keyphraseSet, collection.Keyphrases...)
+							}
+
+							if collection.AdvancedKeyphrases != nil {
+								for key, new := range collection.AdvancedKeyphrases {
+									if new == "" {
+										keyphraseSet = append(keyphraseSet, key)
+									} else {
+										keyphraseSet = append(keyphraseSet, new)
+									}
+								}
+							}
+
+						} else {
+							bLog(fmt.Sprintf("The Collection \"%s\" doesn't exist, but was called for by \"%s\"", keyphrase[1:], intent.Id), l)
+						}
 					}
 				}
 			}
