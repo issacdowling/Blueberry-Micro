@@ -12,7 +12,7 @@ func keyphraseCheck(text string, intent Intent) (bool, string) {
 	var setsNeeded int = 0
 
 	allKeyphraseMatches := make(map[int]string)
-	for _, keyphraseSet := range intent.Keyphrases {
+	for _, keyphraseSet := range intent.AdvancedKeyphrases {
 		setsNeeded++
 
 		// Take the substitute words (or the original if substitute blank) and create a slice of them

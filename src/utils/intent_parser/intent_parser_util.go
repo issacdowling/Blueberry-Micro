@@ -30,7 +30,7 @@ func main() {
 	testData := []byte(`
 	{
 		"id": "setWLED",
-		"keyphrases": [{"hello there": "hi", "hey": ""}, {"time": "1", "times": "2"}, {"$get": ""}],
+		"adv_keyphrases": [{"hello there": "hi", "hey": ""}, {"time": "1", "times": "2"}, {"$get": ""}],
 		"core_id": "wled",
 		"prefixes": ["ask wled to", "do"],
 		"suffixes": ["thanks", "or else"]
@@ -54,10 +54,11 @@ func main() {
 	mqttPort := *flag.Int("port", 1883, "the hostname/IP of the MQTT broker")
 	mqttUser := *flag.String("user", "", "the hostname/IP of the MQTT broker")
 	mqttPass := *flag.String("pass", "", "the hostname/IP of the MQTT broker")
-	deviceId := *flag.String("device-id", "test", "the hostname/IP of the MQTT broker")
+	deviceId = *flag.String("device-id", "test", "the hostname/IP of the MQTT broker")
 	flag.Parse()
 
-	l = logData{uuid: deviceId, name: friendlyName}
+	l.uuid = deviceId
+	l.name = friendlyName
 
 	//// Set up MQTT
 	bLog("Setting up MQTT", l)
@@ -80,6 +81,8 @@ func main() {
 	}
 	client := mqtt.NewClient(broker)
 
+	l.client = client
+
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		bLogFatal(token.Error().Error(), l)
 	}
@@ -90,7 +93,7 @@ func main() {
 		bLogFatal(token.Error().Error(), l)
 	}
 
-	coreId := "intent_parser"
+	coreId := "intent_parser_util"
 
 	//// Publish Config
 	coreConfig := map[string]map[string]interface{}{
@@ -130,7 +133,7 @@ func parseIntent(text string) ([]Intent, string) {
 
 		// This should eventually be a for loop that adapts to any future checks...
 		// it's not that yet.
-		if intent.Keyphrases != nil {
+		if intent.AdvancedKeyphrases != nil {
 			checkPass, checkLog := keyphraseCheck(tempText, intent)
 			if !checkPass {
 				intentPass = false
@@ -164,8 +167,8 @@ func parseIntent(text string) ([]Intent, string) {
 }
 
 func preProcessText(text string, intent Intent) string {
-	if intent.Keyphrases != nil {
-		for _, setOfKeyphrases := range intent.Keyphrases {
+	if intent.AdvancedKeyphrases != nil {
+		for _, setOfKeyphrases := range intent.AdvancedKeyphrases {
 			for keyphrase, newphrase := range setOfKeyphrases {
 				if newphrase != "" {
 					text, _ = bTextReplace(text, keyphrase, newphrase)
@@ -202,12 +205,12 @@ func preCleanText(text string) string {
 // intent needs to be a pointer because collectionUnwrap will modify the Intent
 func collectionKeyphraseUnwrap(intent *Intent) {
 
-	if intent.Keyphrases != nil {
+	if intent.AdvancedKeyphrases != nil {
 		// For each set of keyphrases, for each keyphrase, if it's a Collection ($),
 		// check that this Collection exists, then go through it and add each of its keyphrases and substitute
 		// values (keys and values) to the keyphraseSet of the Intent. Each Collection essentially just has one
 		// keyphraseset.
-		for _, keyphraseSet := range intent.Keyphrases {
+		for _, keyphraseSet := range intent.AdvancedKeyphrases {
 			for keyphrase, newphrase := range keyphraseSet {
 				if keyphrase[0] == '$' {
 					// keyphrase[1:] is used to remove the $ and just get the Collection name
@@ -216,11 +219,11 @@ func collectionKeyphraseUnwrap(intent *Intent) {
 						// If the newphrase next to the Collection is blank, set the newphrases to their original values in the Collection
 						// If it's not blank, set the newphrases from the Collection equal to the original newphrase.
 						if newphrase == "" {
-							for collectionKeyphrase, collectionNewphrase := range collection.Keyphrases {
+							for collectionKeyphrase, collectionNewphrase := range collection.AdvancedKeyphrases {
 								keyphraseSet[collectionKeyphrase] = collectionNewphrase
 							}
 						} else {
-							for collectionKeyphrase := range collection.Keyphrases {
+							for collectionKeyphrase := range collection.AdvancedKeyphrases {
 								keyphraseSet[collectionKeyphrase] = newphrase
 							}
 						}

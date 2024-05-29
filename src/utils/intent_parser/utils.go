@@ -15,18 +15,20 @@ type logData struct {
 }
 
 type Intent struct {
-	Id         string
-	CoreId     string
-	Keyphrases []map[string]string
-	Prefixes   []string
-	Suffixes   []string
-	Variables  []map[string]interface{}
+	Id                 string
+	CoreId             string
+	AdvancedKeyphrases []map[string]string `json:"adv_keyphrases"`
+	Keyphrases         []string
+	Prefixes           []string
+	Suffixes           []string
+	Variables          []map[string]interface{}
 }
 
 type Collection struct {
-	Id         string
-	Keyphrases map[string]string
-	Variables  []map[string]interface{}
+	Id                 string
+	AdvancedKeyphrases map[string]string `json:"adv_keyphrases"`
+	Keyphrases         []string
+	Variables          []map[string]interface{}
 }
 
 func bTextMatches(text string, checks []string) map[int]string {
