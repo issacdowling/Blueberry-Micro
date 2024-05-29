@@ -147,9 +147,14 @@ core_config = {
 
 intents = [
   {
-  "id" : "setWLED",
+  "id" : "setWLEDBoolOrColour",
   "keyphrases": [["$set"], all_device_names, ["$boolean", "$colours"]],
-  # need to add any_number back to parser before adding back to here
+  "core_id": core_id
+  },
+  {
+  "id" : "setWLEDBrightness",
+  "keyphrases": [["$set"], all_device_names],
+  "numbers": {"any": "any"},
   "core_id": core_id
   }
 ]

@@ -22,6 +22,8 @@ type Intent struct {
 	Prefixes           []string               `json:"prefixes"`
 	Suffixes           []string               `json:"suffixes"`
 	Variables          map[string]interface{} `json:"variables"`
+	Numbers            map[string]string      `json:"numbers"`
+	Wakewords          []string               `json:"wakewords"`
 }
 
 type Collection struct {

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"maps"
+	"strconv"
 	"strings"
 )
 
@@ -98,4 +99,14 @@ func suffixCheck(text string, intent Intent) (bool, string) {
 
 	}
 	return false, fmt.Sprintf("%s's suffix check passed, none of %v found", intent.Id, intent.Suffixes)
+}
+
+func numberCheck(text string, intent Intent) (bool, string) {
+	for _, word := range strings.Split(text, " ") {
+		_, err := strconv.Atoi(word)
+		if err == nil {
+			return true, fmt.Sprintf("Number check passed: %v found", word)
+		}
+	}
+	return false, "Number check failed: none found"
 }

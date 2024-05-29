@@ -148,6 +148,14 @@ func parseIntent(text string) (string, string, string) {
 			bLog(checkLog, l)
 		}
 
+		if intent.Numbers != nil {
+			checkPass, checkLog := numberCheck(textToParse, intent)
+			if !checkPass {
+				intentPass = false
+			}
+			bLog(checkLog, l)
+		}
+
 		if intentPass {
 			potentialIntents = append(potentialIntents, intent)
 			potentialIntentText = append(potentialIntentText, textToParse)
@@ -156,6 +164,7 @@ func parseIntent(text string) (string, string, string) {
 	}
 
 	if len(potentialIntents) != 1 {
+		bLog(fmt.Sprintf("Intents != 1: %v", potentialIntents), l)
 		return "", "", ""
 	}
 

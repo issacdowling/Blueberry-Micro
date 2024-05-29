@@ -72,13 +72,13 @@ core_config = {
 intents = [{
     "id" : "set_volume",
     "keyphrases": [["$set"], ["volume", "loudness", "speaker", "speakers"]],
-    #any_number
+    "numbers": {"any": "any"},
     "core_id": core_id
   },
   {
     "id" : "increment_volume",
     "keyphrases": [increase_words + decrease_words, ["volume", "loudness", "speaker", "speakers"]],
-    #any_number
+    "numbers": {"any": "any"},
     "core_id": core_id
   }
   
