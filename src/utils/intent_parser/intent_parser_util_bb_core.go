@@ -5,8 +5,11 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
 	"regexp"
 	"strings"
+	"syscall"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -109,7 +112,11 @@ func main() {
 
 	fmt.Println(parseIntent("ask wled to get hello there, time, doorlight thanks "))
 
-	time.Sleep(3 * time.Second)
+	// Block until CTRL+C'd
+	doneChannel := make(chan os.Signal, 1)
+	signal.Notify(doneChannel, syscall.SIGINT, syscall.SIGTERM)
+
+	<-doneChannel
 }
 
 func parseIntent(text string) ([]Intent, string) {
