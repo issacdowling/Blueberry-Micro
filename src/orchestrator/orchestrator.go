@@ -22,7 +22,9 @@ var bloobConfig map[string]interface{}
 var mqttConfig MqttConfig
 var broker *mqtt.ClientOptions
 
-var l logData = logData{name: "Orchestrator"}
+var friendlyName string = "Orchestrator"
+
+var l logData = logData{name: friendlyName}
 
 func main() {
 
@@ -179,9 +181,9 @@ func main() {
 
 	bLog(fmt.Sprintf("Broker at: tcp://%s:%v\n", mqttConfig.Host, mqttConfig.Port), l)
 
-	broker.SetClientID(fmt.Sprintf("%v - Orchestrator", bloobConfig["instance_name"]))
+	broker.SetClientID(fmt.Sprintf("%v - %s", bloobConfig["instance_name"], friendlyName))
 
-	bLog(fmt.Sprintf("MQTT client name: %v - Orchestrator\n", bloobConfig["instance_name"]), l)
+	bLog(fmt.Sprintf("MQTT client name: %v - %s\n", bloobConfig["instance_name"], friendlyName), l)
 
 	broker.OnConnect = onConnect
 	if mqttConfig.Password != "" && mqttConfig.Username != "" {
