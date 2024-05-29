@@ -314,4 +314,6 @@ func exitCleanup(runningCores []Core, listOfCollections []string, client mqtt.Cl
 		bLogFatal(token.Error().Error(), l)
 	}
 	time.Sleep(300 * time.Millisecond)
+
+	client.Disconnect(0)
 }

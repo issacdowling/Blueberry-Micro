@@ -132,7 +132,10 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 var clearTopics mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
 	if !strings.Contains(message.Topic(), "logs") && string(message.Payload()) != "" {
 		bLog(fmt.Sprintf("Clearing latent topic: %s", message.Topic()), l)
-		client.Publish(message.Topic(), message.Qos(), true, "")
+		// !!!!!!!! CLEARING THE RETAINED MESSAGES ONLY WORKED WITH QOS 0 !!!!!!!!!!! (i don't know why)
+		if token := client.Publish(message.Topic(), 0, true, []byte{}); token.Wait() && token.Error() != nil {
+			bLogFatal(token.Error().Error(), l)
+		}
 	}
 
 }
