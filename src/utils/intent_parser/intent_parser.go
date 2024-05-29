@@ -2,38 +2,33 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
-	"os"
 	"regexp"
 	"strings"
+	"time"
+
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-type Intent struct {
-	Id         string
-	CoreId     string
-	Keyphrases []map[string]string
-	Prefixes   []string
-	Suffixes   []string
-	Variables  []map[string]interface{}
-}
-
-type Collection struct {
-	Id         string
-	Keyphrases []map[string]string
-	Variables  []map[string]interface{}
-}
-
 var intents map[string]Intent = make(map[string]Intent)
-
 var collections map[string]Collection = make(map[string]Collection)
+
+var broker *mqtt.ClientOptions
+var client *mqtt.Client
+
+var deviceId string
+var friendlyName string = "Intent Parser"
+
+var l logData
 
 func main() {
 	// Test data
 	testData := []byte(`
 	{
 		"id": "setWLED",
-		"keyphrases": [{"hello there": "hi", "hey": ""}, {"time": "1", "times": "2"}, {"$devices": ""}],
+		"keyphrases": [{"hello there": "hi", "hey": ""}, {"time": "1", "times": "2"}, {"$get": ""}],
 		"core_id": "wled",
 		"prefixes": ["ask wled to", "do"],
 		"suffixes": ["thanks", "or else"]
@@ -48,45 +43,55 @@ func main() {
 
 	intents[testIntentJson.Id] = testIntentJson
 
-	testCollection := []byte(`{
-	"id": "devices",
-	"keyphrases": [
-		{"doorlight": "door light"},
-		{"door light": ""},
-		{"doleight": "door light"},
-		{"delight": "door light"}
-		],
-	"variables": [
-		{"door light": [0,233234,232443]}
-	]
-	}	
-	`)
-
-	var testCollectionJson Collection
-
-	err = json.Unmarshal(testCollection, &testCollectionJson)
-	if err != nil {
-		log.Panic(err)
-	}
-	collections[testCollectionJson.Id] = testCollectionJson
-
-	// fmt.Println(testDataJson)
-	// fmt.Println(testCollectionJson)
-
-	fmt.Println(parseIntent("ask wled to hello there, time, doorlight thanks "))
-
-	os.Exit(0)
 	//////////////
 
 	//// MQTT Setup
 	// Take in CLI args for host, port, uname, passwd
-	mqttHost := "localhost"
-	mqttPort := 1883
+
+	mqttHost := *flag.String("host", "localhost", "the hostname/IP of the MQTT broker")
+	mqttPort := *flag.Int("port", 1883, "the hostname/IP of the MQTT broker")
+	mqttUser := *flag.String("user", "", "the hostname/IP of the MQTT broker")
+	mqttPass := *flag.String("pass", "", "the hostname/IP of the MQTT broker")
+	deviceId := *flag.String("device-id", "test", "the hostname/IP of the MQTT broker")
+	flag.Parse()
+
+	l = logData{uuid: deviceId, name: friendlyName}
+
+	//// Set up MQTT
+	bLog("Setting up MQTT", l)
+	broker = mqtt.NewClientOptions()
+	broker.AddBroker(fmt.Sprintf("tcp://%s:%v", mqttHost, mqttPort))
+
+	bLog(fmt.Sprintf("Broker at: tcp://%s:%v\n", mqttHost, mqttPort), l)
+
+	broker.SetClientID(fmt.Sprintf("%v - %s", deviceId, friendlyName))
+
+	bLog(fmt.Sprintf("MQTT client name: %v - %s\n", deviceId, friendlyName), l)
+
+	broker.OnConnect = onConnect
+	if mqttPass != "" && mqttUser != "" {
+		broker.SetPassword(mqttPass)
+		broker.SetUsername(mqttUser)
+		bLog("Using MQTT authenticated", l)
+	} else {
+		bLog("Using MQTT unauthenticated", l)
+	}
+	client := mqtt.NewClient(broker)
+
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		bLogFatal(token.Error().Error(), l)
+	}
+	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/+/collections", deviceId), bloobQOS, collectionHandler); token.Wait() && token.Error() != nil {
+		bLogFatal(token.Error().Error(), l)
+	}
+	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/+/intents", deviceId), bloobQOS, intentHandler); token.Wait() && token.Error() != nil {
+		bLogFatal(token.Error().Error(), l)
+	}
 
 	coreId := "intent_parser"
 
 	//// Publish Config
-	core_config := map[string]map[string]interface{}{
+	coreConfig := map[string]map[string]interface{}{
 		"metadata": {
 			"core_id":       coreId,
 			"friendly_name": "Intent Parser",
@@ -98,7 +103,13 @@ func main() {
 			"license":       "AGPLv3",
 		},
 	}
-	fmt.Println(core_config, mqttHost, mqttPort)
+	fmt.Println(coreConfig)
+
+	time.Sleep(2 * time.Second)
+
+	fmt.Println(parseIntent("ask wled to get hello there, time, doorlight thanks "))
+
+	time.Sleep(3 * time.Second)
 }
 
 func parseIntent(text string) ([]Intent, string) {
@@ -195,21 +206,16 @@ func collectionKeyphraseUnwrap(intent *Intent) {
 				if keyphrase[0] == '$' {
 					// keyphrase[1:] is used to remove the $ and just get the Collection name
 					if collection, ok := collections[keyphrase[1:]]; ok {
-						log.Printf("Merging the Collection \"%s\" with the intent \"%s\"", keyphrase[1:], intent.Id)
+						log.Printf("Inlining the Collection \"%s\" with the intent \"%s\"", keyphrase[1:], intent.Id)
 						// If the newphrase next to the Collection is blank, set the newphrases to their original values in the Collection
 						// If it's not blank, set the newphrases from the Collection equal to the original newphrase.
 						if newphrase == "" {
-							for _, collectionKeyphrasePair := range collection.Keyphrases {
-								for collectionKeyphrase, collectionNewphrase := range collectionKeyphrasePair {
-									keyphraseSet[collectionKeyphrase] = collectionNewphrase
-								}
+							for collectionKeyphrase, collectionNewphrase := range collection.Keyphrases {
+								keyphraseSet[collectionKeyphrase] = collectionNewphrase
 							}
 						} else {
-							for _, collectionKeyphrasePair := range collection.Keyphrases {
-								for collectionKeyphrase := range collectionKeyphrasePair {
-									keyphraseSet[collectionKeyphrase] = newphrase
-								}
-
+							for collectionKeyphrase := range collection.Keyphrases {
+								keyphraseSet[collectionKeyphrase] = newphrase
 							}
 						}
 

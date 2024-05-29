@@ -14,6 +14,21 @@ type logData struct {
 	name   string
 }
 
+type Intent struct {
+	Id         string
+	CoreId     string
+	Keyphrases []map[string]string
+	Prefixes   []string
+	Suffixes   []string
+	Variables  []map[string]interface{}
+}
+
+type Collection struct {
+	Id         string
+	Keyphrases map[string]string
+	Variables  []map[string]interface{}
+}
+
 func bTextMatches(text string, checks []string) map[int]string {
 	matches := make(map[int]string)
 	for _, check := range checks {
