@@ -251,7 +251,6 @@ func main() {
 	// Which must be the case to ensure that old MQTT configs aren't used from previous runs.
 	var configToPublish []byte
 	var listOfCores []string
-	var listOfCollections []string
 	var topicToPublish string = "bloob/%s/cores/%s/central_config"
 	for _, core := range runningCores {
 
@@ -288,12 +287,11 @@ func main() {
 	// the syscall.SIGINT, syscall.SIGTERM is necessary or it exits with "child exited"
 	signal.Notify(doneChannel, syscall.SIGINT, syscall.SIGTERM)
 	bLog(fmt.Sprintf("Exit Signal Received: %v, exiting gracefully", <-doneChannel), l)
-	fmt.Println()
 
-	exitCleanup(runningCores, listOfCollections, client)
+	exitCleanup(runningCores, client)
 }
 
-func exitCleanup(runningCores []Core, listOfCollections []string, client mqtt.Client) {
+func exitCleanup(runningCores []Core, client mqtt.Client) {
 	// Go through all Cores, publish blank central configs, and exit them
 	for _, runningCore := range runningCores {
 
