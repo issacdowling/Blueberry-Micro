@@ -13,8 +13,6 @@ import (
 
 const bloobQOS byte = 2
 
-var id string = "1000"
-
 var wakewordReceivedJson map[string]interface{}
 
 var recordedAudio string
@@ -104,10 +102,10 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 	}
 
 	if strings.Contains(message.Topic(), "audio_recorder_util/finished") {
-		playAudioFile(stopListeningAudio, instanceUUID, id, client)
 		json.Unmarshal(message.Payload(), &audioRecorderReceivedJson)
 
 		if slices.Contains(currentIds, audioRecorderReceivedJson["id"].(string)) {
+			playAudioFile(stopListeningAudio, instanceUUID, audioRecorderReceivedJson["id"].(string), client)
 			bLog("Received recording, starting transcription", l)
 			recordedAudio = audioRecorderReceivedJson["audio"].(string)
 			transcribeAudio(recordedAudio, instanceUUID, audioRecorderReceivedJson["id"].(string), client)
