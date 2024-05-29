@@ -18,7 +18,7 @@ var collections map[string]Collection = make(map[string]Collection)
 
 var broker *mqtt.ClientOptions
 
-var deviceId string
+var deviceId *string
 var friendlyName string = "Intent Parser"
 
 var l logData
@@ -28,31 +28,31 @@ func main() {
 	//// MQTT Setup
 	// Take in CLI args for host, port, uname, passwd
 
-	mqttHost := *flag.String("host", "localhost", "the hostname/IP of the MQTT broker")
-	mqttPort := *flag.Int("port", 1883, "the hostname/IP of the MQTT broker")
-	mqttUser := *flag.String("user", "", "the hostname/IP of the MQTT broker")
-	mqttPass := *flag.String("pass", "", "the hostname/IP of the MQTT broker")
-	deviceId = *flag.String("device-id", "test", "the hostname/IP of the MQTT broker")
+	mqttHost := flag.String("host", "localhost", "the hostname/IP of the MQTT broker")
+	mqttPort := flag.Int("port", 1883, "the hostname/IP of the MQTT broker")
+	mqttUser := flag.String("user", "", "the hostname/IP of the MQTT broker")
+	mqttPass := flag.String("pass", "", "the hostname/IP of the MQTT broker")
+	deviceId = flag.String("device-id", "test", "the hostname/IP of the MQTT broker")
 	flag.Parse()
 
-	l.uuid = deviceId
+	l.uuid = *deviceId
 	l.name = friendlyName
 
 	//// Set up MQTT
 	bLog("Setting up MQTT", l)
 	broker = mqtt.NewClientOptions()
-	broker.AddBroker(fmt.Sprintf("tcp://%s:%v", mqttHost, mqttPort))
+	broker.AddBroker(fmt.Sprintf("tcp://%s:%v", *mqttHost, *mqttPort))
 
-	bLog(fmt.Sprintf("Broker at: tcp://%s:%v\n", mqttHost, mqttPort), l)
+	bLog(fmt.Sprintf("Broker at: tcp://%s:%v\n", *mqttHost, *mqttPort), l)
 
-	broker.SetClientID(fmt.Sprintf("%v - %s", deviceId, friendlyName))
+	broker.SetClientID(fmt.Sprintf("%v - %s", *deviceId, friendlyName))
 
-	bLog(fmt.Sprintf("MQTT client name: %v - %s\n", deviceId, friendlyName), l)
+	bLog(fmt.Sprintf("MQTT client name: %v - %s\n", *deviceId, friendlyName), l)
 
 	broker.OnConnect = onConnect
-	if mqttPass != "" && mqttUser != "" {
-		broker.SetPassword(mqttPass)
-		broker.SetUsername(mqttUser)
+	if *mqttPass != "" && *mqttUser != "" {
+		broker.SetPassword(*mqttPass)
+		broker.SetUsername(*mqttUser)
 		bLog("Using MQTT authenticated", l)
 	} else {
 		bLog("Using MQTT unauthenticated", l)
@@ -64,13 +64,13 @@ func main() {
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		bLogFatal(token.Error().Error(), l)
 	}
-	if token := client.Subscribe(fmt.Sprintf("bloob/%s/collections/+", deviceId), bloobQOS, collectionHandler); token.Wait() && token.Error() != nil {
+	if token := client.Subscribe(fmt.Sprintf("bloob/%s/collections/+", *deviceId), bloobQOS, collectionHandler); token.Wait() && token.Error() != nil {
 		bLogFatal(token.Error().Error(), l)
 	}
-	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/+/intents/+", deviceId), bloobQOS, intentHandler); token.Wait() && token.Error() != nil {
+	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/+/intents/+", *deviceId), bloobQOS, intentHandler); token.Wait() && token.Error() != nil {
 		bLogFatal(token.Error().Error(), l)
 	}
-	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/intent_parser_util/run", deviceId), bloobQOS, parseHandler); token.Wait() && token.Error() != nil {
+	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/intent_parser_util/run", *deviceId), bloobQOS, parseHandler); token.Wait() && token.Error() != nil {
 		bLogFatal(token.Error().Error(), l)
 	}
 
@@ -95,7 +95,7 @@ func main() {
 		bLogFatal(fmt.Sprintf("Failed to JSON encode the core config: %s", err.Error()), l)
 	}
 
-	if token := client.Publish(fmt.Sprintf("bloob/%s/cores/%s/config", deviceId, coreId), bloobQOS, true, coreConfigJson); token.Wait() && token.Error() != nil {
+	if token := client.Publish(fmt.Sprintf("bloob/%s/cores/%s/config", *deviceId, coreId), bloobQOS, true, coreConfigJson); token.Wait() && token.Error() != nil {
 		bLogFatal(token.Error().Error(), l)
 	}
 

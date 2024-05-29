@@ -30,7 +30,7 @@ var parseHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Mes
 	if err != nil {
 		bLogFatal(fmt.Sprintf("Could not JSON encode Intent Parse response: %s", err.Error()), l)
 	}
-	client.Publish(fmt.Sprintf(parseResponseTopic, deviceId), bloobQOS, false, parseResponseToSend)
+	client.Publish(fmt.Sprintf(parseResponseTopic, *deviceId), bloobQOS, false, parseResponseToSend)
 
 	bLog(fmt.Sprintf("Intent: %s, Core: %s, Parsed Text: %s", intentToFire, coreToFire, parsedText), l)
 
