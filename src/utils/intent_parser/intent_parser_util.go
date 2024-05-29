@@ -24,24 +24,6 @@ var friendlyName string = "Intent Parser"
 var l logData
 
 func main() {
-	// Test data
-	testData := []byte(`
-	{
-    "id" : "setWLED",
-    "keyphrases": [["door light", "doorlight"], ["$set"], ["$boolean", "$colours"]],
-    "prefixes": ["tell the computer to"],
-    "core_id": "wled"
-  }
-	`)
-
-	var testIntentJson Intent
-	err := json.Unmarshal(testData, &testIntentJson)
-	if err != nil {
-		bLogFatal(err.Error(), l)
-	}
-	intents[testIntentJson.Id] = testIntentJson
-
-	//////////////
 
 	//// MQTT Setup
 	// Take in CLI args for host, port, uname, passwd
@@ -85,7 +67,7 @@ func main() {
 	if token := client.Subscribe(fmt.Sprintf("bloob/%s/collections/+", deviceId), bloobQOS, collectionHandler); token.Wait() && token.Error() != nil {
 		bLogFatal(token.Error().Error(), l)
 	}
-	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/+/intents", deviceId), bloobQOS, intentHandler); token.Wait() && token.Error() != nil {
+	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/+/intents/+", deviceId), bloobQOS, intentHandler); token.Wait() && token.Error() != nil {
 		bLogFatal(token.Error().Error(), l)
 	}
 	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/intent_parser_util/run", deviceId), bloobQOS, parseHandler); token.Wait() && token.Error() != nil {
@@ -107,7 +89,15 @@ func main() {
 			"license":       "AGPLv3",
 		},
 	}
-	fmt.Println(coreConfig)
+
+	coreConfigJson, err := json.Marshal(coreConfig)
+	if err != nil {
+		bLogFatal(fmt.Sprintf("Failed to JSON encode the core config: %s", err.Error()), l)
+	}
+
+	if token := client.Publish(fmt.Sprintf("bloob/%s/cores/%s/config", deviceId, coreId), bloobQOS, true, coreConfigJson); token.Wait() && token.Error() != nil {
+		bLogFatal(token.Error().Error(), l)
+	}
 
 	// Block until CTRL+C'd
 	doneChannel := make(chan os.Signal, 1)
@@ -125,7 +115,7 @@ func parseIntent(text string) (string, string, string) {
 	bLog(fmt.Sprintf("Cleaned text to: \"%s\"", textToParse), l)
 	for _, intent := range intents {
 		// Clean the text, inline mentioned Collections, complete all necessary substitutions
-
+		bLog(intent.Id, l)
 		collectionKeyphraseUnwrap(&intent)
 		textToParse = preProcessText(textToParse, intent)
 		bLog(fmt.Sprintf("Performed substitutions for %s: \"%s\"", intent.Id, textToParse), l)
@@ -242,7 +232,7 @@ func collectionKeyphraseUnwrap(intent *Intent) {
 							}
 						}
 
-						// Deletes the Collection name from the Intent's keywords
+						// Deletes the Collection name from the Intent's keyphrases
 						delete(keyphraseSet, keyphrase)
 
 					} else {
