@@ -78,7 +78,3 @@ func suffixCheck(text string, intent Intent) (bool, string) {
 	}
 	return false, fmt.Sprintf("%s's suffix check passed, none of %v found", intent.Id, intent.Suffixes)
 }
-
-func collectionCheck(text string, intent Intent) (bool, string) {
-	return false, ""
-}
