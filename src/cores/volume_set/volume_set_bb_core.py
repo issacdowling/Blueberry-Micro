@@ -108,7 +108,7 @@ signal.signal(signal.SIGINT, on_exit)
 log("Getting Centralised Config from Orchestrator", log_data)
 central_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
 
-if central_config == None:
+if central_config == {}:
   min_bound = 0
   max_bound = 100
   audio_device = "Master"
