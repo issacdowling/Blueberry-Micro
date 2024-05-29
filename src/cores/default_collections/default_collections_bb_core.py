@@ -48,7 +48,7 @@ publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payl
 
 colour_collection = {
 	"id": "colours",
-	"keyphrases": {
+	"keyphrases": [
 			"red",
 			"orange",
 			"yellow",
@@ -66,7 +66,7 @@ colour_collection = {
 			"cyan",
 			"coral",
 			"white"
-	},
+	],
 	"substitute": None,
 		"variables": {
 				"red": [
@@ -159,7 +159,7 @@ colour_collection = {
 
 boolean_collection = {
 	"id": "boolean",
-	"keyphrases": {
+	"keyphrases": [
 		"on",
 		"true",
 		"yes",
@@ -174,7 +174,7 @@ boolean_collection = {
 		"disagree",
 		"nope",
 		"dont"
-	},
+	],
 	"variables": {
 		"on": True,
 		"true": True,
@@ -196,28 +196,25 @@ boolean_collection = {
 
 set_collection = {
 	"id": "set",
-	"keyphrases": {
+	"keyphrases": [
 		"set",
 		"turn",
 		"make",
-	}
+	]
 }
 
 get_collection = {
 	"id": "get",
-	"keyphrases": {
+	"keyphrases": [
 		"get",
 		"what",
 		"whats",
 		"is",
 		"tell me"
-	}
+	]
 }
 
-any_number_collection = {
-		"id": "any_number",
-		"placeholder": "This is only used to add the any_number Collection to the loaded_collections. The intent_handler has a special case for checking numbers."
-}
-collections_list = [colour_collection, any_number_collection, boolean_collection, set_collection, get_collection]
+collections_list = [colour_collection, boolean_collection, set_collection, get_collection]
 
-publish.single(f"bloob/{arguments.device_id}/cores/{core_id}/collections", json.dumps({"collections": collections_list}), 2, True)
+for collection in collections_list:
+	publish.single(f"bloob/{arguments.device_id}/collections/{collection['id']}", json.dumps({"collections": collection}), 2, True)
