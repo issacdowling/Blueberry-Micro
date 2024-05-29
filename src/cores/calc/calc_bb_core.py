@@ -62,7 +62,7 @@ core_config = {
   },
   "intents": [{
     "id" : "calc",
-    "keywords": [add_words + minus_words + multiply_words + divide_words],
+    "keyphrases": [add_words + minus_words + multiply_words + divide_words],
     "collections": [["get"], ["any_number"]],
     "core_id": core_id
   }]

@@ -56,7 +56,7 @@ core_config = {
   },
   "intents": [{
     "id" : "hello_greet",
-    "keywords": [["hello", "hi"]],
+    "keyphrases": [["hello", "hi"]],
     "core_id": core_id
   }]
 }

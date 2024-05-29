@@ -142,14 +142,20 @@ core_config = {
         }
       ]
     }
-  },
-  "intents": [{
-    "id" : "setWLED",
-    "keyphrases": [all_device_names],
-    "collections": [["set"], ["boolean", "colours", "any_number"]],
-    "core_id": core_id
-  }]
+  }
 }
+
+intents = [
+  {
+  "id" : "setWLED",
+  "keyphrases": [["$set"], all_device_names, ["$boolean", "$colours"]],
+  # need to add any_number back to parser before adding back to here
+  "core_id": core_id
+  }
+]
+
+for intent in intents:
+  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/intents/{intent['id']}", payload=json.dumps(intent), retain=True, hostname=arguments.host, port=arguments.port)
 
 print(all_device_names)
 log("Publishing Core Config", log_data)

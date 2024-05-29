@@ -79,7 +79,7 @@ core_config = {
   "intents": [{
     "id" : "setWLED",
     "core_id": core_id,
-    "keywords": [all_device_names],
+    "keyphrases": [all_device_names],
     "collections": [["set"], ["boolean", "colours", "any_number"]]
   }]
 }
@@ -106,7 +106,7 @@ core_config = {
 
 * `id` is like `core_id` but for your intent
 * `core_id` is the `core_id` of the Core that's registering this intent, as it's how we know who to send the info to once we've parsed it.
-* `keywords` must be a two-dimensional list; there's a first list which wraps your lists of keywords, and an arbitrary number of lists within. Each list within will be checked, and must contain at least one match. For example, `[["test"]]` will be matched by the intent parser if `"test"` is in your speech. `[["test", "hi"]]` will be matched if EITHER `"test"` or `"hi"` is in your speech. `[["test"], ["hi"]]` will be matched if `"test"` AND `"hi"` are in your speech. Everything within each list should just be a string of alphanumeric characters (I filter the input, and any special characters from the STT are stripped), and one that you expect that the user would say to call your Core. Adding common false positives (like "dolite" for "door light", in my case") may help.
-* `collections` has a very similar format to `keywords`, however the strings are referencing the name of Collections. Otherwise, the checking logic is identical, so you can learn more about this in the Collections section.
-* `prefixes` allows you to specify a string that the user's speech must begin with in order for your Core to be selected. Unlike with Keywords, where requesting "test" wouldn't match with "tests" (in other words, we're checking for full words), the prefix option just checks for the string (so, "test" would match the user starting with "tests"). This is a single list, and any string within that list matching will cause this section to pass. For example: `prefixes: ["test", "other thing"]` would activate if I said "test this thing", "other thing needs testing", or "tests are cool", but not if I said "this is a test", or "i need one more other thing"
+* `keyphrases` must be a two-dimensional list; there's a first list which wraps your lists of keyphrases, and an arbitrary number of lists within. Each list within will be checked, and must contain at least one match. For example, `[["test"]]` will be matched by the intent parser if `"test"` is in your speech. `[["test", "hi"]]` will be matched if EITHER `"test"` or `"hi"` is in your speech. `[["test"], ["hi"]]` will be matched if `"test"` AND `"hi"` are in your speech. Everything within each list should just be a string of alphanumeric characters (I filter the input, and any special characters from the STT are stripped), and one that you expect that the user would say to call your Core. Adding common false positives (like "dolite" for "door light", in my case") may help.
+* `collections` has a very similar format to `keyphrases`, however the strings are referencing the name of Collections. Otherwise, the checking logic is identical, so you can learn more about this in the Collections section.
+* `prefixes` allows you to specify a string that the user's speech must begin with in order for your Core to be selected. Unlike with keyphrases, where requesting "test" wouldn't match with "tests" (in other words, we're checking for full words), the prefix option just checks for the string (so, "test" would match the user starting with "tests"). This is a single list, and any string within that list matching will cause this section to pass. For example: `prefixes: ["test", "other thing"]` would activate if I said "test this thing", "other thing needs testing", or "tests are cool", but not if I said "this is a test", or "i need one more other thing"
 * `suffixes` is exactly the same as `prefixes`, except looking for a string at the _end_ of the user's speech.

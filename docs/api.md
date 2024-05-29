@@ -83,7 +83,7 @@ Topic: **`bloob/<device-id>/cores/<core-id>/config`**
 
 Example Output:
 ```
-{"metadata": {"core_id": "date_time_get", "friendly_name": "Date / Time Getter", "link": null, "author": null, "icon": null, "description": null, "version": 0.1, "license": "AGPLv3"}, "intents": [{"id": "getDate", "keywords": ["date", "day", "time"], "type": "get", "core_id": "date_time_get", "private": true}]}
+{"metadata": {"core_id": "date_time_get", "friendly_name": "Date / Time Getter", "link": null, "author": null, "icon": null, "description": null, "version": 0.1, "license": "AGPLv3"}, "intents": [{"id": "getDate", "keyphrases": ["date", "day", "time"], "type": "get", "core_id": "date_time_get", "private": true}]}
 ```
 
 * **What:** Publishes the configuration that the Core chooses to report back to us. This is not for configuring the core itself, but for letting us know information about the Core, such as metadata and its exposed Intents

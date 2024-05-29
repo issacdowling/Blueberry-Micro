@@ -66,29 +66,33 @@ core_config = {
       "max_bound": 90,
       "device_name": "Master"
     }
-  },
-  "intents": [{
+  }
+}
+
+intents = [{
     "id" : "set_volume",
-    "keywords": [["volume", "loudness", "speaker", "speakers"]],
-    "collections": [["set"], ["any_number"]],
+    "keyphrases": [["$set"], ["volume", "loudness", "speaker", "speakers"]],
+    #any_number
     "core_id": core_id
   },
   {
     "id" : "increment_volume",
-    "keywords": [increase_words + decrease_words, ["volume", "loudness", "speaker", "speakers"]],
-    "collections": [["any_number"]],
+    "keyphrases": [increase_words + decrease_words, ["volume", "loudness", "speaker", "speakers"]],
+    #any_number
     "core_id": core_id
   }
   
   ]
-}
-
 
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
 log("Starting up...", log_data)
 
 publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+
+for intent in intents:
+  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/intents/{intent['id']}", payload=json.dumps(intent), retain=True, hostname=arguments.host, port=arguments.port)
+
 
 # Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
 import signal

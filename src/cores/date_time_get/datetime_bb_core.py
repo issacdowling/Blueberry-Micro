@@ -46,7 +46,7 @@ core_config = {
   },
   "intents": [{
     "id" : "getDate",
-    "keywords": [["day", "date", "time"]],
+    "keyphrases": [["day", "date", "time"]],
     "collections": [["get"]],
     "core_id": core_id
   }]

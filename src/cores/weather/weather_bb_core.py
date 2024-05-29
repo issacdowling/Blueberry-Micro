@@ -57,16 +57,16 @@ core_config = {
     "description": "Gets the weather using Open Meteo",
     "version": 0.1,
     "license": "AGPLv3"
-  },
-  "intents": [{
-    "id" : "getWeather",
-    "core_id": core_id,
-    "keywords": [["weather", "hot", "cold", "temperature", "raining", "sun"]],
-    "collections": [["get"]],
-    "wakewords": ["weather"]
-  }]
+  }
   
 }
+
+intents = [{
+    "id" : "getWeather",
+    "core_id": core_id,
+    "keyphrases": [["$get"], ["weather", "hot", "cold", "temperature", "raining", "sun"]],
+    "wakewords": ["weather"]
+  }]
 
 # Load weathercodes from the drive, which should be placed next to this .py file
 script_path = os.path.abspath(os.path.dirname(__file__))
@@ -79,6 +79,9 @@ log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
 log("Starting up...", log_data)
 
 publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+
+for intent in intents:
+  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/intents/{intent['id']}", payload=json.dumps(intent), retain=True, hostname=arguments.host, port=arguments.port)
 
 ## Get device configs from central config, instantiate
 log("Getting Centralised Config from Orchestrator", log_data)
