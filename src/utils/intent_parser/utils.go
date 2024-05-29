@@ -16,9 +16,9 @@ type logData struct {
 
 type Intent struct {
 	Id                 string
-	CoreId             string
+	CoreId             string              `json:"core_id"`
 	AdvancedKeyphrases []map[string]string `json:"adv_keyphrases"`
-	Keyphrases         [][]string
+	Keyphrases         [][]string          `json:"keyphrases"`
 	Prefixes           []string
 	Suffixes           []string
 	Variables          []map[string]interface{}
@@ -27,7 +27,7 @@ type Intent struct {
 type Collection struct {
 	Id                 string
 	AdvancedKeyphrases map[string]string `json:"adv_keyphrases"`
-	Keyphrases         []string
+	Keyphrases         []string          `json:"keyphrases"`
 	Variables          []map[string]interface{}
 }
 
