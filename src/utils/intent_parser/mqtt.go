@@ -37,7 +37,6 @@ var parseHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Mes
 }
 
 var collectionHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
-	fmt.Println(string(message.Payload()))
 	var receivedCollection Collection
 	err := json.Unmarshal(message.Payload(), &receivedCollection)
 	if err != nil {
@@ -47,21 +46,15 @@ var collectionHandler mqtt.MessageHandler = func(client mqtt.Client, message mqt
 	bLog(fmt.Sprintf("Received Collection: %s", receivedCollection.Id), l)
 
 	collections[receivedCollection.Id] = receivedCollection
-	collectionIds = append(collectionIds, receivedCollection.Id)
-	// Publish the list of known Collections as new ones are received.
-	listCollectionsJson, err := json.Marshal(map[string]interface{}{
-		"loaded_collections": collectionIds,
-	})
-	if err != nil {
-		bLogFatal(err.Error(), l)
-	}
-	if token := client.Publish(fmt.Sprintf("bloob/%s/collections/list", deviceId), bloobQOS, true, listCollectionsJson); token.Wait() && token.Error() != nil {
-		bLogFatal(token.Error().Error(), l)
-	}
-	broker.SetWill(fmt.Sprintf("bloob/%s/collections/list", deviceId), "", bloobQOS, true)
 
 }
 
 var intentHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
-
+	var receivedIntent Intent
+	err := json.Unmarshal(message.Payload(), &receivedIntent)
+	if err != nil {
+		bLogFatal(fmt.Sprintf("Failed to parse received intent: %s", err.Error()), l)
+	}
+	bLog(fmt.Sprintf("Received intent \"%s\" for Core \"%s\"", receivedIntent.Id, receivedIntent.CoreId), l)
+	intents[receivedIntent.Id] = receivedIntent
 }
