@@ -104,11 +104,15 @@ func main() {
 func parseIntent(text string, intents []Intent) ([]Intent, string) {
 	var potentialIntents []Intent
 	for _, intent := range intents {
+		// Clean the text, complete all necessary substitutions
+		tempText := preCleanText(text)
+		tempText = preProcessText(tempText, intent)
+
 		intentPass := true
 		// This should eventually be a for loop that adapts to any future checks...
 		// it's not that yet.
 		if intent.Keyphrases != nil {
-			checkPass, log := keyphraseCheck(text, intent)
+			checkPass, log := keyphraseCheck(tempText, intent)
 			if !checkPass {
 				intentPass = false
 			}
@@ -116,7 +120,7 @@ func parseIntent(text string, intents []Intent) ([]Intent, string) {
 		}
 
 		if intent.Prefixes != nil {
-			checkPass, log := prefixCheck(text, intent)
+			checkPass, log := prefixCheck(tempText, intent)
 			if !checkPass {
 				intentPass = false
 			}
@@ -124,7 +128,7 @@ func parseIntent(text string, intents []Intent) ([]Intent, string) {
 		}
 
 		if intent.Suffixes != nil {
-			checkPass, log := suffixCheck(text, intent)
+			checkPass, log := suffixCheck(tempText, intent)
 			if !checkPass {
 				intentPass = false
 			}
@@ -132,7 +136,7 @@ func parseIntent(text string, intents []Intent) ([]Intent, string) {
 		}
 
 		// if intent.Keyphrases != nil {
-		// 	checkPass, _ := keyphraseCheck(text, intent)
+		// 	checkPass, _ := keyphraseCheck(tempText, intent)
 		// 	if !checkPass {
 		// 		intentPass = false
 		// 	}
