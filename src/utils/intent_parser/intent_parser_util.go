@@ -82,7 +82,7 @@ func main() {
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		bLogFatal(token.Error().Error(), l)
 	}
-	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/+/collections", deviceId), bloobQOS, collectionHandler); token.Wait() && token.Error() != nil {
+	if token := client.Subscribe(fmt.Sprintf("bloob/%s/collections/+", deviceId), bloobQOS, collectionHandler); token.Wait() && token.Error() != nil {
 		bLogFatal(token.Error().Error(), l)
 	}
 	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/+/intents", deviceId), bloobQOS, intentHandler); token.Wait() && token.Error() != nil {
