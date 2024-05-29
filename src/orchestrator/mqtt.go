@@ -13,19 +13,19 @@ import (
 
 const bloobQOS byte = 2
 
-var wakewordReceivedJson map[string]interface{}
+var wakewordReceived WakewordResponse
 
 var recordedAudio string
-var audioRecorderReceivedJson map[string]interface{}
+var audioRecorderReceived AudioRecorderResponse
 
 var transcription string
-var transcriptionReceivedJson map[string]interface{}
+var transcriptionReceived TranscriptionResponse
 
-var intentParserReceivedJson map[string]interface{}
+var intentParserReceived IntentParseResponse
 
-var coreFinishedReceivedJson map[string]interface{}
+var coreFinishedReceived CoreResponse
 
-var ttsReceivedJson map[string]interface{}
+var ttsReceived TTSResponse
 
 var collectionTopic string = "bloob/%s/collections/%s"
 
@@ -38,6 +38,39 @@ type MqttConfig struct {
 	Port     int
 	Username string
 	Password string
+}
+
+type WakewordResponse struct {
+	WakewordId string `json:"wakeword_id"`
+	Confidence string `json:"confidence"`
+}
+
+type AudioRecorderResponse struct {
+	Id    string `json:"id"`
+	Audio string `json:"audio"`
+}
+
+type TranscriptionResponse struct {
+	Id   string `json:"id"`
+	Text string `json:"text"`
+}
+
+type IntentParseResponse struct {
+	Id       string `json:"id"`
+	Text     string `json:"text"`
+	IntentId string `json:"intent_id"`
+	CoreId   string `json:"core_id"`
+}
+
+type CoreResponse struct {
+	Id          string `json:"id"`
+	Text        string `json:"text"`
+	Explanation string `json:"explanation"`
+}
+
+type TTSResponse struct {
+	Id    string `json:"id"`
+	Audio string `json:"audio"`
 }
 
 var onConnect mqtt.OnConnectHandler = func(client mqtt.Client) {
@@ -56,48 +89,49 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 	if strings.Contains(message.Topic(), "wakeword_util/finished") {
 		newId := fmt.Sprintf("%d", rand.Uint32())
 		currentIds = append(currentIds, newId)
-		json.Unmarshal(message.Payload(), &wakewordReceivedJson)
-		bLog(fmt.Sprintf("Wakeword Received - %v (confidence %v) - recording audio", wakewordReceivedJson["wakeword_id"].(string), wakewordReceivedJson["confidence"].(string)), l)
+		json.Unmarshal(message.Payload(), &wakewordReceived)
+		bLog(fmt.Sprintf("Wakeword Received - %v (confidence %v) - recording audio", wakewordReceived.WakewordId, wakewordReceived.Confidence), l)
 		playAudioFile(beginListeningAudio, instanceUUID, newId, client)
 		startRecordingAudio(instanceUUID, newId, client)
 	}
 
 	if strings.Contains(message.Topic(), "audio_recorder_util/finished") {
-		json.Unmarshal(message.Payload(), &audioRecorderReceivedJson)
+		json.Unmarshal(message.Payload(), &audioRecorderReceived)
 
-		if slices.Contains(currentIds, audioRecorderReceivedJson["id"].(string)) {
-			playAudioFile(stopListeningAudio, instanceUUID, audioRecorderReceivedJson["id"].(string), client)
+		if slices.Contains(currentIds, audioRecorderReceived.Id) {
+			playAudioFile(stopListeningAudio, instanceUUID, audioRecorderReceived.Id, client)
 			bLog("Received recording, starting transcription", l)
-			recordedAudio = audioRecorderReceivedJson["audio"].(string)
-			transcribeAudio(recordedAudio, instanceUUID, audioRecorderReceivedJson["id"].(string), client)
+			recordedAudio = audioRecorderReceived.Audio
+			transcribeAudio(recordedAudio, instanceUUID, audioRecorderReceived.Id, client)
 		}
 	}
 
 	if strings.Contains(message.Topic(), "stt_util/finished") {
-		json.Unmarshal(message.Payload(), &transcriptionReceivedJson)
+		json.Unmarshal(message.Payload(), &transcriptionReceived)
 
-		if slices.Contains(currentIds, transcriptionReceivedJson["id"].(string)) {
-			transcription = transcriptionReceivedJson["text"].(string)
+		if slices.Contains(currentIds, transcriptionReceived.Id) {
+			transcription = transcriptionReceived.Text
 			bLog(fmt.Sprintf("Transcription received - %v - starting intent parsing", transcription), l)
-			intentParseText(transcription, instanceUUID, transcriptionReceivedJson["id"].(string), client)
+			intentParseText(transcription, instanceUUID, transcriptionReceived.Id, client)
 		}
 
 	}
 
 	// This won't work until Core Configs and collections and intents are done.
 	if strings.Contains(message.Topic(), "intent_parser_util/finished") {
-		json.Unmarshal(message.Payload(), &intentParserReceivedJson)
+		fmt.Println(string(message.Payload()))
+		json.Unmarshal(message.Payload(), &intentParserReceived)
 
-		if slices.Contains(currentIds, intentParserReceivedJson["id"].(string)) {
+		if slices.Contains(currentIds, intentParserReceived.Id) {
 			// We need an Error core instead
-			if _, ok := intentParserReceivedJson["intent_id"].(string); ok && strings.TrimSpace(intentParserReceivedJson["intent_id"].(string)) != "" {
-				bLog(fmt.Sprintf("Intent Parsed - %s - sending to core %s", intentParserReceivedJson["intent_id"].(string), intentParserReceivedJson["core_id"]), l)
+			if intentParserReceived.IntentId != "" && strings.TrimSpace(intentParserReceived.IntentId) != "" {
+				bLog(fmt.Sprintf("Intent Parsed - %s - sending to core %s", intentParserReceived.IntentId, intentParserReceived.CoreId), l)
 				// Get the core from the intent and send it there, then wait for the response by using a wildcard in the core topic,
 				// and using the ID to ensure that we're looking at the right response.
-				sendIntentToCore(intentParserReceivedJson["intent_id"].(string), intentParserReceivedJson["text"].(string), intentParserReceivedJson["core_id"].(string), instanceUUID, intentParserReceivedJson["id"].(string), client)
+				sendIntentToCore(intentParserReceived.IntentId, intentParserReceived.Text, intentParserReceived.CoreId, instanceUUID, intentParserReceived.Id, client)
 			} else {
 				bLog("No Intent Found in speech", l)
-				speakText("I'm sorry, I don't understand what you said", instanceUUID, intentParserReceivedJson["id"].(string), client)
+				speakText("I'm sorry, I don't understand what you said", instanceUUID, intentParserReceived.Id, client)
 			}
 
 		}
@@ -106,23 +140,23 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 
 	// Specifically, here, I do not want responses from Utils, only regular Cores
 	if strings.Contains(message.Topic(), "/cores") && strings.Contains(message.Topic(), "/finished") && !strings.Contains(message.Topic(), "util") {
-		json.Unmarshal(message.Payload(), &coreFinishedReceivedJson)
+		json.Unmarshal(message.Payload(), &coreFinishedReceived)
 
-		if slices.Contains(currentIds, coreFinishedReceivedJson["id"].(string)) {
-			bLog(fmt.Sprintf("Core ran with the output: %v", coreFinishedReceivedJson["text"].(string)), l)
+		if slices.Contains(currentIds, coreFinishedReceived.Id) {
+			bLog(fmt.Sprintf("Core ran with the output: %v", coreFinishedReceived.Text), l)
 
-			speakText(coreFinishedReceivedJson["text"].(string), instanceUUID, coreFinishedReceivedJson["id"].(string), client)
+			speakText(coreFinishedReceived.Text, instanceUUID, coreFinishedReceived.Id, client)
 		}
 
 	}
 
 	if strings.Contains(message.Topic(), "/tts_util/finished") {
-		json.Unmarshal(message.Payload(), &ttsReceivedJson)
+		json.Unmarshal(message.Payload(), &ttsReceived)
 
-		if slices.Contains(currentIds, ttsReceivedJson["id"].(string)) {
+		if slices.Contains(currentIds, ttsReceived.Id) {
 			bLog("Text Spoken", l)
 
-			playAudioFile(ttsReceivedJson["audio"].(string), instanceUUID, ttsReceivedJson["id"].(string), client)
+			playAudioFile(ttsReceived.Audio, instanceUUID, ttsReceived.Id, client)
 		}
 
 	}
