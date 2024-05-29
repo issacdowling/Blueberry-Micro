@@ -14,9 +14,6 @@ func keyphraseCheck(text string, intent Intent) (bool, string) {
 	allKeyphraseMatches := make(map[int]string)
 
 	// This is for keyphrases that support substitution
-	fmt.Println("ADV", intent.AdvancedKeyphrases)
-	fmt.Println("N", intent.Keyphrases)
-
 	if intent.AdvancedKeyphrases != nil {
 		for _, keyphraseSet := range intent.AdvancedKeyphrases {
 			setsNeeded++
@@ -41,6 +38,7 @@ func keyphraseCheck(text string, intent Intent) (bool, string) {
 		}
 	}
 
+	// This is for regular keyphrases
 	if intent.Keyphrases != nil {
 		for _, keyphraseSet := range intent.Keyphrases {
 			setsNeeded++

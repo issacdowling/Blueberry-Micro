@@ -31,6 +31,18 @@ type Collection struct {
 	Variables          []map[string]interface{}
 }
 
+type ParseRequest struct {
+	Id   string
+	Text string
+}
+
+type ParseResponse struct {
+	Id       string `json:"id"`
+	Text     string `json:"text"`
+	IntentId string `json:"intent_id"`
+	CoreId   string `json:"core_id"`
+}
+
 func bTextMatches(text string, checks []string) map[int]string {
 	matches := make(map[int]string)
 	for _, check := range checks {

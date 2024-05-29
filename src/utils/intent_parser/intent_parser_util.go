@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"strings"
 	"syscall"
-	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
@@ -18,7 +17,6 @@ var intents map[string]Intent = make(map[string]Intent)
 var collections map[string]Collection = make(map[string]Collection)
 
 var broker *mqtt.ClientOptions
-var client *mqtt.Client
 
 var deviceId string
 var friendlyName string = "Intent Parser"
@@ -31,7 +29,7 @@ func main() {
 	{
     "id" : "setWLED",
     "keyphrases": [["door light", "doorlight"], ["$set"], ["$boolean", "$colours"]],
-    "prefixes": ["ask wled"],
+    "prefixes": ["tell the computer to"],
     "core_id": "wled"
   }
 	`)
@@ -90,6 +88,9 @@ func main() {
 	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/+/intents", deviceId), bloobQOS, intentHandler); token.Wait() && token.Error() != nil {
 		bLogFatal(token.Error().Error(), l)
 	}
+	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/intent_parser_util/run", deviceId), bloobQOS, parseHandler); token.Wait() && token.Error() != nil {
+		bLogFatal(token.Error().Error(), l)
+	}
 
 	coreId := "intent_parser_util"
 
@@ -108,10 +109,6 @@ func main() {
 	}
 	fmt.Println(coreConfig)
 
-	time.Sleep(2 * time.Second)
-
-	fmt.Println(parseIntent("ask wled to set on the doorlight thanks "))
-
 	// Block until CTRL+C'd
 	doneChannel := make(chan os.Signal, 1)
 	signal.Notify(doneChannel, syscall.SIGINT, syscall.SIGTERM)
@@ -119,22 +116,26 @@ func main() {
 	<-doneChannel
 }
 
-func parseIntent(text string) ([]Intent, string) {
+func parseIntent(text string) (string, string, string) {
 	var potentialIntents []Intent
+	var potentialIntentText []string
+
+	bLog(fmt.Sprintf("Received request to parse \"%s\"", text), l)
+	textToParse := preCleanText(text)
+	bLog(fmt.Sprintf("Cleaned text to: \"%s\"", textToParse), l)
 	for _, intent := range intents {
 		// Clean the text, inline mentioned Collections, complete all necessary substitutions
-		tempText := preCleanText(text)
-		fmt.Println(intent)
+
 		collectionKeyphraseUnwrap(&intent)
-		fmt.Println(intent)
-		tempText = preProcessText(tempText, intent)
+		textToParse = preProcessText(textToParse, intent)
+		bLog(fmt.Sprintf("Performed substitutions for %s: \"%s\"", intent.Id, textToParse), l)
 
 		intentPass := true
 
 		// This should eventually be a for loop that adapts to any future checks...
 		// it's not that yet.
 		if intent.AdvancedKeyphrases != nil || intent.Keyphrases != nil {
-			checkPass, checkLog := keyphraseCheck(tempText, intent)
+			checkPass, checkLog := keyphraseCheck(textToParse, intent)
 			if !checkPass {
 				intentPass = false
 			}
@@ -142,7 +143,7 @@ func parseIntent(text string) ([]Intent, string) {
 		}
 
 		if intent.Prefixes != nil {
-			checkPass, checkLog := prefixCheck(tempText, intent)
+			checkPass, checkLog := prefixCheck(textToParse, intent)
 			if !checkPass {
 				intentPass = false
 			}
@@ -150,7 +151,7 @@ func parseIntent(text string) ([]Intent, string) {
 		}
 
 		if intent.Suffixes != nil {
-			checkPass, checkLog := suffixCheck(tempText, intent)
+			checkPass, checkLog := suffixCheck(textToParse, intent)
 			if !checkPass {
 				intentPass = false
 			}
@@ -159,11 +160,16 @@ func parseIntent(text string) ([]Intent, string) {
 
 		if intentPass {
 			potentialIntents = append(potentialIntents, intent)
+			potentialIntentText = append(potentialIntentText, textToParse)
 		}
 
 	}
 
-	return potentialIntents, ""
+	if len(potentialIntents) != 1 {
+		return "", "", ""
+	}
+
+	return potentialIntents[0].Id, potentialIntents[0].CoreId, potentialIntentText[0]
 }
 
 func preProcessText(text string, intent Intent) string {
@@ -248,18 +254,15 @@ func collectionKeyphraseUnwrap(intent *Intent) {
 	}
 
 	if intent.Keyphrases != nil {
-		for keyphraseSetIndex, _ := range intent.Keyphrases {
+		for keyphraseSetIndex := range intent.Keyphrases {
 			for _, keyphrase := range intent.Keyphrases[keyphraseSetIndex] {
 				if keyphrase[0] == '$' {
 					if collection, ok := collections[keyphrase[1:]]; ok {
 						bLog(fmt.Sprintf("Inlining the Collection \"%s\" with the intent \"%s\"", keyphrase[1:], intent.Id), l)
 
-						fmt.Println(intent.Keyphrases[keyphraseSetIndex])
 						if collection.Keyphrases != nil {
 							intent.Keyphrases[keyphraseSetIndex] = append(intent.Keyphrases[keyphraseSetIndex], collection.Keyphrases...)
-							fmt.Println(collection.Keyphrases)
 						}
-						fmt.Println(intent.Keyphrases[keyphraseSetIndex])
 
 						if collection.AdvancedKeyphrases != nil {
 							for key, new := range collection.AdvancedKeyphrases {
