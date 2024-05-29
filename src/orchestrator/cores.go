@@ -10,9 +10,8 @@ import (
 )
 
 type Core struct {
-	Id    string
-	Exec  *exec.Cmd
-	Roles []string
+	Id   string
+	Exec *exec.Cmd
 }
 
 func scanForCores(paths []string) []string {
@@ -65,8 +64,5 @@ func createCore(corePath string, coreChannel chan<- Core) {
 	// Follows the naming convention where Cores are named {core_id}_bb_core
 	coreId := strings.Split(fileName, "_bb_core")[0]
 
-	// One day, fix this terrible terrible line. It splits out roles from this format: {core_id}_bb_core_{role}_{role}.whatever
-	roles := strings.Split(strings.Split(strings.Split(fileName, "_bb_core")[len(strings.Split(fileName, "_bb_core"))-1], ".")[:len(strings.Split(strings.Split(fileName, "_bb_core")[len(strings.Split(fileName, "_bb_core"))-1], "."))-1][0], "_")[1:]
-
-	coreChannel <- Core{Id: coreId, Exec: exec.Command(corePath, orchestratorProvidedArgs...), Roles: roles}
+	coreChannel <- Core{Id: coreId, Exec: exec.Command(corePath, orchestratorProvidedArgs...)}
 }
