@@ -217,4 +217,4 @@ get_collection = {
 collections_list = [colour_collection, boolean_collection, set_collection, get_collection]
 
 for collection in collections_list:
-	publish.single(f"bloob/{arguments.device_id}/collections/{collection['id']}", json.dumps({"collections": collection}), 2, True)
+	publish.single(f"bloob/{arguments.device_id}/collections/{collection['id']}", json.dumps(collection), 2, True)
