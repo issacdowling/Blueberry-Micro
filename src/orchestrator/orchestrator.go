@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"syscall"
-	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
@@ -288,8 +288,12 @@ func main() {
 	}
 	broker.SetWill(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), "", bloobQOS, true)
 
-	// For now, we'll just launch everything, wait a few seconds, then kill it
-	time.Sleep(5 * time.Second)
+	// Block until CTRL+C'd
+	doneChannel := make(chan os.Signal, 1)
+	// the syscall.SIGINT, syscall.SIGTERM is necessary or it exits with "child exited"
+	signal.Notify(doneChannel, syscall.SIGINT, syscall.SIGTERM)
+	bLog(fmt.Sprintf("Exit Signal Received: %v, exiting gracefully", <-doneChannel), l)
+	fmt.Println()
 
 	exitCleanup(runningCores, listOfCollections, client)
 }
