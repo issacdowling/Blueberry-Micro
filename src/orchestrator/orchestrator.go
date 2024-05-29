@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
@@ -268,7 +269,6 @@ func main() {
 		if token := client.Publish(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], core.Id), bloobQOS, true, configToPublish); token.Wait() && token.Error() != nil {
 			bLogFatal(fmt.Sprintf("Failed publishing Central Config: %s", token.Error()), l)
 		}
-		broker.SetWill(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], core.Id), "", bloobQOS, true)
 
 		listOfCores = append(listOfCores, core.Id)
 
@@ -282,7 +282,6 @@ func main() {
 	if token := client.Publish(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), bloobQOS, true, listOfCoresJson); token.Wait() && token.Error() != nil {
 		bLogFatal(token.Error().Error(), l)
 	}
-	broker.SetWill(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), "", bloobQOS, true)
 
 	// Block until CTRL+C'd
 	doneChannel := make(chan os.Signal, 1)
@@ -297,11 +296,6 @@ func main() {
 func exitCleanup(runningCores []Core, listOfCollections []string, client mqtt.Client) {
 	// Go through all Cores, publish blank central configs, and exit them
 	for _, runningCore := range runningCores {
-		// Clear central configs
-		bLog(fmt.Sprintf("Publishing a blank central config for %v", runningCore.Id), l)
-		if token := client.Publish(fmt.Sprintf("bloob/%s/cores/%s/central_config", bloobConfig["uuid"], runningCore.Id), bloobQOS, true, ""); token.Wait() && token.Error() != nil {
-			bLogFatal(token.Error().Error(), l)
-		}
 
 		// Kill local cores (not external ones, as they have a nil Exec field)
 		if runningCore.Exec != nil {
@@ -313,22 +307,11 @@ func exitCleanup(runningCores []Core, listOfCollections []string, client mqtt.Cl
 		}
 
 	}
-
-	// Publish empty message to all collection IDs
-	for _, collectionId := range listOfCollections {
-		topicToPublish := "bloob/%s/collections/%s"
-		if token := client.Publish(fmt.Sprintf(topicToPublish, bloobConfig["uuid"], collectionId), bloobQOS, true, ""); token.Wait() && token.Error() != nil {
-			bLogFatal(token.Error().Error(), l)
-		}
-	}
-
-	// Clear list of Cores
-	if token := client.Publish(fmt.Sprintf("bloob/%s/cores/list", bloobConfig["uuid"]), bloobQOS, true, ""); token.Wait() && token.Error() != nil {
+	// Subscribe to _all_ bloob/device-id topics to find retained ones, then publish blank messages to clean them up
+	// Less ideal, but also MUCH less effort to do this in a garbage-collection style way, rather than "freeing" each topic manually
+	bLog(fmt.Sprintf("Finding all remaining non-empty MQTT topics for this instance (uuid \"%s\") and clearing them", bloobConfig["uuid"]), l)
+	if token := client.Subscribe(fmt.Sprintf("bloob/%s/#", bloobConfig["uuid"]), bloobQOS, clearTopics); token.Wait() && token.Error() != nil {
 		bLogFatal(token.Error().Error(), l)
 	}
-
-	// Clear list of Collections
-	if token := client.Publish(fmt.Sprintf("bloob/%s/collections/list", bloobConfig["uuid"]), bloobQOS, true, ""); token.Wait() && token.Error() != nil {
-		bLogFatal(token.Error().Error(), l)
-	}
+	time.Sleep(3000 * time.Millisecond)
 }

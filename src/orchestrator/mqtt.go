@@ -128,3 +128,11 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 	}
 
 }
+
+var clearTopics mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
+	if !strings.Contains(message.Topic(), "logs") && string(message.Payload()) != "" {
+		bLog(fmt.Sprintf("Clearing latent topic: %s", message.Topic()), l)
+		client.Publish(message.Topic(), message.Qos(), true, "")
+	}
+
+}
