@@ -35,7 +35,7 @@ var currentIds []string
 
 type MqttConfig struct {
 	Host     string
-	Port     string
+	Port     int
 	Username string
 	Password string
 }
