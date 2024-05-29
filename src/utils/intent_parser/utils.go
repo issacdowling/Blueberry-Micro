@@ -15,20 +15,20 @@ type logData struct {
 }
 
 type Intent struct {
-	Id                 string
-	CoreId             string              `json:"core_id"`
-	AdvancedKeyphrases []map[string]string `json:"adv_keyphrases"`
-	Keyphrases         [][]string          `json:"keyphrases"`
-	Prefixes           []string
-	Suffixes           []string
-	Variables          []map[string]interface{}
+	Id                 string                 `json:"id"`
+	CoreId             string                 `json:"core_id"`
+	AdvancedKeyphrases []map[string]string    `json:"adv_keyphrases"`
+	Keyphrases         [][]string             `json:"keyphrases"`
+	Prefixes           []string               `json:"prefixes"`
+	Suffixes           []string               `json:"suffixes"`
+	Variables          map[string]interface{} `json:"variables"`
 }
 
 type Collection struct {
-	Id                 string
-	AdvancedKeyphrases map[string]string `json:"adv_keyphrases"`
-	Keyphrases         []string          `json:"keyphrases"`
-	Variables          []map[string]interface{}
+	Id                 string                 `json:"id"`
+	AdvancedKeyphrases map[string]string      `json:"adv_keyphrases"`
+	Keyphrases         []string               `json:"keyphrases"`
+	Variables          map[string]interface{} `json:"variables"`
 }
 
 type ParseRequest struct {
