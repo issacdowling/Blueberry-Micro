@@ -48,7 +48,7 @@ publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payl
 
 colour_collection = {
 	"id": "colours",
-	"keyphrases": {
+	"adv_keyphrases": {
 			"red": "",
 			"orange": "",
 			"yellow": "",
@@ -159,7 +159,7 @@ colour_collection = {
 
 boolean_collection = {
 	"id": "boolean",
-	"keyphrases": {
+	"adv_keyphrases": {
 		"on": "",
 		"true": "",
 		"yes": "",
@@ -196,7 +196,7 @@ boolean_collection = {
 
 set_collection = {
 	"id": "set",
-	"keyphrases": {
+	"adv_keyphrases": {
 		"set": "",
 		"turn": "",
 		"make": "",
@@ -205,7 +205,7 @@ set_collection = {
 
 get_collection = {
 	"id": "get",
-	"keyphrases": {
+	"adv_keyphrases": {
 		"get": "",
 		"what": "",
 		"whats": "",
