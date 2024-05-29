@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"regexp"
@@ -41,7 +40,7 @@ func main() {
 	var testIntentJson Intent
 	err := json.Unmarshal(testData, &testIntentJson)
 	if err != nil {
-		log.Panic(err)
+		bLogFatal(err.Error(), l)
 	}
 
 	intents[testIntentJson.Id] = testIntentJson
@@ -136,7 +135,7 @@ func parseIntent(text string) ([]Intent, string) {
 			if !checkPass {
 				intentPass = false
 			}
-			log.Println(checkLog)
+			bLog(checkLog, l)
 		}
 
 		if intent.Prefixes != nil {
@@ -144,7 +143,7 @@ func parseIntent(text string) ([]Intent, string) {
 			if !checkPass {
 				intentPass = false
 			}
-			log.Println(checkLog)
+			bLog(checkLog, l)
 		}
 
 		if intent.Suffixes != nil {
@@ -152,7 +151,7 @@ func parseIntent(text string) ([]Intent, string) {
 			if !checkPass {
 				intentPass = false
 			}
-			log.Println(checkLog)
+			bLog(checkLog, l)
 		}
 
 		if intentPass {
@@ -213,7 +212,7 @@ func collectionKeyphraseUnwrap(intent *Intent) {
 				if keyphrase[0] == '$' {
 					// keyphrase[1:] is used to remove the $ and just get the Collection name
 					if collection, ok := collections[keyphrase[1:]]; ok {
-						log.Printf("Inlining the Collection \"%s\" with the intent \"%s\"", keyphrase[1:], intent.Id)
+						bLog(fmt.Sprintf("Inlining the Collection \"%s\" with the intent \"%s\"", keyphrase[1:], intent.Id), l)
 						// If the newphrase next to the Collection is blank, set the newphrases to their original values in the Collection
 						// If it's not blank, set the newphrases from the Collection equal to the original newphrase.
 						if newphrase == "" {
@@ -230,7 +229,7 @@ func collectionKeyphraseUnwrap(intent *Intent) {
 						delete(keyphraseSet, keyphrase)
 
 					} else {
-						log.Printf("The Collection \"%s\" doesn't exist, but was called for by \"%s\"", keyphrase[1:], intent.Id)
+						bLog(fmt.Sprintf("The Collection \"%s\" doesn't exist, but was called for by \"%s\"", keyphrase[1:], intent.Id), l)
 					}
 				}
 			}
