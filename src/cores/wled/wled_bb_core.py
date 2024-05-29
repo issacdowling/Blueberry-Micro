@@ -108,9 +108,15 @@ for device in wled_devices:
   for name in device.names:
     all_device_names.append(name)
 
-state_keyphrases = boolean_collection["keywords"] + colours_collection["keywords"]
+state_keyphrases = boolean_collection["keyphrases"].copy().update(colours_collection["keyphrases"])
 
-log(boolean_collection["keywords"], log_data)
+log(boolean_collection["keyphrases"], log_data)
+
+device_keyphrases = {}
+
+for device in wled_devices:
+  for name in device.names:
+    device_keyphrases[name] = device.names[0]
 
 core_config = {
   "metadata": {
@@ -145,13 +151,11 @@ core_config = {
   },
   "intents": [{
     "id" : "setWLED",
-    "keywords": [all_device_names],
-    "collections": [["set"], ["boolean", "colours", "any_number"]],
+    "keyphrases": [{"$set": ""}, device_keyphrases, {"$boolean": "", "$colours": "", "$any_number": ""}],
     "core_id": core_id
   }]
 }
 
-print(all_device_names)
 log("Publishing Core Config", log_data)
 publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
 
@@ -168,7 +172,6 @@ while True:
   log("Waiting for input...", log_data)
   request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
   ## TODO: Actual stuff here, matching the right device from name, state, etc
-
   spoken_devices = getDeviceMatches(device_list=wled_devices, check_string=request_json["text"])
   spoken_states = getTextMatches(match_item=state_keyphrases, check_string=request_json["text"])
 
@@ -203,7 +206,7 @@ while True:
     elif boolean_collection["variables"].get(spoken_state) == False:
       device.off()
     # Colours / custom states
-    elif spoken_state in colours_collection["keywords"]:
+    elif spoken_state in colours_collection["keyphrases"]:
       device.setColour(colours_collection["variables"][spoken_state])
     # Set percentage of device (normally brightness, but could be anything else)
     else:
