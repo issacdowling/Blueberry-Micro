@@ -50,45 +50,6 @@ var remoteLogDisplay mqtt.MessageHandler = func(client mqtt.Client, message mqtt
 	}
 }
 
-var collectionHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
-	var receivedCollectionJson map[string]interface{}
-	err := json.Unmarshal(message.Payload(), &receivedCollectionJson)
-	if err != nil {
-		bLogFatal(err.Error(), l)
-	}
-	collections := receivedCollectionJson["collections"].([]interface{})
-
-	for _, collection := range collections {
-		id := collection.(map[string]interface{})["id"].(string)
-		collectionIds = append(collectionIds, id)
-		fmt.Println(id)
-
-		collectionToSendJSON, err := json.Marshal(collection)
-		if err != nil {
-			bLogFatal(err.Error(), l)
-		}
-
-		if token := client.Publish(fmt.Sprintf(collectionTopic, bloobConfig["uuid"], id), bloobQOS, true, collectionToSendJSON); token.Wait() && token.Error() != nil {
-			bLogFatal(token.Error().Error(), l)
-		}
-		broker.SetWill(fmt.Sprintf(fmt.Sprintf(collectionTopic, bloobConfig["uuid"], id), bloobConfig["uuid"]), "", bloobQOS, true)
-
-	}
-
-	// Publish the list of known collections
-	listCollectionsJson, err := json.Marshal(map[string]interface{}{
-		"loaded_collections": collectionIds,
-	})
-	if err != nil {
-		bLogFatal(err.Error(), l)
-	}
-	if token := client.Publish(fmt.Sprintf(collectionTopic, bloobConfig["uuid"], "list"), bloobQOS, true, listCollectionsJson); token.Wait() && token.Error() != nil {
-		bLogFatal(token.Error().Error(), l)
-	}
-	broker.SetWill(fmt.Sprintf("bloob/%s/collections/list", bloobConfig["uuid"]), "", bloobQOS, true)
-
-}
-
 var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
 	var instanceUUID string = bloobConfig["uuid"].(string)
 
