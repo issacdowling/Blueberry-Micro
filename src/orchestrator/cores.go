@@ -54,7 +54,7 @@ func pathIsCore(path string) (bool, error) {
 
 // Starts a Core that presently only has a path
 func createCore(corePath string, coreChannel chan<- Core) {
-	orchestratorProvidedArgs := []string{"--device-id", bloobConfig["uuid"].(string), "--host", mqttConfig.Host, "--port", string(mqttConfig.Port)}
+	orchestratorProvidedArgs := []string{"--device-id", bloobConfig["uuid"].(string), "--host", mqttConfig.Host, "--port", fmt.Sprintf("%v", mqttConfig.Port)}
 
 	if mqttConfig.Username != "" && mqttConfig.Password != "" {
 		orchestratorProvidedArgs = append(orchestratorProvidedArgs, "--user", mqttConfig.Username, "--pass", mqttConfig.Password)
