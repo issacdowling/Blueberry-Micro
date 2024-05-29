@@ -313,5 +313,5 @@ func exitCleanup(runningCores []Core, listOfCollections []string, client mqtt.Cl
 	if token := client.Subscribe(fmt.Sprintf("bloob/%s/#", bloobConfig["uuid"]), bloobQOS, clearTopics); token.Wait() && token.Error() != nil {
 		bLogFatal(token.Error().Error(), l)
 	}
-	time.Sleep(3000 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 }
