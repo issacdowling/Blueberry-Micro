@@ -57,7 +57,7 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 		newId := fmt.Sprintf("%d", rand.Uint32())
 		currentIds = append(currentIds, newId)
 		json.Unmarshal(message.Payload(), &wakewordReceivedJson)
-		bLog(fmt.Sprintf("Wakeword Received - %v - recording audio", wakewordReceivedJson["wakeword_id"].(string)), l)
+		bLog(fmt.Sprintf("Wakeword Received - %v (confidence %v) - recording audio", wakewordReceivedJson["wakeword_id"].(string), wakewordReceivedJson["confidence"].(string)), l)
 		playAudioFile(beginListeningAudio, instanceUUID, newId, client)
 		startRecordingAudio(instanceUUID, newId, client)
 	}
