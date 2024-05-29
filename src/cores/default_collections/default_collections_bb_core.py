@@ -48,24 +48,24 @@ publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payl
 
 colour_collection = {
 	"id": "colours",
-	"adv_keyphrases": {
-			"red": "",
-			"orange": "",
-			"yellow": "",
-			"green": "",
-			"blue": "",
-			"indigo": "",
-			"violet": "",
-			"teal": "",
-			"salmon": "",
-			"purple": "",
-			"pink": "",
-			"navy": "",
-			"lime": "",
-			"gold": "",
-			"cyan": "",
-			"coral": "",
-			"white": ""
+	"keyphrases": {
+			"red",
+			"orange",
+			"yellow",
+			"green",
+			"blue",
+			"indigo",
+			"violet",
+			"teal",
+			"salmon",
+			"purple",
+			"pink",
+			"navy",
+			"lime",
+			"gold",
+			"cyan",
+			"coral",
+			"white"
 	},
 	"substitute": None,
 		"variables": {
@@ -159,21 +159,21 @@ colour_collection = {
 
 boolean_collection = {
 	"id": "boolean",
-	"adv_keyphrases": {
-		"on": "",
-		"true": "",
-		"yes": "",
-		"agreed": "",
-		"agree": "",
-		"sure": "",
-		"alright": "",
-		"off": "",
-		"false": "",
-		"no": "",
-		"disagreed": "",
-		"disagree": "",
-		"nope": "",
-		"dont": ""
+	"keyphrases": {
+		"on",
+		"true",
+		"yes",
+		"agreed",
+		"agree",
+		"sure",
+		"alright",
+		"off",
+		"false",
+		"no",
+		"disagreed",
+		"disagree",
+		"nope",
+		"dont"
 	},
 	"variables": {
 		"on": True,
@@ -196,21 +196,21 @@ boolean_collection = {
 
 set_collection = {
 	"id": "set",
-	"adv_keyphrases": {
-		"set": "",
-		"turn": "",
-		"make": "",
+	"keyphrases": {
+		"set",
+		"turn",
+		"make",
 	}
 }
 
 get_collection = {
 	"id": "get",
-	"adv_keyphrases": {
-		"get": "",
-		"what": "",
-		"whats": "",
-		"is": "",
-		"tell me": ""
+	"keyphrases": {
+		"get",
+		"what",
+		"whats",
+		"is",
+		"tell me"
 	}
 }
 
