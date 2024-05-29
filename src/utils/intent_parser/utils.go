@@ -1,8 +1,18 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"strings"
+
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
+
+type logData struct {
+	uuid   string
+	client mqtt.Client
+	name   string
+}
 
 func bTextMatches(text string, checks []string) map[int]string {
 	matches := make(map[int]string)
@@ -50,4 +60,24 @@ func bTextReplace(text string, oldPhrase string, newPhrase string) (string, bool
 	}
 
 	return text, changeMade
+}
+
+func bLog(text string, ld logData) {
+	logMessage := fmt.Sprintf("[%s] %s", ld.name, text)
+	if ld.client != nil && ld.uuid != "" {
+		ld.client.Publish(fmt.Sprintf("bloob/%s/logs", ld.uuid), bloobQOS, false, logMessage)
+	} else {
+		logMessage = fmt.Sprintf("[NO MQTT LOGS] %s", logMessage)
+	}
+
+	log.Print(logMessage)
+}
+
+func bLogFatal(text string, ld logData) {
+	logMessage := fmt.Sprintf("!FATAL! [%s] %s", ld.name, text)
+
+	if ld.client != nil {
+		ld.client.Publish(fmt.Sprintf("bloob/%s/logs", ld.uuid), bloobQOS, false, logMessage)
+	}
+	log.Fatal(logMessage)
 }
