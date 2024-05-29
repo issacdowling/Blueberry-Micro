@@ -53,15 +53,19 @@ core_config = {
     "description": "Says hi back to you",
     "version": 0.1,
     "license": "AGPLv3"
-  },
-  "intents": [{
-    "id" : "hello_greet",
+  }
+}
+
+intents = [{
+    "id" : "helloGreet",
     "keyphrases": [["hello", "hi"]],
     "core_id": core_id
   }]
-}
 
 publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+
+for intent in intents:
+  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/intents/{intent['id']}", payload=json.dumps(intent), retain=True, hostname=arguments.host, port=arguments.port)
 
 # Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
 def on_exit(*args):

@@ -104,18 +104,21 @@ async def main():
                 "description": None,
                 "version": 1.0,
                 "license": "AGPLv3"
-            },
-            "intents": [
+            }
+        }
+
+        intents = [
                 {
                     "id": "controlTasmota",
-                    "keyphrases": [all_device_names, state_keyphrases],
-                    "collections": [["set"]],
+                    "keyphrases": [["$set"], all_device_names, state_keyphrases],
                     "core_id": core_id
                 }
             ]
-        }
 
         await client.publish(f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, qos=2)
+
+        for intent in intents:
+            await client.publish(f"bloob/{arguments.device_id}/cores/{core_id}/intents/{intent['id']}", payload=json.dumps(intent), retain=True, qos=2)
 
         
 

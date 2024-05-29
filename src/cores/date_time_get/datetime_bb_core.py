@@ -43,17 +43,19 @@ core_config = {
     "description": None,
     "version": 0.1,
     "license": "AGPLv3"
-  },
-  "intents": [{
-    "id" : "getDate",
-    "keyphrases": [["day", "date", "time"]],
-    "collections": [["get"]],
-    "core_id": core_id
-  }]
-  
+  }  
 }
 
+intents = [{
+    "id" : "getDate",
+    "keyphrases": [["$get"], ["day", "date", "time"]],
+    "core_id": core_id
+  }]
+
 publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+
+for intent in intents:
+  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/intents/{intent['id']}", payload=json.dumps(intent), retain=True, hostname=arguments.host, port=arguments.port)
 
 
 from datetime import datetime
