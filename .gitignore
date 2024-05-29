@@ -6,6 +6,10 @@ main
 orchestrator
 !orchestrator/
 
+#Ignores just the file, not the dir
+intent_parser
+!intent_parser/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
