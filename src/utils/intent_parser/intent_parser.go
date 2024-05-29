@@ -10,13 +10,12 @@ import (
 )
 
 type Intent struct {
-	Id            string
-	CoreId        string
-	Keyphrases    []map[string]string
-	CollectionIds [][]string `json:"collections"`
-	Prefixes      []string
-	Suffixes      []string
-	Variables     []map[string]interface{}
+	Id         string
+	CoreId     string
+	Keyphrases []map[string]string
+	Prefixes   []string
+	Suffixes   []string
+	Variables  []map[string]interface{}
 }
 
 type Collection struct {
@@ -34,9 +33,8 @@ func main() {
 	testData := []byte(`
 	{
 		"id": "setWLED",
-		"keyphrases": [{"hello there": "hi", "hey": ""}, {"time": "1", "times": "2"}],
+		"keyphrases": [{"hello there": "hi", "hey": ""}, {"time": "1", "times": "2"}, {"$devices": ""}],
 		"core_id": "wled",
-		"collections": [["devices"], ["set"]],
 		"prefixes": ["ask wled to", "do"],
 		"suffixes": ["thanks", "or else"]
 	}	
@@ -70,10 +68,10 @@ func main() {
 	}
 	collections[testCollectionJson.Id] = testCollectionJson
 
-	fmt.Println(testDataJson)
-	fmt.Println(testCollectionJson)
+	// fmt.Println(testDataJson)
+	// fmt.Println(testCollectionJson)
 
-	fmt.Println(parseIntent(preCleanText("ask wled to hello there, time, thanks"), []Intent{testDataJson}))
+	fmt.Println(parseIntent("ask wled to hello there, time, doorlight thanks ", []Intent{testDataJson}))
 
 	os.Exit(0)
 	//////////////
@@ -104,43 +102,38 @@ func main() {
 func parseIntent(text string, intents []Intent) ([]Intent, string) {
 	var potentialIntents []Intent
 	for _, intent := range intents {
-		// Clean the text, complete all necessary substitutions
+		// Clean the text, inline mentioned Collections, complete all necessary substitutions
 		tempText := preCleanText(text)
+		collectionKeyphraseUnwrap(&intent)
 		tempText = preProcessText(tempText, intent)
 
 		intentPass := true
+
 		// This should eventually be a for loop that adapts to any future checks...
 		// it's not that yet.
 		if intent.Keyphrases != nil {
-			checkPass, log := keyphraseCheck(tempText, intent)
+			checkPass, checkLog := keyphraseCheck(tempText, intent)
 			if !checkPass {
 				intentPass = false
 			}
-			fmt.Println(log)
+			log.Println(checkLog)
 		}
 
 		if intent.Prefixes != nil {
-			checkPass, log := prefixCheck(tempText, intent)
+			checkPass, checkLog := prefixCheck(tempText, intent)
 			if !checkPass {
 				intentPass = false
 			}
-			fmt.Println(log)
+			log.Println(checkLog)
 		}
 
 		if intent.Suffixes != nil {
-			checkPass, log := suffixCheck(tempText, intent)
+			checkPass, checkLog := suffixCheck(tempText, intent)
 			if !checkPass {
 				intentPass = false
 			}
-			fmt.Println(log)
+			log.Println(checkLog)
 		}
-
-		// if intent.Keyphrases != nil {
-		// 	checkPass, _ := keyphraseCheck(tempText, intent)
-		// 	if !checkPass {
-		// 		intentPass = false
-		// 	}
-		// }
 
 		if intentPass {
 			potentialIntents = append(potentialIntents, intent)
@@ -152,42 +145,19 @@ func parseIntent(text string, intents []Intent) ([]Intent, string) {
 }
 
 func preProcessText(text string, intent Intent) string {
-
-	// Definitely feels like all of these for loops should be somehow optimisable
-	if intent.CollectionIds != nil {
-		for _, setOfCollections := range intent.CollectionIds {
-			for _, collectionId := range setOfCollections {
-				if collection, ok := collections[collectionId]; ok {
-					if collection.Keyphrases != nil {
-						for _, setOfKeyphrases := range collection.Keyphrases {
-							for keyphrase, newphrase := range setOfKeyphrases {
-								text, _ = bTextReplace(text, keyphrase, newphrase)
-							}
-						}
-					}
-				} else {
-					fmt.Printf("The Collection \"%s\" doesn't exist, but was called for by %s", collectionId, intent.Id)
-				}
-			}
-
-		}
-	}
-
 	if intent.Keyphrases != nil {
 		for _, setOfKeyphrases := range intent.Keyphrases {
 			for keyphrase, newphrase := range setOfKeyphrases {
-				text, _ = bTextReplace(text, keyphrase, newphrase)
+				if newphrase != "" {
+					text, _ = bTextReplace(text, keyphrase, newphrase)
+				}
 			}
 		}
-
 	}
-	// Do the same for keyphrases in Collections eventually
 
 	return strings.TrimSpace(text)
-
 }
 
-// Will always return lowercase text
 func preCleanText(text string) string {
 	text = strings.ToLower(text)
 	replaceValues := map[string]string{
@@ -208,4 +178,36 @@ func preCleanText(text string) string {
 	text = regexp.MustCompile(`[^a-zA-Z0-9 ]+`).ReplaceAllString(text, "")
 
 	return strings.TrimSpace(text)
+}
+
+// intent needs to be a pointer because collectionUnwrap will modify the Intent
+func collectionKeyphraseUnwrap(intent *Intent) {
+
+	if intent.Keyphrases != nil {
+		// For each set of keyphrases, for each keyphrase, if it's a Collection ($),
+		// check that this Collection exists, then go through it and add each of its keyphrases and substitute
+		// values (keys and values) to the keyphraseSet of the Intent. Each Collection essentially just has one
+		// keyphraseset.
+		for _, keyphraseSet := range intent.Keyphrases {
+			for keyphrase := range keyphraseSet {
+				if keyphrase[0] == '$' {
+					// keyphrase[1:] is used to remove the $ and just get the Collection name
+					if collection, ok := collections[keyphrase[1:]]; ok {
+						log.Printf("Merging the Collection \"%s\" with the intent \"%s\"", keyphrase[1:], intent.Id)
+						for _, collectionKeyphrasePair := range collection.Keyphrases {
+							for keyphrase, newphrase := range collectionKeyphrasePair {
+								keyphraseSet[keyphrase] = newphrase
+							}
+
+						}
+						// Deletes the Collection name from the Intent's keywords
+						delete(keyphraseSet, keyphrase)
+					} else {
+						log.Printf("The Collection \"%s\" doesn't exist, but was called for by \"%s\"", keyphrase[1:], intent.Id)
+					}
+				}
+			}
+		}
+
+	}
 }
