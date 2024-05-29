@@ -40,11 +40,13 @@ func main() {
 	}	
 	`)
 
-	var testDataJson Intent
-	err := json.Unmarshal(testData, &testDataJson)
+	var testIntentJson Intent
+	err := json.Unmarshal(testData, &testIntentJson)
 	if err != nil {
 		log.Panic(err)
 	}
+
+	intents[testIntentJson.Id] = testIntentJson
 
 	testCollection := []byte(`{
 	"id": "devices",
@@ -71,7 +73,7 @@ func main() {
 	// fmt.Println(testDataJson)
 	// fmt.Println(testCollectionJson)
 
-	fmt.Println(parseIntent("ask wled to hello there, time, doorlight thanks ", []Intent{testDataJson}))
+	fmt.Println(parseIntent("ask wled to hello there, time, doorlight thanks "))
 
 	os.Exit(0)
 	//////////////
@@ -99,7 +101,7 @@ func main() {
 	fmt.Println(core_config, mqttHost, mqttPort)
 }
 
-func parseIntent(text string, intents []Intent) ([]Intent, string) {
+func parseIntent(text string) ([]Intent, string) {
 	var potentialIntents []Intent
 	for _, intent := range intents {
 		// Clean the text, inline mentioned Collections, complete all necessary substitutions
@@ -189,19 +191,31 @@ func collectionKeyphraseUnwrap(intent *Intent) {
 		// values (keys and values) to the keyphraseSet of the Intent. Each Collection essentially just has one
 		// keyphraseset.
 		for _, keyphraseSet := range intent.Keyphrases {
-			for keyphrase := range keyphraseSet {
+			for keyphrase, newphrase := range keyphraseSet {
 				if keyphrase[0] == '$' {
 					// keyphrase[1:] is used to remove the $ and just get the Collection name
 					if collection, ok := collections[keyphrase[1:]]; ok {
 						log.Printf("Merging the Collection \"%s\" with the intent \"%s\"", keyphrase[1:], intent.Id)
-						for _, collectionKeyphrasePair := range collection.Keyphrases {
-							for keyphrase, newphrase := range collectionKeyphrasePair {
-								keyphraseSet[keyphrase] = newphrase
+						// If the newphrase next to the Collection is blank, set the newphrases to their original values in the Collection
+						// If it's not blank, set the newphrases from the Collection equal to the original newphrase.
+						if newphrase == "" {
+							for _, collectionKeyphrasePair := range collection.Keyphrases {
+								for collectionKeyphrase, collectionNewphrase := range collectionKeyphrasePair {
+									keyphraseSet[collectionKeyphrase] = collectionNewphrase
+								}
 							}
+						} else {
+							for _, collectionKeyphrasePair := range collection.Keyphrases {
+								for collectionKeyphrase := range collectionKeyphrasePair {
+									keyphraseSet[collectionKeyphrase] = newphrase
+								}
 
+							}
 						}
+
 						// Deletes the Collection name from the Intent's keywords
 						delete(keyphraseSet, keyphrase)
+
 					} else {
 						log.Printf("The Collection \"%s\" doesn't exist, but was called for by \"%s\"", keyphrase[1:], intent.Id)
 					}
