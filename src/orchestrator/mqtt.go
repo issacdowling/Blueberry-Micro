@@ -90,7 +90,7 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 
 		if slices.Contains(currentIds, intentParserReceivedJson["id"].(string)) {
 			// We need an Error core instead
-			if _, ok := intentParserReceivedJson["intent_id"].(string); ok {
+			if _, ok := intentParserReceivedJson["intent_id"].(string); ok && strings.TrimSpace(intentParserReceivedJson["intent_id"].(string)) != "" {
 				bLog(fmt.Sprintf("Intent Parsed - %s - sending to core %s", intentParserReceivedJson["intent_id"].(string), intentParserReceivedJson["core_id"]), l)
 				// Get the core from the intent and send it there, then wait for the response by using a wildcard in the core topic,
 				// and using the ID to ensure that we're looking at the right response.
