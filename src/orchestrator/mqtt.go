@@ -99,6 +99,7 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 		if _, ok := instantIntents[wakewordReceived.WakewordId]; ok {
 			playAudioFile(instantIntentAudio, instanceUUID, newId, client)
 			intentParseText(fmt.Sprintf("$instant:%s", wakewordReceived.WakewordId), instanceUUID, newId, client)
+			setThinking(true, instanceUUID, client)
 		} else {
 			playAudioFile(beginListeningAudio, instanceUUID, newId, client)
 			startRecordingAudio(instanceUUID, newId, client)
@@ -136,7 +137,6 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 		json.Unmarshal(message.Payload(), &intentParserReceived)
 
 		if slices.Contains(currentIds, intentParserReceived.Id) {
-			setThinking(false, instanceUUID, client)
 			// We need an Error core instead
 			if strings.TrimSpace(intentParserReceived.IntentId) != "" {
 				bLog(fmt.Sprintf("Intent Parsed - %s - sending to core %s", intentParserReceived.IntentId, intentParserReceived.CoreId), l)
@@ -169,6 +169,7 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 		json.Unmarshal(message.Payload(), &ttsReceived)
 
 		if slices.Contains(currentIds, ttsReceived.Id) {
+			setThinking(false, instanceUUID, client)
 			bLog("Text Spoken", l)
 
 			playAudioFile(ttsReceived.Audio, instanceUUID, ttsReceived.Id, client)
