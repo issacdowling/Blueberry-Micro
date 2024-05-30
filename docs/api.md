@@ -91,7 +91,7 @@ Example Output:
 
 ## Wakeword detected
 
-Topic: **`bloob/<device-id>/wakeword/detected`**
+Topic: **`bloob/<device-id>/cores/wakeword_util/finished`**
 
 Example Output:
 ```
@@ -105,7 +105,7 @@ Example Output:
 
 ### Whole File
 
-Topic: **`bloob/<device-id>/audio_playback/play_file`**
+Topic: **`bloob/<device-id>/cores/audio_playback_util/play_file`**
 
 Example Input:
 ```
@@ -115,7 +115,7 @@ Example Input:
 * **What:** Publish audio to this topic, and the `audio_playback` util will play it back in its entirety
 
 ### Finished
-Topic: **`bloob/<device-id>/audio_playback/finished`**
+Topic: **`bloob/<device-id>/cores/audio_playback_util/finished`**
 
 Example Output:
 ```
@@ -128,7 +128,7 @@ Example Output:
 ## Audio Recording
 
 ### Speech
-Topic: **`bloob/<device-id>/audio_recorder/record_speech`**
+Topic: **`bloob/<device-id>/cores/audio_recorder_util/record_speech`**
 
 Example Input:
 ```
@@ -138,7 +138,7 @@ Example Input:
 * **What:** Tells the `audio_recorder` to begin recording, and stop once speech is no longer being detected
 
 ### Finished
-Topic: **`bloob/<device-id>/audio_recorder/finished`**
+Topic: **`bloob/<device-id>/cores/audio_recorder_util/finished`**
 
 Example Output:
 ```
@@ -151,7 +151,7 @@ Example Output:
 ## Transcription
 
 ### Transcribe
-Topic: **`bloob/<device-id>/stt/transcribe`**
+Topic: **`bloob/<device-id>/cores/stt_util/transcribe`**
 
 Example Input:
 ```
@@ -161,7 +161,7 @@ Example Input:
 * **What:** Tells the `stt` to transcribe your audio
 
 ### Finished
-Topic: **`bloob/<device-id>/stt/finished`**
+Topic: **`bloob/<device-id>/cores/stt_util/finished`**
 
 Example Output:
 ```
@@ -174,7 +174,7 @@ Example Output:
 ## Intent Parsing
 
 ### Parse
-Topic: **`bloob/<device-id>/intent_parser/run`**
+Topic: **`bloob/<device-id>/cores/intent_parser_util/run`**
 
 Example Input:
 ```
@@ -188,7 +188,7 @@ Example Input:
 	* The intent parser learns of intents through subscribing to all cores in the `loaded_cores` key mentioned in the `List Cores` section earlier, and checking them in the received config
 
 ### Finished
-Topic: **`bloob/<device-id>/intent_parser/finished`**
+Topic: **`bloob/<device-id>/cores/intent_parser_util/finished`**
 
 Example Output:
 ```
@@ -228,7 +228,7 @@ Example Output:
 
 ## TTS
 ### Run
-Topic: **`bloob/<device-id>/tts/run`**
+Topic: **`bloob/<device-id>/cores/tts_util/run`**
 
 Example Input:
 ```
@@ -238,7 +238,7 @@ Example Input:
 * **What:** Tells the `tts` to speak the given text
 
 ### Finished
-Topic: **`bloob/<device-id>/tts/finished`**
+Topic: **`bloob/<device-id>/cores/tts_util/finished`**
 
 Example Output:
 ```
