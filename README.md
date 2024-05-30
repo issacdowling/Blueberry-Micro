@@ -31,12 +31,36 @@ No configuration is necessary, however I expect to later find some configs that 
 While STT and TTS models can be downloaded automatically, Wakeword / Instant Intent words cannot, presently. Therefore, I suggest you go to the [OpenWakeWord Releases](https://github.com/dscripka/openWakeWord/releases/tag/v0.5.1) and download some models (specifically the ones ending in `.tflite`), which you'll put into `~/.config/bloob/ww/`. This directory is created automatically on first run (but remember, it won't pick up your voice without these models and a restart).
 
 ## Run:
-From the repo's root, run:
+
+This project needs you to build things yourself. Luckily, Go makes this easy.
+
+Arch: `sudo pacman -S go`
+Fedora: `sudo dnf install go`
+Debian/Ubuntu: `sudo apt install golang`
+
+Then, from the repo's root, you can just run:
 
 ```
 source .venv/bin/activate
+mosquitto -d
+./run.sh
+```
+Which will activate the Python .venv, launch Mosquitto, and build/launch the Orchestrator.
 
-mosquitto & python src/orchestrator/main.py 
+If you'd rather build things yourself, or not build them on every launch, or any other situation where you want to launch things more manually (which, realistically, is most of the time), you can do your venv and MQTT stuff, build the Go things, then just run `.src/orchestrator/orchestrator`.
+
+### Building
+
+All you should need on your system is Golang.
+
+```
+cd src/orchestrator
+go build -o orchestrator orchestrator.go mqtt.go utils.go cores.go
+
+cd ../utils/intent_parser
+go build -o intent_parser_util_bb_core intent_parser_util.go checks.go mqtt.go utils.go
+
+cd ../../../
 ```
 
 # Tips
@@ -50,3 +74,4 @@ Each Bloob instance will log to `bloob/device-id/logs`, so subscribing to `bloob
 ## STT
 Using a `large` Whisper model causes unusual and significant slowdowns just before transcription.
 The default is distil-small (which is not the smallest), and this worked near-instantly for me, however I choose to use `Systran/faster-distil-whisper-medium.en` due to the higher quality transcription, though this may be unreasonably slow on less powerful machines.
+You can use any Whisper model compatible with faster-whisper.
