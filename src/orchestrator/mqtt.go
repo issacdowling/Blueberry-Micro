@@ -186,7 +186,6 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 
 var instantIntentRegister mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
 	var receivedInstantIntents map[string]interface{}
-	fmt.Println(string(message.Payload()))
 	err := json.Unmarshal(message.Payload(), &receivedInstantIntents)
 	if err != nil {
 		bLogFatal(fmt.Sprintf("Failed to parse received list of Instant Intents: %s", err.Error()), l)
