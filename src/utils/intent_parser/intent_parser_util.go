@@ -175,7 +175,7 @@ func parseIntent(text string) IntentParse {
 		}
 
 		if intentPass {
-			potentialIntents = append(potentialIntents, IntentParse{IntentId: intent.Id, CheckDepth: intentCheckDepth, ParsedText: textToParse})
+			potentialIntents = append(potentialIntents, IntentParse{IntentId: intent.Id, CheckDepth: intentCheckDepth, ParsedText: textToParse, CoreId: intent.CoreId})
 		}
 
 	}
