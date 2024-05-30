@@ -38,6 +38,7 @@
 
 * `host` and `port` are the hostname and port of your MQTT broker
 * `user` and `password` are the username and password to connect with
+* `port` is an integer, not a string!
 
 ## Orchestrator
 ```
