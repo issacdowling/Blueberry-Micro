@@ -22,6 +22,8 @@ var broker *mqtt.ClientOptions
 var deviceId *string
 var friendlyName string = "Intent Parser"
 
+var instantIntents map[string]string = make(map[string]string)
+
 var l logData
 
 func main() {

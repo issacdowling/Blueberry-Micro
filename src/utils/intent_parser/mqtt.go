@@ -16,6 +16,7 @@ var onConnect mqtt.OnConnectHandler = func(client mqtt.Client) {
 }
 
 const parseResponseTopic string = "bloob/%s/cores/intent_parser_util/finished"
+const instantIntentListTopic string = "bloob/%s/instant_intents"
 
 var parseHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
 	var currentParse ParseRequest
@@ -59,4 +60,17 @@ var intentHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Me
 	}
 	bLog(fmt.Sprintf("Received intent \"%s\" for Core \"%s\"", receivedIntent.Id, receivedIntent.CoreId), l)
 	intents[receivedIntent.Id] = receivedIntent
+
+	// if there are wakewords associated with an Intent, register those
+	if receivedIntent.Wakewords != nil {
+		for _, wakeword := range receivedIntent.Wakewords {
+			fmt.Println(wakeword)
+			instantIntents[wakeword] = receivedIntent.Id
+		}
+		instantIntentListJson, err := json.Marshal(instantIntents)
+		if err != nil {
+			bLogFatal(fmt.Sprintf("Failed to encode the list of Instant Intents: %s", err.Error()), l)
+		}
+		client.Publish(fmt.Sprintf(instantIntentListTopic, *deviceId), bloobQOS, true, instantIntentListJson)
+	}
 }
