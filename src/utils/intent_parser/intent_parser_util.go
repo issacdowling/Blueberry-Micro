@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"slices"
 	"strings"
 	"syscall"
 
@@ -113,6 +114,7 @@ func parseIntent(text string) IntentParse {
 	textToParse := preCleanText(text)
 	bLog(fmt.Sprintf("Cleaned text to: \"%s\"", textToParse), l)
 	for _, intent := range intents {
+
 		var intentCheckDepth int = 0
 		// Clean the text, inline mentioned Collections, complete all necessary substitutions
 		bLog(intent.Id, l)
@@ -266,6 +268,7 @@ func collectionKeyphraseUnwrap(intent Intent) {
 						}
 
 						// Deletes the Collection name from the Intent's keyphrases
+						// This is necessary to prevent the Collection being RE-inlined for every parse, infinitely growing the Intent.
 						delete(keyphraseSet, keyphrase)
 
 					} else {
@@ -297,6 +300,10 @@ func collectionKeyphraseUnwrap(intent Intent) {
 							}
 						}
 
+						// Find the Collection name in this slice, then replace the slice with a version excluding that keyphrase.
+						// This is necessary to prevent the Collection being RE-inlined for every parse, infinitely growing the Intent.
+						indexOfKeyphrase := slices.Index(intent.Keyphrases[keyphraseSetIndex], keyphrase)
+						intent.Keyphrases[keyphraseSetIndex] = append(intent.Keyphrases[keyphraseSetIndex][:indexOfKeyphrase], intent.Keyphrases[keyphraseSetIndex][indexOfKeyphrase+1:]...)
 					} else {
 						bLog(fmt.Sprintf("The Collection \"%s\" doesn't exist, but was called for by \"%s\"", keyphrase[1:], intent.Id), l)
 					}
