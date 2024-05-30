@@ -150,5 +150,5 @@ while True:
       audio_to_send = base64.b64encode(wf.read()).decode()
 
     log("Saved audio", log_data)
-    publish.single(topic = f"bloob/{arguments.device_id}/cores/audio_recorder_util/finished", payload= json.dumps({"id": request_id, "audio" : audio_to_send}), hostname = arguments.host, port = arguments.port, qos=2)
+    publish.single(topic = f"bloob/{arguments.device_id}/cores/audio_recorder_util/finished", payload= json.dumps({"id": request_id, "audio" : audio_to_send}), hostname = arguments.host, port = arguments.port, qos=1)
     break

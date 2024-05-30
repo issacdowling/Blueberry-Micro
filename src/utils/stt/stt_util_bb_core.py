@@ -134,7 +134,7 @@ def on_message(client, _, message):
   except KeyError:
     log("Couldn't find the correct keys in recieved JSON", log_data)
   log("Publishing output", log_data)
-  stt_mqtt.publish(f"bloob/{arguments.device_id}/cores/stt_util/finished", json.dumps({"id": msg_json["id"], "text": transcription}), qos=2)
+  stt_mqtt.publish(f"bloob/{arguments.device_id}/cores/stt_util/finished", json.dumps({"id": msg_json["id"], "text": transcription}), qos=1)
 
 stt_mqtt = mqtt.Client()
 stt_mqtt.connect(arguments.host, arguments.port)

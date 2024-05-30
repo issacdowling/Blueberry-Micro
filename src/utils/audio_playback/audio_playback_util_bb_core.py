@@ -104,7 +104,7 @@ async def connect():
 				if(message_payload.get('audio') != None and message_payload.get('id') != None):
 					play(message_payload["audio"])
 
-					await client.publish(f"bloob/{arguments.device_id}/cores/audio_playback_util/finished", json.dumps({"id": message_payload.get('id')}), qos=2)
+					await client.publish(f"bloob/{arguments.device_id}/cores/audio_playback_util/finished", json.dumps({"id": message_payload.get('id')}), qos=1)
 			except:
 				log("Error with payload.", log_data)
 

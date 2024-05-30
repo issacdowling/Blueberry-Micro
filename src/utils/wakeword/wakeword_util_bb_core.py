@@ -148,7 +148,7 @@ while True:
     ## Upon detection:
     if confidence >= 0.5:
 
-      publish.single(topic = f"bloob/{arguments.device_id}/cores/wakeword_util/finished", payload = json.dumps({"wakeword_id": model_name, "confidence": str(prediction[model_name])}), hostname = arguments.host, port = arguments.port, qos=2)
+      publish.single(topic = f"bloob/{arguments.device_id}/cores/wakeword_util/finished", payload = json.dumps({"wakeword_id": model_name, "confidence": str(prediction[model_name])}), hostname = arguments.host, port = arguments.port, qos=1)
       log(f"Wakeword Detected: {model_name}, with confidence of {prediction[model_name]}", log_data)
       ### Feeds silence for "4 seconds" to OpenWakeWord so that it doesn't lead to repeat activations
       ### See for yourself: https://github.com/dscripka/openWakeWord/issues/37

@@ -126,7 +126,7 @@ async def connect():
 					encoded = base64.b64encode(f.read())
 					str_encoded = encoded.decode()
 					log(f"Publishing Output", log_data)
-				await client.publish(f"bloob/{arguments.device_id}/cores/tts_util/finished", json.dumps({"id": message_payload.get('id'), "audio":str_encoded}), qos=2)
+				await client.publish(f"bloob/{arguments.device_id}/cores/tts_util/finished", json.dumps({"id": message_payload.get('id'), "audio":str_encoded}), qos=1)
 
 
 asyncio.run(connect())
