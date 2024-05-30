@@ -102,7 +102,7 @@ func main() {
 				},
 				"mqtt": map[string]interface{}{
 					"host":     "localhost",
-					"port":     "1883",
+					"port":     1883,
 					"user":     "",
 					"password": "",
 				},
