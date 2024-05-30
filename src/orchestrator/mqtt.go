@@ -95,9 +95,16 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 		json.Unmarshal(message.Payload(), &wakewordReceived)
 		// TODO: Add Instant Intent support
 		bLog(fmt.Sprintf("Wakeword Received - %v (confidence %v) - recording audio", wakewordReceived.WakewordId, wakewordReceived.Confidence), l)
-		playAudioFile(beginListeningAudio, instanceUUID, newId, client)
-		startRecordingAudio(instanceUUID, newId, client)
-		setRecording(true, instanceUUID, client)
+
+		if _, ok := instantIntents[wakewordReceived.WakewordId]; ok {
+			playAudioFile(instantIntentAudio, instanceUUID, newId, client)
+			intentParseText(fmt.Sprintf("$instant:%s", wakewordReceived.WakewordId), instanceUUID, newId, client)
+		} else {
+			playAudioFile(beginListeningAudio, instanceUUID, newId, client)
+			startRecordingAudio(instanceUUID, newId, client)
+			setRecording(true, instanceUUID, client)
+		}
+
 	}
 
 	if strings.Contains(message.Topic(), "audio_recorder_util/finished") {
@@ -169,6 +176,19 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 
 	}
 
+}
+
+var instantIntentRegister mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
+	var receivedInstantIntents map[string]interface{}
+	fmt.Println(string(message.Payload()))
+	err := json.Unmarshal(message.Payload(), &receivedInstantIntents)
+	if err != nil {
+		bLogFatal(fmt.Sprintf("Failed to parse received list of Instant Intents: %s", err.Error()), l)
+	}
+	bLog(fmt.Sprintf("Received instant intents: %s", receivedInstantIntents), l)
+	for wakeword, intentId := range receivedInstantIntents {
+		instantIntents[wakeword] = intentId.(map[string]interface{})["id"].(string)
+	}
 }
 
 var clearTopics mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {

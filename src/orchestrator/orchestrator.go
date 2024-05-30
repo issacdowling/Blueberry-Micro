@@ -20,6 +20,8 @@ var errorAudio string
 var instantIntentAudio string
 var bloobConfig map[string]interface{}
 
+var instantIntents map[string]string = make(map[string]string)
+
 var mqttConfig MqttConfig
 var broker *mqtt.ClientOptions
 
@@ -205,6 +207,10 @@ func main() {
 		bLogFatal(token.Error().Error(), l)
 	}
 	if token := client.SubscribeMultiple(subscribeMqttTopics, pipelineMessageHandler); token.Wait() && token.Error() != nil {
+		bLogFatal(token.Error().Error(), l)
+	}
+
+	if token := client.Subscribe(fmt.Sprintf(instantIntentTopic, bloobConfig["uuid"].(string)), bloobQOS, instantIntentRegister); token.Wait() && token.Error() != nil {
 		bLogFatal(token.Error().Error(), l)
 	}
 

@@ -20,6 +20,7 @@ const transcribeAudioTopic string = "bloob/%s/cores/stt_util/transcribe"
 const intentParseTopic string = "bloob/%s/cores/intent_parser_util/run"
 const ttsTopic string = "bloob/%s/cores/tts_util/run"
 const coreTopic string = "bloob/%s/cores/%s/run"
+const instantIntentTopic string = "bloob/%s/instant_intents"
 
 const thinkingTopic string = "bloob/%s/thinking"
 const recordingTopic string = "bloob/%s/recording"
