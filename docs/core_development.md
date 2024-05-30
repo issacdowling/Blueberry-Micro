@@ -44,13 +44,7 @@ core_config = {
         }
       ]
     }
-  },
-  "intents": [{
-    "id" : "setWLED",
-    "core_id": core_id,
-    "keyphrases": [all_device_names],
-    "collections": [["set"], ["boolean", "colours", "any_number"]]
-  }]
+  }
 }
 ```
 
@@ -67,15 +61,32 @@ core_config = {
 * `version` is your Core's version. Optional but suggested
 * `license` is your Core's license. It is _literally_ optional, nothing should break if you don't add it, but ***YOU SHOULD ADD A LICENSE, EVEN IF IT'S JUST "Proprietary", SO PEOPLE KNOW WHAT THEY CAN/CAN'T DO WITH YOUR CODE!***
 
-#### Intents
 
-**The `intents` object is a list of Intents.**
 
-*But what's an Intent?*
+## Intents
+
+```python
+intents = [
+  {
+  "id" : "setWLEDBoolOrColour",
+  "core_id": core_id,
+  "keyphrases": [["$set"], all_device_names, ["$boolean", "$colours"]]
+  },
+  {
+  "id" : "setWLEDBrightness",
+  "core_id": core_id,
+  "keyphrases": [["$set"], all_device_names],
+  "numbers": {"any": "any"}
+  }
+]
+```
+
+*What's an Intent?*
 
 * `id` is like `core_id` but for your intent
 * `core_id` is the `core_id` of the Core that's registering this intent, as it's how we know who to send the info to once we've parsed it.
-* `keyphrases` must be a two-dimensional list; there's a first list which wraps your lists of keyphrases, and an arbitrary number of lists within. Each list within will be checked, and must contain at least one match. For example, `[["test"]]` will be matched by the intent parser if `"test"` is in your speech. `[["test", "hi"]]` will be matched if EITHER `"test"` or `"hi"` is in your speech. `[["test"], ["hi"]]` will be matched if `"test"` AND `"hi"` are in your speech. Everything within each list should just be a string of alphanumeric characters (I filter the input, and any special characters from the STT are stripped), and one that you expect that the user would say to call your Core. Adding common false positives (like "dolite" for "door light", in my case") may help.
-* `collections` has a very similar format to `keyphrases`, however the strings are referencing the name of Collections. Otherwise, the checking logic is identical, so you can learn more about this in the Collections section.
+* `keyphrases` must be a two-dimensional list; there's a first list which wraps your lists of keyphrases, and an arbitrary number of lists within. Each list within will be checked, and must contain at least one match. For example, `[["test"]]` will be matched by the intent parser if `"test"` is in your speech. `[["test", "hi"]]` will be matched if EITHER `"test"` or `"hi"` is in your speech. `[["test"], ["hi"]]` will be matched if `"test"` AND `"hi"` are in your speech. Everything within each list should just be a string of alphanumeric characters (I filter the input, and any special characters from the STT are stripped), and one that you expect that the user would say to call your Core. Adding common false positives (like "dolite" for "door light", in my case") may help. You can also use keyphrases from a Collection by referring to them using `$name` in your keyphrase lists. Every keyphrase in this Collection will be added to the list that you put this value in.
+* `adv_keyphrases` is an alternative to `keyphrases` (though they can be used in the same Intent if you wish). It detects the words that you specify, and allows you to substitute them for something else _before_ passing along to your Core. They follow this format (ignore the irrelevant words): `[{"hello there": "hi", "morning": ""}, {"good evening": "", "car": "automobile"}]`. As with regular `keyphrases`, we wrap everything in a list but inside - instead of more lists - there are objects. At least one key from within this object must be found in your text for these checks to pass, which we already know. What's new is that if I said `"hello there"` in my text, it would be replaced with `"hi"`, but if I said `"morning"`, it would still be detected, yet not replaced since the value is an empty string (`""`). They support Collections just as `keyphrases` does - as the key - except a blank value will leave substitutions up to the Collection, and a custom value will substitute that value in for every detection of something within that Collection.
 * `prefixes` allows you to specify a string that the user's speech must begin with in order for your Core to be selected. Unlike with keyphrases, where requesting "test" wouldn't match with "tests" (in other words, we're checking for full words), the prefix option just checks for the string (so, "test" would match the user starting with "tests"). This is a single list, and any string within that list matching will cause this section to pass. For example: `prefixes: ["test", "other thing"]` would activate if I said "test this thing", "other thing needs testing", or "tests are cool", but not if I said "this is a test", or "i need one more other thing"
 * `suffixes` is exactly the same as `prefixes`, except looking for a string at the _end_ of the user's speech.
+
