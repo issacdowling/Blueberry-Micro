@@ -7,7 +7,7 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-const bloobQOS byte = 2
+const bloobQOS byte = 1
 
 var collectionIds []string
 
@@ -30,7 +30,9 @@ var parseHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Mes
 	if err != nil {
 		bLogFatal(fmt.Sprintf("Could not JSON encode Intent Parse response: %s", err.Error()), l)
 	}
-	client.Publish(fmt.Sprintf(parseResponseTopic, *deviceId), bloobQOS, false, parseResponseToSend)
+	if token := client.Publish(fmt.Sprintf(parseResponseTopic, *deviceId), bloobQOS, false, parseResponseToSend); token.Wait() && token.Error() != nil {
+		bLogFatal(token.Error().Error(), l)
+	}
 
 	bLog(fmt.Sprintf("Intent: %s, Core: %s, Parsed Text: %s", intentToFire, coreToFire, parsedText), l)
 

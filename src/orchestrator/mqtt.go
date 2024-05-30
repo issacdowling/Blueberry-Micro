@@ -11,7 +11,7 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-const bloobQOS byte = 2
+const bloobQOS byte = 1
 
 var wakewordReceived WakewordResponse
 
@@ -124,7 +124,7 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 
 		if slices.Contains(currentIds, intentParserReceived.Id) {
 			// We need an Error core instead
-			if intentParserReceived.IntentId != "" && strings.TrimSpace(intentParserReceived.IntentId) != "" {
+			if strings.TrimSpace(intentParserReceived.IntentId) != "" {
 				bLog(fmt.Sprintf("Intent Parsed - %s - sending to core %s", intentParserReceived.IntentId, intentParserReceived.CoreId), l)
 				// Get the core from the intent and send it there, then wait for the response by using a wildcard in the core topic,
 				// and using the ID to ensure that we're looking at the right response.
