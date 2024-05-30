@@ -146,7 +146,7 @@ while True:
   for model_name in prediction.keys():
     confidence = prediction[model_name]
     ## Upon detection:
-    if confidence >= 0.5:
+    if confidence >= 0.6:
 
       publish.single(topic = f"bloob/{arguments.device_id}/cores/wakeword_util/finished", payload = json.dumps({"wakeword_id": model_name, "confidence": str(prediction[model_name])}), hostname = arguments.host, port = arguments.port, qos=1)
       log(f"Wakeword Detected: {model_name}, with confidence of {prediction[model_name]}", log_data)
