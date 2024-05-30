@@ -118,6 +118,9 @@ func parseIntent(text string) IntentParse {
 	if strings.HasPrefix(text, "$instant:") {
 		if intent, ok := instantIntents[text[9:]]; ok {
 			return IntentParse{IntentId: intent.Id, CoreId: intent.CoreId, ParsedText: text}
+		} else {
+			bLog(fmt.Sprintf("Instant Intent word \"%s\" called for, but not registered", text[9:]), l)
+			return IntentParse{}
 		}
 	}
 	textToParse := preCleanText(text)
