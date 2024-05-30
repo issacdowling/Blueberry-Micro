@@ -8,7 +8,7 @@ import (
 )
 
 // We can assume that all words have been swapped if needed, so we only check for the swapped versions.
-func keyphraseCheck(text string, intent Intent) (bool, string) {
+func keyphraseCheck(text string, intent Intent) (bool, int, string) {
 	var setsPassed int = 0
 	var setsNeeded int = 0
 
@@ -57,56 +57,56 @@ func keyphraseCheck(text string, intent Intent) (bool, string) {
 	}
 
 	if setsPassed == setsNeeded {
-		return true, fmt.Sprintf("%s's keyphrase checks passed: %d/%d - \"%v\"", intent.Id, setsPassed, setsNeeded, allKeyphraseMatches)
+		return true, setsPassed, fmt.Sprintf("%s's keyphrase checks passed: %d/%d - \"%v\"", intent.Id, setsPassed, setsNeeded, allKeyphraseMatches)
 	} else {
-		return false, fmt.Sprintf("%s's keyphrase checks failed: %d/%d - \"%v\"", intent.Id, setsPassed, setsNeeded, allKeyphraseMatches)
+		return false, setsPassed, fmt.Sprintf("%s's keyphrase checks failed: %d/%d - \"%v\"", intent.Id, setsPassed, setsNeeded, allKeyphraseMatches)
 	}
 
 }
 
-func prefixCheck(text string, intent Intent) (bool, string) {
+func prefixCheck(text string, intent Intent) (bool, int, string) {
 	for _, prefix := range intent.Prefixes {
 		splitPrefix := strings.Split(prefix, " ")
 		if len(splitPrefix) == 1 {
 			// If the single-word checked prefix is the first word
 			if prefix == strings.Split(text, " ")[0] {
-				return true, fmt.Sprintf("%s's prefix check passed, \"%v\" found", intent.Id, prefix)
+				return true, 1, fmt.Sprintf("%s's prefix check passed, \"%v\" found", intent.Id, prefix)
 			}
 		} else {
 			if strings.HasPrefix(text, prefix) {
-				return true, fmt.Sprintf("%s's prefix check passed, \"%v\" found", intent.Id, prefix)
+				return true, 1, fmt.Sprintf("%s's prefix check passed, \"%v\" found", intent.Id, prefix)
 			}
 		}
 
 	}
-	return false, fmt.Sprintf("%s's prefix check failed, none of \"%v\" found", intent.Id, intent.Prefixes)
+	return false, 0, fmt.Sprintf("%s's prefix check failed, none of \"%v\" found", intent.Id, intent.Prefixes)
 }
 
-func suffixCheck(text string, intent Intent) (bool, string) {
+func suffixCheck(text string, intent Intent) (bool, int, string) {
 	for _, suffix := range intent.Suffixes {
 		splitSuffix := strings.Split(suffix, " ")
 		splitText := strings.Split(text, " ")
 		if len(splitSuffix) == 1 {
 			// If the single-word checked prefix is the first word
 			if suffix == splitText[len(splitText)-1] {
-				return true, fmt.Sprintf("%s's suffix check passed, \"%v\" found", intent.Id, suffix)
+				return true, 1, fmt.Sprintf("%s's suffix check passed, \"%v\" found", intent.Id, suffix)
 			}
 		} else {
 			if strings.HasPrefix(text, suffix) {
-				return true, fmt.Sprintf("%s's suffix check passed, \"%v\" found", intent.Id, suffix)
+				return true, 1, fmt.Sprintf("%s's suffix check passed, \"%v\" found", intent.Id, suffix)
 			}
 		}
 
 	}
-	return false, fmt.Sprintf("%s's suffix check passed, none of %v found", intent.Id, intent.Suffixes)
+	return false, 1, fmt.Sprintf("%s's suffix check passed, none of %v found", intent.Id, intent.Suffixes)
 }
 
-func numberCheck(text string, intent Intent) (bool, string) {
+func numberCheck(text string, intent Intent) (bool, int, string) {
 	for _, word := range strings.Split(text, " ") {
 		_, err := strconv.Atoi(word)
 		if err == nil {
-			return true, fmt.Sprintf("Number check passed: %v found", word)
+			return true, 1, fmt.Sprintf("Number check passed: %v found", word)
 		}
 	}
-	return false, "Number check failed: none found"
+	return false, 1, "Number check failed: none found"
 }

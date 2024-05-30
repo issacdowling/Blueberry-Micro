@@ -24,9 +24,9 @@ var parseHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Mes
 		bLogFatal(err.Error(), l)
 	}
 
-	intentToFire, coreToFire, parsedText := parseIntent(currentParse.Text)
+	intentParsed := parseIntent(currentParse.Text)
 
-	parseResponseToSend, err := json.Marshal(ParseResponse{Id: currentParse.Id, Text: parsedText, CoreId: coreToFire, IntentId: intentToFire})
+	parseResponseToSend, err := json.Marshal(ParseResponse{Id: currentParse.Id, Text: intentParsed.ParsedText, CoreId: intentParsed.Intent.CoreId, IntentId: intentParsed.Intent.Id})
 	if err != nil {
 		bLogFatal(fmt.Sprintf("Could not JSON encode Intent Parse response: %s", err.Error()), l)
 	}
@@ -34,7 +34,7 @@ var parseHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Mes
 		bLogFatal(token.Error().Error(), l)
 	}
 
-	bLog(fmt.Sprintf("Intent: %s, Core: %s, Parsed Text: %s", intentToFire, coreToFire, parsedText), l)
+	bLog(fmt.Sprintf("Intent: %s, Core: %s, Parsed Text: %s", intentParsed.Intent.Id, intentParsed.Intent.CoreId, intentParsed.ParsedText), l)
 
 }
 

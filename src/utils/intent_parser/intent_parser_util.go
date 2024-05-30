@@ -106,14 +106,14 @@ func main() {
 	<-doneChannel
 }
 
-func parseIntent(text string) (string, string, string) {
-	var potentialIntents []Intent
-	var potentialIntentText []string
+func parseIntent(text string) IntentParse {
+	var potentialIntents []IntentParse
 
 	bLog(fmt.Sprintf("Received request to parse \"%s\"", text), l)
 	textToParse := preCleanText(text)
 	bLog(fmt.Sprintf("Cleaned text to: \"%s\"", textToParse), l)
 	for _, intent := range intents {
+		var intentCheckDepth int = 0
 		// Clean the text, inline mentioned Collections, complete all necessary substitutions
 		bLog(intent.Id, l)
 		collectionKeyphraseUnwrap(&intent)
@@ -125,50 +125,73 @@ func parseIntent(text string) (string, string, string) {
 		// This should eventually be a for loop that adapts to any future checks...
 		// it's not that yet.
 		if intent.AdvancedKeyphrases != nil || intent.Keyphrases != nil {
-			checkPass, checkLog := keyphraseCheck(textToParse, intent)
+			checkPass, checkDepth, checkLog := keyphraseCheck(textToParse, intent)
 			if !checkPass {
 				intentPass = false
 			}
+			intentCheckDepth += checkDepth
 			bLog(checkLog, l)
 		}
 
 		if intent.Prefixes != nil {
-			checkPass, checkLog := prefixCheck(textToParse, intent)
+			checkPass, checkDepth, checkLog := prefixCheck(textToParse, intent)
 			if !checkPass {
 				intentPass = false
 			}
+			intentCheckDepth += checkDepth
 			bLog(checkLog, l)
 		}
 
 		if intent.Suffixes != nil {
-			checkPass, checkLog := suffixCheck(textToParse, intent)
+			checkPass, checkDepth, checkLog := suffixCheck(textToParse, intent)
 			if !checkPass {
 				intentPass = false
 			}
+			intentCheckDepth += checkDepth
 			bLog(checkLog, l)
 		}
 
 		if intent.Numbers != nil {
-			checkPass, checkLog := numberCheck(textToParse, intent)
+			checkPass, checkDepth, checkLog := numberCheck(textToParse, intent)
 			if !checkPass {
 				intentPass = false
 			}
+			intentCheckDepth += checkDepth
 			bLog(checkLog, l)
 		}
 
 		if intentPass {
-			potentialIntents = append(potentialIntents, intent)
-			potentialIntentText = append(potentialIntentText, textToParse)
+			potentialIntents = append(potentialIntents, IntentParse{Intent: intent, CheckDepth: intentCheckDepth, ParsedText: textToParse})
 		}
 
 	}
 
 	if len(potentialIntents) != 1 {
-		bLog(fmt.Sprintf("Intents != 1: %v", potentialIntents), l)
-		return "", "", ""
+		// Check through the intents to see if one has more detailed checks than the others. If so,
+		// it's likely that this was the intended intent.
+		bLog(fmt.Sprintf("Attempting to resolve detection of multiple Intents: %v", potentialIntents), l)
+		var highestDepth int = 0
+		var mostLikelyIntentParse IntentParse
+		var resolved bool = true
+		for _, intentParse := range potentialIntents {
+			bLog(fmt.Sprintf("%s with depth %d", intentParse.Intent.Id, intentParse.CheckDepth), l)
+			if intentParse.CheckDepth > highestDepth {
+				mostLikelyIntentParse = intentParse
+			} else if intentParse.CheckDepth == highestDepth {
+				bLog("Multiple Intents with the same check depth found, can't resolve Intent.", l)
+				resolved = false
+				break
+			}
+		}
+		if resolved {
+			return mostLikelyIntentParse
+		} else {
+			return IntentParse{}
+		}
+
 	}
 
-	return potentialIntents[0].Id, potentialIntents[0].CoreId, potentialIntentText[0]
+	return potentialIntents[0]
 }
 
 func preProcessText(text string, intent Intent) string {

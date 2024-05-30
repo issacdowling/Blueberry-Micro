@@ -45,6 +45,12 @@ type ParseResponse struct {
 	CoreId   string `json:"core_id"`
 }
 
+type IntentParse struct {
+	Intent     Intent
+	CheckDepth int
+	ParsedText string
+}
+
 func bTextMatches(text string, checks []string) map[int]string {
 	matches := make(map[int]string)
 	for _, check := range checks {
