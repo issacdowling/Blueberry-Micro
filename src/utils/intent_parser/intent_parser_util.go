@@ -22,7 +22,7 @@ var broker *mqtt.ClientOptions
 var deviceId *string
 var friendlyName string = "Intent Parser"
 
-var instantIntents map[string]string = make(map[string]string)
+var instantIntents map[string]Intent = make(map[string]Intent)
 
 var l logData
 
@@ -113,6 +113,13 @@ func parseIntent(text string) IntentParse {
 	var potentialIntents []IntentParse
 
 	bLog(fmt.Sprintf("Received request to parse \"%s\"", text), l)
+
+	// Handle Instant Intents
+	if strings.HasPrefix(text, "$instant:") {
+		if intent, ok := instantIntents[text[9:]]; ok {
+			return IntentParse{IntentId: intent.Id, CoreId: intent.CoreId, ParsedText: text}
+		}
+	}
 	textToParse := preCleanText(text)
 	bLog(fmt.Sprintf("Cleaned text to: \"%s\"", textToParse), l)
 	for _, intent := range intents {
@@ -165,7 +172,7 @@ func parseIntent(text string) IntentParse {
 		}
 
 		if intentPass {
-			potentialIntents = append(potentialIntents, IntentParse{Intent: intent, CheckDepth: intentCheckDepth, ParsedText: textToParse})
+			potentialIntents = append(potentialIntents, IntentParse{IntentId: intent.Id, CheckDepth: intentCheckDepth, ParsedText: textToParse})
 		}
 
 	}
@@ -178,7 +185,7 @@ func parseIntent(text string) IntentParse {
 		var mostLikelyIntentParse IntentParse
 		var resolved bool = true
 		for _, intentParse := range potentialIntents {
-			bLog(fmt.Sprintf("%s with depth %d", intentParse.Intent.Id, intentParse.CheckDepth), l)
+			bLog(fmt.Sprintf("%s with depth %d", intentParse.IntentId, intentParse.CheckDepth), l)
 			if intentParse.CheckDepth > highestDepth {
 				mostLikelyIntentParse = intentParse
 				highestDepth = intentParse.CheckDepth

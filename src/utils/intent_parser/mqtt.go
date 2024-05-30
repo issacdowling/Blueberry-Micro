@@ -27,7 +27,7 @@ var parseHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Mes
 
 	intentParsed := parseIntent(currentParse.Text)
 
-	parseResponseToSend, err := json.Marshal(ParseResponse{Id: currentParse.Id, Text: intentParsed.ParsedText, CoreId: intentParsed.Intent.CoreId, IntentId: intentParsed.Intent.Id})
+	parseResponseToSend, err := json.Marshal(ParseResponse{Id: currentParse.Id, Text: intentParsed.ParsedText, CoreId: intentParsed.CoreId, IntentId: intentParsed.IntentId})
 	if err != nil {
 		bLogFatal(fmt.Sprintf("Could not JSON encode Intent Parse response: %s", err.Error()), l)
 	}
@@ -35,7 +35,7 @@ var parseHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Mes
 		bLogFatal(token.Error().Error(), l)
 	}
 
-	bLog(fmt.Sprintf("Intent: %s, Core: %s, Parsed Text: %s", intentParsed.Intent.Id, intentParsed.Intent.CoreId, intentParsed.ParsedText), l)
+	bLog(fmt.Sprintf("Intent: %s, Core: %s, Parsed Text: %s", intentParsed.IntentId, intentParsed.CoreId, intentParsed.ParsedText), l)
 
 }
 
@@ -64,8 +64,7 @@ var intentHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Me
 	// if there are wakewords associated with an Intent, register those
 	if receivedIntent.Wakewords != nil {
 		for _, wakeword := range receivedIntent.Wakewords {
-			fmt.Println(wakeword)
-			instantIntents[wakeword] = receivedIntent.Id
+			instantIntents[wakeword] = receivedIntent
 		}
 		instantIntentListJson, err := json.Marshal(instantIntents)
 		if err != nil {

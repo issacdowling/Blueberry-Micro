@@ -46,7 +46,8 @@ type ParseResponse struct {
 }
 
 type IntentParse struct {
-	Intent     Intent
+	IntentId   string
+	CoreId     string
 	CheckDepth int
 	ParsedText string
 }
