@@ -21,6 +21,9 @@ const intentParseTopic string = "bloob/%s/cores/intent_parser_util/run"
 const ttsTopic string = "bloob/%s/cores/tts_util/run"
 const coreTopic string = "bloob/%s/cores/%s/run"
 
+const thinkingTopic string = "bloob/%s/thinking"
+const recordingTopic string = "bloob/%s/recording"
+
 func playAudioFile(audio string, uuid string, id string, client mqtt.Client) {
 	audioPlaybackMessage := map[string]string{
 		"id":    id,
@@ -97,6 +100,28 @@ func speakText(text string, uuid string, id string, client mqtt.Client) {
 		bLogFatal(err.Error(), l)
 	}
 	client.Publish(fmt.Sprintf(ttsTopic, uuid), bloobQOS, false, ttsMessageJson)
+}
+
+func setThinking(state bool, uuid string, client mqtt.Client) {
+	thinkMessage := map[string]bool{
+		"is_thinking": state,
+	}
+	thinkMessageJson, err := json.Marshal(thinkMessage)
+	if err != nil {
+		bLogFatal(err.Error(), l)
+	}
+	client.Publish(fmt.Sprintf(thinkingTopic, uuid), bloobQOS, true, thinkMessageJson)
+}
+
+func setRecording(state bool, uuid string, client mqtt.Client) {
+	recordingMessage := map[string]bool{
+		"is_recording": state,
+	}
+	recordingMessageJson, err := json.Marshal(recordingMessage)
+	if err != nil {
+		bLogFatal(err.Error(), l)
+	}
+	client.Publish(fmt.Sprintf(recordingTopic, uuid), bloobQOS, true, recordingMessageJson)
 }
 
 func bLog(text string, ld logData) {

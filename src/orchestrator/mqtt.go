@@ -97,13 +97,16 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 		bLog(fmt.Sprintf("Wakeword Received - %v (confidence %v) - recording audio", wakewordReceived.WakewordId, wakewordReceived.Confidence), l)
 		playAudioFile(beginListeningAudio, instanceUUID, newId, client)
 		startRecordingAudio(instanceUUID, newId, client)
+		setRecording(true, instanceUUID, client)
 	}
 
 	if strings.Contains(message.Topic(), "audio_recorder_util/finished") {
 		json.Unmarshal(message.Payload(), &audioRecorderReceived)
 
 		if slices.Contains(currentIds, audioRecorderReceived.Id) {
+			setRecording(false, instanceUUID, client)
 			playAudioFile(stopListeningAudio, instanceUUID, audioRecorderReceived.Id, client)
+			setThinking(true, instanceUUID, client)
 			bLog("Received recording, starting transcription", l)
 			recordedAudio = audioRecorderReceived.Audio
 			transcribeAudio(recordedAudio, instanceUUID, audioRecorderReceived.Id, client)
@@ -126,6 +129,7 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 		json.Unmarshal(message.Payload(), &intentParserReceived)
 
 		if slices.Contains(currentIds, intentParserReceived.Id) {
+			setThinking(false, instanceUUID, client)
 			// We need an Error core instead
 			if strings.TrimSpace(intentParserReceived.IntentId) != "" {
 				bLog(fmt.Sprintf("Intent Parsed - %s - sending to core %s", intentParserReceived.IntentId, intentParserReceived.CoreId), l)
