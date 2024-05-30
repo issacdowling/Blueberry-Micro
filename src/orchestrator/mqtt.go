@@ -123,7 +123,6 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 
 	// This won't work until Core Configs and collections and intents are done.
 	if strings.Contains(message.Topic(), "intent_parser_util/finished") {
-		fmt.Println(string(message.Payload()))
 		json.Unmarshal(message.Payload(), &intentParserReceived)
 
 		if slices.Contains(currentIds, intentParserReceived.Id) {
