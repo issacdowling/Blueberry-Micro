@@ -210,7 +210,8 @@ get_collection = {
 		"what",
 		"whats",
 		"is",
-		"tell me"
+		"tell me",
+		"how"
 	]
 }
 
