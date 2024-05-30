@@ -139,7 +139,7 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 			} else {
 				playAudioFile(errorAudio, instanceUUID, intentParserReceived.Id, client)
 				bLog("No Intent Found in speech", l)
-				speakText("I'm sorry, I don't understand what you said", instanceUUID, intentParserReceived.Id, client)
+				// speakText("I'm sorry, I don't understand what you said", instanceUUID, intentParserReceived.Id, client)
 			}
 
 		}
