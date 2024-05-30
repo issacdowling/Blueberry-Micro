@@ -116,7 +116,7 @@ func parseIntent(text string) IntentParse {
 		var intentCheckDepth int = 0
 		// Clean the text, inline mentioned Collections, complete all necessary substitutions
 		bLog(intent.Id, l)
-		collectionKeyphraseUnwrap(&intent)
+		collectionKeyphraseUnwrap(intent)
 		textToParse = preProcessText(textToParse, intent)
 		bLog(fmt.Sprintf("Performed substitutions for %s: \"%s\"", intent.Id, textToParse), l)
 
@@ -232,7 +232,7 @@ func preCleanText(text string) string {
 }
 
 // intent needs to be a pointer because collectionUnwrap will modify the Intent
-func collectionKeyphraseUnwrap(intent *Intent) {
+func collectionKeyphraseUnwrap(intent Intent) {
 	// For each set of keyphrases, for each keyphrase, if it's a Collection ($),
 	// check that this Collection exists, then go through it and add each of its keyphrases and substitute
 	// values (keys and values) to the keyphraseSet of the Intent. Each Collection essentially just has one
