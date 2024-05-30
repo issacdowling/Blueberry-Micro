@@ -177,6 +177,7 @@ func parseIntent(text string) IntentParse {
 			bLog(fmt.Sprintf("%s with depth %d", intentParse.Intent.Id, intentParse.CheckDepth), l)
 			if intentParse.CheckDepth > highestDepth {
 				mostLikelyIntentParse = intentParse
+				highestDepth = intentParse.CheckDepth
 			} else if intentParse.CheckDepth == highestDepth {
 				bLog("Multiple Intents with the same check depth found, can't resolve Intent.", l)
 				resolved = false
