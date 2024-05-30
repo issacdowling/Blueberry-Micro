@@ -9,37 +9,6 @@ This also means that Python scripts (or any other interpreted language) should b
 
 Your Cores must also be marked executable.
 
-### Identification
-If your core is launched with the argument `--identify true`, it must not run regularly, and will hold back the Orchestrator until it's completed identifying itself. Over stdout, it must return its Core ID (a string that uniquely identifies this core) and its roles (whether it provides Collections, Intents, etc).
-
-An example snippet of this from the WLED core in python:
-```python
-core_id = "wled"
-
-if arguments.identify:
-  print(json.dumps({"id": core_id, "roles": ["intent_handler"]}))
-  exit()
-```
-
-The current available roles are:
-
-* `intent_handler`
-* `collection_handler`
-* `util`
-* `no_config`
-
-#### Intent Handler
-An Intent Handler will provide intents (the format for which is described later on), which are events than can be called using the user's voice.
-
-#### Collection Handler
-A Collection Handler will provide Collections, which are groups of words that can be useful when detecting certain categories within the user's speech, and used within Intents.
-
-#### Util
-A Util represents something that isn't directly called by the user's speech, but completes a task involved in processing it or doing other operations related to it (for example, speech-to-text)
-
-#### No Config
-If you just want to build a super simple Core (any arbitrary program you want to launch with Bloob, but not to interact with voice, nor do you want to provide metadata), you can add this role, and a config will automatically be provided on your behalf, just containing the `core_id` (you still need to `identify`, so the main value is avoiding needing MQTT if you won't use it.)
-
 ### Core Config
 
 I will explain Core configs using this example from the WLED core, though some features shown below aren't visible in this config.
