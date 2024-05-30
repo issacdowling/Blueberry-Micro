@@ -83,6 +83,9 @@ var remoteLogDisplay mqtt.MessageHandler = func(client mqtt.Client, message mqtt
 	}
 }
 
+// Need to work on a way to track an ID's progress through the steps and ensure that duplicates aren't recognised.
+// Also work on not responding to a new wakeword during the processing of another request. Could use the currentIds array
+// if I remove them once done.
 var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
 	var instanceUUID string = bloobConfig["uuid"].(string)
 
@@ -90,6 +93,7 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 		newId := fmt.Sprintf("%d", rand.Uint32())
 		currentIds = append(currentIds, newId)
 		json.Unmarshal(message.Payload(), &wakewordReceived)
+		// TODO: Add Instant Intent support
 		bLog(fmt.Sprintf("Wakeword Received - %v (confidence %v) - recording audio", wakewordReceived.WakewordId, wakewordReceived.Confidence), l)
 		playAudioFile(beginListeningAudio, instanceUUID, newId, client)
 		startRecordingAudio(instanceUUID, newId, client)
