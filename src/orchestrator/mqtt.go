@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"slices"
 	"strings"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -31,7 +30,7 @@ var collectionTopic string = "bloob/%s/collections/%s"
 
 var collectionIds []string
 
-var currentIds []string
+var currentId string
 
 type MqttConfig struct {
 	Host     string
@@ -90,20 +89,23 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 	var instanceUUID string = bloobConfig["uuid"].(string)
 
 	if strings.Contains(message.Topic(), "wakeword_util/finished") {
-		newId := fmt.Sprintf("%d", rand.Uint32())
-		currentIds = append(currentIds, newId)
-		json.Unmarshal(message.Payload(), &wakewordReceived)
-		// TODO: Add Instant Intent support
-		bLog(fmt.Sprintf("Wakeword Received - %v (confidence %v) - recording audio", wakewordReceived.WakewordId, wakewordReceived.Confidence), l)
+		// If a current request isn't ongoing
+		if currentId == "" {
+			newId := fmt.Sprintf("%d", rand.Uint32())
+			currentId = newId
+			json.Unmarshal(message.Payload(), &wakewordReceived)
+			// TODO: Add Instant Intent support
+			bLog(fmt.Sprintf("Wakeword Received - %v (confidence %v) - recording audio", wakewordReceived.WakewordId, wakewordReceived.Confidence), l)
 
-		if _, ok := instantIntents[wakewordReceived.WakewordId]; ok {
-			playAudioFile(instantIntentAudio, instanceUUID, newId, client)
-			intentParseText(fmt.Sprintf("$instant:%s", wakewordReceived.WakewordId), instanceUUID, newId, client)
-			setThinking(true, instanceUUID, client)
-		} else {
-			playAudioFile(beginListeningAudio, instanceUUID, newId, client)
-			startRecordingAudio(instanceUUID, newId, client)
-			setRecording(true, instanceUUID, client)
+			if _, ok := instantIntents[wakewordReceived.WakewordId]; ok {
+				playAudioFile(instantIntentAudio, instanceUUID, newId, client)
+				intentParseText(fmt.Sprintf("$instant:%s", wakewordReceived.WakewordId), instanceUUID, newId, client)
+				setThinking(true, instanceUUID, client)
+			} else {
+				playAudioFile(beginListeningAudio, instanceUUID, newId, client)
+				startRecordingAudio(instanceUUID, newId, client)
+				setRecording(true, instanceUUID, client)
+			}
 		}
 
 	}
@@ -111,7 +113,7 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 	if strings.Contains(message.Topic(), "audio_recorder_util/finished") {
 		json.Unmarshal(message.Payload(), &audioRecorderReceived)
 
-		if slices.Contains(currentIds, audioRecorderReceived.Id) {
+		if currentId == audioRecorderReceived.Id {
 			setRecording(false, instanceUUID, client)
 			playAudioFile(stopListeningAudio, instanceUUID, audioRecorderReceived.Id, client)
 			setThinking(true, instanceUUID, client)
@@ -124,7 +126,7 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 	if strings.Contains(message.Topic(), "stt_util/finished") {
 		json.Unmarshal(message.Payload(), &transcriptionReceived)
 
-		if slices.Contains(currentIds, transcriptionReceived.Id) {
+		if currentId == transcriptionReceived.Id {
 			transcription = transcriptionReceived.Text
 			bLog(fmt.Sprintf("Transcription received - %v - starting intent parsing", transcription), l)
 			intentParseText(transcription, instanceUUID, transcriptionReceived.Id, client)
@@ -136,7 +138,7 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 	if strings.Contains(message.Topic(), "intent_parser_util/finished") {
 		json.Unmarshal(message.Payload(), &intentParserReceived)
 
-		if slices.Contains(currentIds, intentParserReceived.Id) {
+		if currentId == intentParserReceived.Id {
 			// We need an Error core instead
 			if strings.TrimSpace(intentParserReceived.IntentId) != "" {
 				bLog(fmt.Sprintf("Intent Parsed - %s - sending to core %s", intentParserReceived.IntentId, intentParserReceived.CoreId), l)
@@ -157,7 +159,7 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 	if strings.Contains(message.Topic(), "/cores") && strings.Contains(message.Topic(), "/finished") && !strings.Contains(message.Topic(), "util") {
 		json.Unmarshal(message.Payload(), &coreFinishedReceived)
 
-		if slices.Contains(currentIds, coreFinishedReceived.Id) {
+		if currentId == coreFinishedReceived.Id {
 			bLog(fmt.Sprintf("Core ran with the output: %v", coreFinishedReceived.Text), l)
 
 			speakText(coreFinishedReceived.Text, instanceUUID, coreFinishedReceived.Id, client)
@@ -168,11 +170,14 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 	if strings.Contains(message.Topic(), "/tts_util/finished") {
 		json.Unmarshal(message.Payload(), &ttsReceived)
 
-		if slices.Contains(currentIds, ttsReceived.Id) {
+		if currentId == ttsReceived.Id {
 			setThinking(false, instanceUUID, client)
 			bLog("Text Spoken", l)
 
 			playAudioFile(ttsReceived.Audio, instanceUUID, ttsReceived.Id, client)
+
+			// Reset the currentId to 0 so that we'll accept another wakeword
+			currentId = ""
 		}
 
 	}
