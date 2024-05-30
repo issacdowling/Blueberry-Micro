@@ -89,6 +89,28 @@ Example Output:
 * **What:** Publishes the configuration that the Core chooses to report back to us. This is not for configuring the core itself, but for letting us know information about the Core, such as metadata and its exposed Intents
 * **When:** Currently, this is published to upon startup of the Core, and retained
 
+## Registering Intents
+
+Topic: **`bloob/<device-id>/cores/<core-id>/intents/<intent-id>`**
+
+Example Input:
+```
+{ "id" : "setWLEDBoolOrColour", "core_id": core_id, "keyphrases": [["$set"], all_device_names, ["$boolean", "$colours"]] }
+```
+
+* **What:** For every Intent that your Core wants to expose (if any), it should publish them here. They'll be picked up by the Intent Parser asynchronously (you can do this whenever, and it'll still do it, not just on startup). Send whole JSON objects.
+
+## Registering Collections
+
+Topic: **`bloob/<device-id>/collections/<collection-id>`**
+
+Example Input:
+```
+{	"id": "get", "keyphrases": ["get", "what", "whats", "is", "tell me" ] }
+```
+
+* **What:** As with Intents, this is asynchronous, and allows you to register Collections. Send whole JSON objects.
+
 ## Wakeword detected
 
 Topic: **`bloob/<device-id>/cores/wakeword_util/finished`**
