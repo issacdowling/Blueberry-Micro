@@ -90,3 +90,4 @@ intents = [
 * `prefixes` allows you to specify a string that the user's speech must begin with in order for your Core to be selected. Unlike with keyphrases, where requesting "test" wouldn't match with "tests" (in other words, we're checking for full words), the prefix option just checks for the string (so, "test" would match the user starting with "tests"). This is a single list, and any string within that list matching will cause this section to pass. For example: `prefixes: ["test", "other thing"]` would activate if I said "test this thing", "other thing needs testing", or "tests are cool", but not if I said "this is a test", or "i need one more other thing"
 * `suffixes` is exactly the same as `prefixes`, except looking for a string at the _end_ of the user's speech.
 
+## Collections (TBD)
