@@ -37,6 +37,9 @@ from faster_whisper import WhisperModel
 default_data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob") 
 default_stt_path = default_data_path.joinpath("stt")
 
+if not os.path.exists(default_stt_path):
+  os.makedirs(default_stt_path, exist_ok=True)
+
 transcribed_audio_path = stt_temp_path.joinpath("transcribed_audio.wav")
 
 if not os.path.exists(stt_temp_path):
@@ -99,10 +102,10 @@ log(f"Loading Model: {central_config['model']}", log_data)
 # Do this so that unfound models are automatically downloaded, but by default we aren't checking remotely at all, and the
 # STT directory doesn't need to be deleted just to automatically download other models
 try:
-  model = WhisperModel(model_size_or_path=central_config['model'], device="cpu", download_root=default_data_path, local_files_only = True)
+  model = WhisperModel(model_size_or_path=central_config['model'], device="cpu", download_root=default_stt_path, local_files_only = True)
 except: #huggingface_hub.utils._errors.LocalEntryNotFoundError (but can't do that here since huggingfacehub not directly imported)
   log(f"Downloading Model: {central_config['model']}", log_data)
-  model = WhisperModel(model_size_or_path=central_config['model'], device="cpu", download_root=default_data_path)
+  model = WhisperModel(model_size_or_path=central_config['model'], device="cpu", download_root=default_stt_path)
 
 log(f"Loaded Model: {central_config['model']}", log_data)
 
