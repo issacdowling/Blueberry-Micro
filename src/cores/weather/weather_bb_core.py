@@ -8,12 +8,8 @@ Requires centralised config with key "weather" and value of an object: {"locatio
 kept to 1dp of precision, as this should be reasonable for weather requests, while not being too specific
 """
 import argparse
-import subprocess
-import asyncio
 import sys
-import re
 import json
-import base64
 import pathlib
 import os
 import signal
@@ -32,7 +28,7 @@ with open(bloobinfo_path, "r") as bloobinfo_file:
 bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
 sys.path.append(str(bloob_python_module_dir))
 
-from bloob import getDeviceMatches, getTextMatches, log
+from bloob import log
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument('--host', default="localhost")

@@ -6,10 +6,8 @@ Wishes to be provided with {"id", id: str, "audio": audio: str}, where audio is 
 Will respond with {"id": received_id: str}. To "bloob/{arguments.device_id}/cores/audio_playback_util/finished"
 """
 import argparse
-import subprocess
 import asyncio
 import sys
-import re
 import aiomqtt
 import json
 import base64
@@ -30,7 +28,7 @@ with open(bloobinfo_path, "r") as bloobinfo_file:
 bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
 sys.path.append(str(bloob_python_module_dir))
 
-from bloob import getDeviceMatches, getTextMatches, log
+from bloob import log
 
 default_data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob") 
 

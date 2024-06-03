@@ -5,14 +5,9 @@ Core ID: greet_demo
 Says hi back to you.
 """
 import argparse
-import subprocess
-import asyncio
 import sys
-import re
-import base64
 import json
 import pathlib
-import os
 import signal
 
 default_temp_path = pathlib.Path("/dev/shm/bloob")
@@ -24,7 +19,6 @@ with open(bloobinfo_path, "r") as bloobinfo_file:
 bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
 sys.path.append(str(bloob_python_module_dir))
 
-from bloob import getTextMatches, log
 
 import paho.mqtt.subscribe as subscribe
 import paho.mqtt.publish as publish

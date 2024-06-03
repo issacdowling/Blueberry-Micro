@@ -5,14 +5,9 @@ Core ID: wled
 Follows the Bloob Core format for input / output
 """
 import argparse
-import subprocess
-import asyncio
 import sys
-import re
 import json
-import base64
 import pathlib
-import os
 import signal
 
 import requests

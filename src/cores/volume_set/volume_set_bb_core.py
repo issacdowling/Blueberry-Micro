@@ -8,13 +8,10 @@ Sets the volume to - or increments it by - whatever percentage you say
 """
 import argparse
 import subprocess
-import asyncio
 import sys
-import re
 import base64
 import json
 import pathlib
-import os
 import signal
 
 import random

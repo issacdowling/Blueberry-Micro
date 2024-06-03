@@ -6,11 +6,8 @@ Wishes to be provided with {"id": identifier_of_this_tts_request: str, "audio": 
 Will respond with {"id", id: str, "text": transcript} to "bloob/{arguments.device_id}/cores/stt_util/finished"
 """
 import argparse
-import subprocess
-import asyncio
 import paho.mqtt.client as mqtt
 import sys
-import re
 import json
 import base64
 import pathlib
@@ -30,7 +27,7 @@ with open(bloobinfo_path, "r") as bloobinfo_file:
 bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
 sys.path.append(str(bloob_python_module_dir))
 
-from bloob import getDeviceMatches, getTextMatches, log
+from bloob import log
 
 from faster_whisper import WhisperModel
 

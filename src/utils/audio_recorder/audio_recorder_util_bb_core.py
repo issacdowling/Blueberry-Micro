@@ -6,10 +6,7 @@ Wishes to be provided with {"id": identifier_of_this_audio_recorder_request: str
 Will respond with {"id": received_id: str, "audio": audio: str}, where audio is a WAV file, encoded as b64 bytes, then decoded into a string. To "bloob/{arguments.device_id}/cores/audio_recorder_util/finished"
 """
 import argparse
-import subprocess
-import asyncio
 import sys
-import re
 import json
 import base64
 import pathlib
@@ -28,7 +25,7 @@ with open(bloobinfo_path, "r") as bloobinfo_file:
 bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
 sys.path.append(str(bloob_python_module_dir))
 
-from bloob import getDeviceMatches, getTextMatches, log
+from bloob import log
 
 default_data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob") 
 default_audio_recorder_path = default_data_path.joinpath("audio_recorder")

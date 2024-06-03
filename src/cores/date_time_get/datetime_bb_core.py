@@ -7,14 +7,7 @@ Follows the Bloob Core format for input / output
 Returns the date if your query includes date, time if your query includes the time, and both if it includes both / neither.
 """
 import argparse
-import subprocess
-import asyncio
-import sys
-import re
 import json
-import base64
-import pathlib
-import os
 import signal
 
 import paho.mqtt.subscribe as subscribe

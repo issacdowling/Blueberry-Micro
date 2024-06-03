@@ -6,12 +6,8 @@ Requires no input, will always be detecting.
 Will respond with {"wakeword_id": id_of_detected_wakeword: str, "confidence": confidence_of_detection: str} to "bloob/{arguments.device_id}/cores/wakeword_util/detected"
 """
 import argparse
-import subprocess
-import asyncio
 import sys
-import re
 import json
-import base64
 import pathlib
 import os
 import paho.mqtt.publish as publish
@@ -26,7 +22,7 @@ with open(bloobinfo_path, "r") as bloobinfo_file:
 bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
 sys.path.append(str(bloob_python_module_dir))
 
-from bloob import getDeviceMatches, getTextMatches, log
+from bloob import log
 
 default_data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob") 
 default_ww_path = default_data_path.joinpath("ww")
@@ -101,7 +97,6 @@ if len(enabled_wakewords) == 0:
 from openwakeword import Model
 from pyaudio import PyAudio, paInt16
 import numpy as np
-import wave
 
 ## Set audio variables
 channels = 1 # Mono since stereo would be a waste of data

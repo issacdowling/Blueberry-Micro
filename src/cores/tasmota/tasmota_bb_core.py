@@ -7,11 +7,8 @@ Follows standard core protocol
 import argparse
 import asyncio
 import sys
-import re
 import json
-import base64
 import pathlib
-import os
 import signal
 
 import requests
