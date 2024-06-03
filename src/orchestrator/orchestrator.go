@@ -94,10 +94,10 @@ func main() {
 				"instance_name": "Default Name",
 				"uuid":          "test",
 				"stt_util": map[string]interface{}{
-					"model": "Systran/faster-distil-whisper-small.en",
+					"model": "base.en",
 				},
 				"tts_util": map[string]interface{}{
-					"model": "en_US-lessac-high",
+					"model": "en_GB-southern_english_female-low",
 				},
 				"orchestrator": map[string]interface{}{
 					"show_remote_logs": false,
