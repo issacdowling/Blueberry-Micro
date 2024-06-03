@@ -108,9 +108,16 @@ while True:
     else:
       temperature_unit = central_config["temperature_unit"]
     latlong = central_config["location"]
-    weather = requests.get(f'https://api.open-meteo.com/v1/forecast?latitude={latlong[0]}&longitude={latlong[1]}&current=temperature_2m,is_day,weathercode&temperature_unit={temperature_unit}').json()
-    to_speak = f'Right now, its {weather["current"]["temperature_2m"]} degrees {temperature_unit} and {wmo_codes[str(weather["current"]["weathercode"])]["day"]["description"]}'
-    explanation = f'The Weather Core got that the temperature is {weather["current"]["temperature_2m"]} degrees {temperature_unit} and the conditions are {wmo_codes[str(weather["current"]["weathercode"])]["day"]["description"]}'
+    try:
+      weather = requests.get(f'https://api.open-meteo.com/v1/forecast?latitude={latlong[0]}&longitude={latlong[1]}&current=temperature_2m,is_day,weathercode&temperature_unit={temperature_unit}', timeout=2).json()
+      to_speak = f'Right now, its {weather["current"]["temperature_2m"]} degrees {temperature_unit} and {wmo_codes[str(weather["current"]["weathercode"])]["day"]["description"]}'
+      explanation = f'The Weather Core got that the temperature is {weather["current"]["temperature_2m"]} degrees {temperature_unit} and the conditions are {wmo_codes[str(weather["current"]["weathercode"])]["day"]["description"]}'
+    except (TimeoutError, ConnectionError):
+      to_speak = "I couldn't contact the weather service, check your internet connection"
+      explanation = "The Weather Core failed to get the weather due to being unable to contact the Open Meteo servers. The user's internet connection may be down, or the Open Meteo servers may be down"
+    except:
+      to_speak = "I couldn't get the weather, and I'm not sure why"
+      explanation = "The Weather Core failed to get the weather for an unknown reason"   
 
   publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "text": to_speak, "explanation": explanation}), hostname=arguments.host, port=arguments.port)
 
