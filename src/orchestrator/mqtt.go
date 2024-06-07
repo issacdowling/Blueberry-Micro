@@ -190,14 +190,19 @@ var pipelineMessageHandler mqtt.MessageHandler = func(client mqtt.Client, messag
 
 var instantIntentRegister mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
 	var receivedInstantIntents map[string]interface{}
-	err := json.Unmarshal(message.Payload(), &receivedInstantIntents)
-	if err != nil {
-		bLogFatal(fmt.Sprintf("Failed to parse received list of Instant Intents: %s", err.Error()), l)
+	if string(message.Payload()) != "" {
+		err := json.Unmarshal(message.Payload(), &receivedInstantIntents)
+		if err != nil {
+			bLogFatal(fmt.Sprintf("Failed to parse received list of Instant Intents: %s", err.Error()), l)
+		}
+		bLog(fmt.Sprintf("Received instant intents: %s", receivedInstantIntents), l)
+		for wakeword, intentId := range receivedInstantIntents {
+			instantIntents[wakeword] = intentId.(map[string]interface{})["id"].(string)
+		}
+	} else {
+		bLog("Received blank Instant Intent message (maybe topics are being cleaned up?)", l)
 	}
-	bLog(fmt.Sprintf("Received instant intents: %s", receivedInstantIntents), l)
-	for wakeword, intentId := range receivedInstantIntents {
-		instantIntents[wakeword] = intentId.(map[string]interface{})["id"].(string)
-	}
+
 }
 
 var clearTopics mqtt.MessageHandler = func(client mqtt.Client, message mqtt.Message) {
