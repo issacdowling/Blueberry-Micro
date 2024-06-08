@@ -109,3 +109,6 @@ def publishIntents(intents: list, core_mqtt_info: coreMQTTInfo):
 
 def publishConfig(core_config: dict, core_mqtt_info: coreMQTTInfo):
   publish.single(topic=f"bloob/{core_mqtt_info.device_id}/cores/{core_mqtt_info.core_id}/config", payload=json.dumps(core_config), retain=True, hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth)
+
+def waitForCoreCall(core_mqtt_info: coreMQTTInfo):
+  return json.loads(subscribe.simple(f"bloob/{core_mqtt_info.device_id}/cores/{core_mqtt_info.core_id}/run", hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth).payload.decode())
