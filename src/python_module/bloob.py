@@ -68,7 +68,15 @@ def getTextMatches(match_item, check_string, whole_words_only=False):
         return(match_item)
     return("")
 
-# Can be provided with a list, which should contain objects with .names, 
-# which is a list of potential different names for the device, where the first is
-# the preferred name. It'll search for any of the names in spoken_words
-# (or in the check_string arg if provided), and return those devices' objects in spoken order
+def coreArgParse():
+  import argparse
+
+  ## These are the args that each Core needs to accept
+  arg_parser = argparse.ArgumentParser()
+  arg_parser.add_argument('--host', default="localhost")
+  arg_parser.add_argument('--port', default=1883)
+  arg_parser.add_argument('--user')
+  arg_parser.add_argument('--pass')
+  arg_parser.add_argument('--device-id', default="test")
+  arguments = arg_parser.parse_args()
+  return arguments
