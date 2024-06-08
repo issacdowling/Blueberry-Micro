@@ -12,9 +12,6 @@ import signal
 
 import requests
 
-import paho.mqtt.subscribe as subscribe
-import paho.mqtt.publish as publish
-
 default_temp_path = pathlib.Path("/dev/shm/bloob")
 
 bloobinfo_path = default_temp_path.joinpath("bloobinfo.txt")
@@ -24,13 +21,14 @@ with open(bloobinfo_path, "r") as bloobinfo_file:
 bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
 sys.path.append(str(bloob_python_module_dir))
 
-from bloob import getDeviceMatches, getTextMatches, log, coreArgParse
+from bloob import getDeviceMatches, getTextMatches, log, coreArgParse, pahoMqttAuthFromArgs, coreMQTTInfo, getCollection, getCentralConfig, publishIntents, publishConfig, waitForCoreCall, publishCoreOutput
 
 arguments = coreArgParse()
 
-arguments.port = int(arguments.port)
-
 core_id = "wled"
+
+mqtt_auth = pahoMqttAuthFromArgs(arguments)
+c = coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=mqtt_auth)
 
 class WledDevice:
   def __init__(self,names,ip_address):
@@ -78,18 +76,18 @@ wled_devices = []
 
 ## Get device configs from central config, instantiate
 log("Getting Centralised Config from Orchestrator", log_data)
-device_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
+device_config = getCentralConfig(c)
 if not device_config == {} and device_config.get("devices"):
   for device in device_config["devices"]:
     wled_devices.append(WledDevice(names=device["names"], ip_address=device["ip"]))
 
 log("Getting colours Collection from Orchestrator", log_data)
 ## Get required "colours" Collection from central Collection list
-colours_collection = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/collections/colours", hostname=arguments.host, port=arguments.port).payload.decode())
+colours_collection = getCollection(collection_name="colours", core_mqtt_info=c)
 
 log("Getting boolean Collection from Orchestrator", log_data)
 ## Get required "boolean" Collection from central Collection list
-boolean_collection = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/collections/boolean", hostname=arguments.host, port=arguments.port).payload.decode())
+boolean_collection = getCollection(collection_name="boolean", core_mqtt_info=c)
 
 all_device_names = []
 for device in wled_devices:
@@ -147,25 +145,15 @@ intents = [
   }
 ]
 
-for intent in intents:
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/intents/{intent['id']}", payload=json.dumps(intent), retain=True, hostname=arguments.host, port=arguments.port)
+publishIntents(intents, c)
 
 print(all_device_names)
 log("Publishing Core Config", log_data)
-publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
-
-# Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
-def on_exit(*args):
-  log("Shutting Down...", log_data)
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
-  exit()
-
-signal.signal(signal.SIGTERM, on_exit)
-signal.signal(signal.SIGINT, on_exit)
+publishConfig(core_config, c)
 
 while True:
   log("Waiting for input...", log_data)
-  request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
+  request_json = waitForCoreCall(c)
   ## TODO: Actual stuff here, matching the right device from name, state, etc
 
   spoken_devices = getDeviceMatches(device_list=wled_devices, check_string=request_json["text"])
@@ -215,6 +203,6 @@ while True:
         device.setPercentage(spoken_number)
 
   log(f"Publishing Output, {to_speak}", log_data)
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "text": to_speak, "explanation": explanation}), hostname=arguments.host, port=arguments.port)
+  publishCoreOutput(request_json["id"], to_speak, explanation, c)
 
 
