@@ -12,3 +12,4 @@ faster-whisper
 mpv
 requests
 duckduckgo_search
+paho-mqtt
