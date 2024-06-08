@@ -20,18 +20,10 @@ from piper import download
 import paho.mqtt.subscribe as subscribe
 import paho.mqtt.publish as publish
 
-
 default_temp_path = pathlib.Path("/dev/shm/bloob")
 tts_temp_path = default_temp_path.joinpath("tts")
 
-bloobinfo_path = default_temp_path.joinpath("bloobinfo.txt")
-with open(bloobinfo_path, "r") as bloobinfo_file:
-  bloob_info = json.load(bloobinfo_file)
-
-bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
-sys.path.append(str(bloob_python_module_dir))
-
-from bloob import log
+import pybloob
 
 default_data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob") 
 default_tts_path = default_data_path.joinpath("tts")
@@ -39,16 +31,7 @@ default_tts_path = default_data_path.joinpath("tts")
 if not os.path.exists(tts_temp_path):
   os.makedirs(tts_temp_path)
 
-arg_parser = argparse.ArgumentParser()
-arg_parser.add_argument('--host', default="localhost")
-arg_parser.add_argument('--port', default=1883)
-arg_parser.add_argument('--user')
-arg_parser.add_argument('--pass')
-arg_parser.add_argument('--device-id', default="test")
-
-arguments = arg_parser.parse_args()
-
-arguments.port = int(arguments.port)
+arguments = pybloob.coreArgParse()
 
 core_id = "tts_util"
 
@@ -70,7 +53,7 @@ publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payl
 # Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
 import signal
 def on_exit(*args):
-  log("Shutting Down...", log_data)
+  pybloob.log("Shutting Down...", log_data)
   publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
   exit()
 
@@ -79,10 +62,10 @@ signal.signal(signal.SIGINT, on_exit)
 
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
-log("Starting up...", log_data)
+pybloob.log("Starting up...", log_data)
 
 ## Get device configs from central config, instantiate
-log("Getting Centralised Config from Orchestrator", log_data)
+pybloob.log("Getting Centralised Config from Orchestrator", log_data)
 print(f"bloob/{arguments.device_id}/{core_id}/central_config")
 central_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
 
@@ -94,38 +77,38 @@ tts_model_path = f"{tts_path}/{central_config['model']}.onnx"
 output_audio_path = f"{tts_temp_path}/out.wav"
 
 if not os.path.exists(tts_model_path):
-	log(f"Couldn't find voice ({central_config['model']}) locally, trying to download it.", log_data)
+	pybloob.log(f"Couldn't find voice ({central_config['model']}) locally, trying to download it.", log_data)
 	try:
 		download.ensure_voice_exists(central_config['model'], [tts_path], tts_path, download.get_voices(tts_path))
 	except download.VoiceNotFoundError:
-		log(f"The requested voice ({central_config['model']}) was not found locally or able to be downloaded. The list of officially available Piper voices is {list(download.get_voices(tts_path, True).keys())}  Exiting.", log_data)
+		pybloob.log(f"The requested voice ({central_config['model']}) was not found locally or able to be downloaded. The list of officially available Piper voices is {list(download.get_voices(tts_path, True).keys())}  Exiting.", log_data)
 		exit()
 
 def speak(text):
 	speech_text = re.sub(r"^\W+|\W+$",'', text)
-	log(f"Inputted text - {text} - sanitised into - {speech_text}", log_data)
-	log(f"Generating speech", log_data)
+	pybloob.log(f"Inputted text - {text} - sanitised into - {speech_text}", log_data)
+	pybloob.log(f"Generating speech", log_data)
 	subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_path} --download-dir {tts_path} --model {tts_model_path} --output_file {output_audio_path}', stdout=subprocess.PIPE, shell=True)
-	log(f"Spoken: {speech_text}", log_data)
+	pybloob.log(f"Spoken: {speech_text}", log_data)
 
 async def connect():
 	async with aiomqtt.Client(hostname=arguments.host, port=arguments.port) as client:
-		log(f"Waiting for input...", log_data)
+		pybloob.log(f"Waiting for input...", log_data)
 		await client.subscribe(f"bloob/{arguments.device_id}/cores/tts_util/run")
 		async for message in client.messages:
 			try:
 				message_payload = json.loads(message.payload.decode())
 			except:
-				log("Error with payload.", log_data)
+				pybloob.log("Error with payload.", log_data)
 
 			if(message_payload.get('text') != None and message_payload.get('id') != None):
 				speak(message_payload.get('text'))
 				# encode speech to base64
-				log(f"Writing to temp file ({output_audio_path})", log_data)
+				pybloob.log(f"Writing to temp file ({output_audio_path})", log_data)
 				with open(output_audio_path, 'rb') as f:
 					encoded = base64.b64encode(f.read())
 					str_encoded = encoded.decode()
-					log(f"Publishing Output", log_data)
+					pybloob.log(f"Publishing Output", log_data)
 				await client.publish(f"bloob/{arguments.device_id}/cores/tts_util/finished", json.dumps({"id": message_payload.get('id'), "audio":str_encoded}), qos=1)
 
 

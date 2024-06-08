@@ -16,20 +16,9 @@ import paho.mqtt.publish as publish
 import pathlib
 import sys
 
-default_temp_path = pathlib.Path("/dev/shm/bloob")
+import pybloob
 
-bloobinfo_path = default_temp_path.joinpath("bloobinfo.txt")
-with open(bloobinfo_path, "r") as bloobinfo_file:
-  bloob_info = json.load(bloobinfo_file)
-
-bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
-sys.path.append(str(bloob_python_module_dir))
-
-from bloob import coreArgParse
-
-arguments = coreArgParse()
-
-arguments.port = int(arguments.port)
+arguments = pybloob.coreArgParse()
 
 core_id = "datetime"
 

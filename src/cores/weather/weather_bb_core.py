@@ -19,20 +19,9 @@ import paho.mqtt.publish as publish
 
 import requests
 
-default_temp_path = pathlib.Path("/dev/shm/bloob")
+import pybloob
 
-bloobinfo_path = default_temp_path.joinpath("bloobinfo.txt")
-with open(bloobinfo_path, "r") as bloobinfo_file:
-  bloob_info = json.load(bloobinfo_file)
-
-bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
-sys.path.append(str(bloob_python_module_dir))
-
-from bloob import log, coreArgParse
-
-arguments = coreArgParse()
-
-arguments.port = int(arguments.port)
+arguments = pybloob.coreArgParse()
 
 core_id = "weather"
 
@@ -65,7 +54,7 @@ with open(f"{script_path}/weathercodes.json", "r") as weather_file:
 
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
-log("Starting up...", log_data)
+pybloob.log("Starting up...", log_data)
 
 publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
 
@@ -73,7 +62,7 @@ for intent in intents:
   publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/intents/{intent['id']}", payload=json.dumps(intent), retain=True, hostname=arguments.host, port=arguments.port)
 
 ## Get device configs from central config, instantiate
-log("Getting Centralised Config from Orchestrator", log_data)
+pybloob.log("Getting Centralised Config from Orchestrator", log_data)
 central_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
 
 # Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
@@ -87,12 +76,12 @@ signal.signal(signal.SIGINT, on_exit)
 while True:
   request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
   if central_config == {} or central_config.get("location") == None:
-    log("No location set in config", log_data)
+    pybloob.log("No location set in config", log_data)
     to_speak = "I couldn't get the weather, as you don't have a location set up in your configuration file"
     explanation = "The Weather Core could not get the weather, as the user has not configured their location"
   else:
     if central_config.get("temperature_unit") == None:
-      log("No temperature unit set, defaulting to Celsius", log_data)
+      pybloob.log("No temperature unit set, defaulting to Celsius", log_data)
       temperature_unit = "celsius"
     else:
       temperature_unit = central_config["temperature_unit"]

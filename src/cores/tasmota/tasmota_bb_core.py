@@ -15,18 +15,9 @@ import requests
 import aiomqtt
 import paho, paho.mqtt, paho.mqtt.publish
 
-default_temp_path = pathlib.Path("/dev/shm/bloob")
+import pybloob
 
-bloobinfo_path = default_temp_path.joinpath("bloobinfo.txt")
-with open(bloobinfo_path, "r") as bloobinfo_file:
-  bloob_info = json.load(bloobinfo_file)
-
-bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
-sys.path.append(str(bloob_python_module_dir))
-
-from bloob import getDeviceMatches, getTextMatches, log, coreArgParse
-
-arguments = coreArgParse()
+arguments = pybloob.coreArgParse()
 
 state_bool_keyphrases = ["on", "off"]
 state_brightness_keyphrases = ["brightness"]
@@ -63,7 +54,7 @@ loaded_tasmota_devices = []
 # Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
 import signal
 def on_exit(*args):
-  log("Shutting Down...", log_data)
+  pybloob.log("Shutting Down...", log_data)
   publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
   exit()
 
@@ -135,8 +126,8 @@ async def handle_message(message, client):
 
         payload_json = json.loads(message.payload.decode())
 
-        spoken_devices = getDeviceMatches(device_list=loaded_tasmota_devices, check_string=payload_json["text"])
-        spoken_states = getTextMatches(match_item=state_keyphrases, check_string=payload_json["text"])
+        spoken_devices = pybloob.getDeviceMatches(device_list=loaded_tasmota_devices, check_string=payload_json["text"])
+        spoken_states = pybloob.getTextMatches(match_item=state_keyphrases, check_string=payload_json["text"])
 
         to_speak = ""
         explanation = ""

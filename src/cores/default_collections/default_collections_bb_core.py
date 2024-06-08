@@ -9,20 +9,9 @@ import paho.mqtt.publish as publish
 import pathlib
 import sys
 
-default_temp_path = pathlib.Path("/dev/shm/bloob")
+import pybloob
 
-bloobinfo_path = default_temp_path.joinpath("bloobinfo.txt")
-with open(bloobinfo_path, "r") as bloobinfo_file:
-  bloob_info = json.load(bloobinfo_file)
-
-bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
-sys.path.append(str(bloob_python_module_dir))
-
-from bloob import getDeviceMatches, getTextMatches, log, coreArgParse
-
-arguments = coreArgParse()
-
-arguments.port = int(arguments.port)
+arguments = pybloob.coreArgParse()
 
 core_id = "default_collections"
 
@@ -41,7 +30,7 @@ core_config = {
 
 # Clears the published Collections and Config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
 def on_exit(*args):
-	log("Shutting Down...", log_data)
+	pybloob.log("Shutting Down...", log_data)
 	publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/collections", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
 	publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
 

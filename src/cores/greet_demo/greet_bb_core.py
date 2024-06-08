@@ -10,23 +10,13 @@ import json
 import pathlib
 import signal
 
-default_temp_path = pathlib.Path("/dev/shm/bloob")
-
-bloobinfo_path = default_temp_path.joinpath("bloobinfo.txt")
-with open(bloobinfo_path, "r") as bloobinfo_file:
-  bloob_info = json.load(bloobinfo_file)
-
-bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
-sys.path.append(str(bloob_python_module_dir))
-
-from bloob import coreArgParse
+import pybloob
 
 import paho.mqtt.subscribe as subscribe
 import paho.mqtt.publish as publish
 
-arguments = coreArgParse()
+arguments = pybloob.coreArgParse()
 
-arguments.port = int(arguments.port)
 
 core_id = "greet"
 

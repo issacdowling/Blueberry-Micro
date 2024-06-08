@@ -12,23 +12,14 @@ import signal
 
 import requests
 
-default_temp_path = pathlib.Path("/dev/shm/bloob")
+import pybloob
 
-bloobinfo_path = default_temp_path.joinpath("bloobinfo.txt")
-with open(bloobinfo_path, "r") as bloobinfo_file:
-  bloob_info = json.load(bloobinfo_file)
-
-bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
-sys.path.append(str(bloob_python_module_dir))
-
-from bloob import getDeviceMatches, getTextMatches, log, coreArgParse, pahoMqttAuthFromArgs, coreMQTTInfo, getCollection, getCentralConfig, publishIntents, publishConfig, waitForCoreCall, publishCoreOutput
-
-arguments = coreArgParse()
+arguments = pybloob.coreArgParse()
 
 core_id = "wled"
 
-mqtt_auth = pahoMqttAuthFromArgs(arguments)
-c = coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=mqtt_auth)
+mqtt_auth = pybloob.pahoMqttAuthFromArgs(arguments)
+c = pybloob.coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=mqtt_auth)
 
 class WledDevice:
   def __init__(self,names,ip_address):
@@ -70,24 +61,24 @@ class WledDevice:
 
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
-log("Starting up...", log_data)
+pybloob.log("Starting up...", log_data)
 
 wled_devices = []
 
 ## Get device configs from central config, instantiate
-log("Getting Centralised Config from Orchestrator", log_data)
-device_config = getCentralConfig(c)
+pybloob.log("Getting Centralised Config from Orchestrator", log_data)
+device_config = pybloob.getCentralConfig(c)
 if not device_config == {} and device_config.get("devices"):
   for device in device_config["devices"]:
     wled_devices.append(WledDevice(names=device["names"], ip_address=device["ip"]))
 
-log("Getting colours Collection from Orchestrator", log_data)
+pybloob.log("Getting colours Collection from Orchestrator", log_data)
 ## Get required "colours" Collection from central Collection list
-colours_collection = getCollection(collection_name="colours", core_mqtt_info=c)
+colours_collection = pybloob.getCollection(collection_name="colours", core_mqtt_info=c)
 
-log("Getting boolean Collection from Orchestrator", log_data)
+pybloob.log("Getting boolean Collection from Orchestrator", log_data)
 ## Get required "boolean" Collection from central Collection list
-boolean_collection = getCollection(collection_name="boolean", core_mqtt_info=c)
+boolean_collection = pybloob.getCollection(collection_name="boolean", core_mqtt_info=c)
 
 all_device_names = []
 for device in wled_devices:
@@ -96,7 +87,7 @@ for device in wled_devices:
 
 state_keyphrases = boolean_collection["keyphrases"] + colours_collection["keyphrases"]
 
-log(boolean_collection["keyphrases"], log_data)
+pybloob.log(boolean_collection["keyphrases"], log_data)
 
 core_config = {
   "metadata": {
@@ -145,19 +136,19 @@ intents = [
   }
 ]
 
-publishIntents(intents, c)
+pybloob.publishIntents(intents, c)
 
 print(all_device_names)
-log("Publishing Core Config", log_data)
-publishConfig(core_config, c)
+pybloob.log("Publishing Core Config", log_data)
+pybloob.publishConfig(core_config, c)
 
 while True:
-  log("Waiting for input...", log_data)
-  request_json = waitForCoreCall(c)
+  pybloob.log("Waiting for input...", log_data)
+  request_json = pybloob.waitForCoreCall(c)
   ## TODO: Actual stuff here, matching the right device from name, state, etc
 
-  spoken_devices = getDeviceMatches(device_list=wled_devices, check_string=request_json["text"])
-  spoken_states = getTextMatches(match_item=state_keyphrases, check_string=request_json["text"])
+  spoken_devices = pybloob.getDeviceMatches(device_list=wled_devices, check_string=request_json["text"])
+  spoken_states = pybloob.getTextMatches(match_item=state_keyphrases, check_string=request_json["text"])
 
   # If there's a blank spot in the state, but there are numbers in the spoken words, do that.
   if not spoken_states:
@@ -171,7 +162,7 @@ while True:
           if word.isnumeric():
             spoken_states[index] == f"{word} percent"
 
-  log(f"Spoken devices: {spoken_devices}, spoken states: {spoken_states}", log_data)
+  pybloob.log(f"Spoken devices: {spoken_devices}, spoken states: {spoken_states}", log_data)
 
   to_speak = ""
   explanation = ""
@@ -202,7 +193,7 @@ while True:
       if how_many_numbers == 1:
         device.setPercentage(spoken_number)
 
-  log(f"Publishing Output, {to_speak}", log_data)
-  publishCoreOutput(request_json["id"], to_speak, explanation, c)
+  pybloob.log(f"Publishing Output, {to_speak}", log_data)
+  pybloob.publishCoreOutput(request_json["id"], to_speak, explanation, c)
 
 

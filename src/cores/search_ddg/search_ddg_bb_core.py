@@ -19,20 +19,9 @@ import paho.mqtt.publish as publish
 
 from duckduckgo_search import DDGS
 
-default_temp_path = pathlib.Path("/dev/shm/bloob")
+import pybloob
 
-bloobinfo_path = default_temp_path.joinpath("bloobinfo.txt")
-with open(bloobinfo_path, "r") as bloobinfo_file:
-  bloob_info = json.load(bloobinfo_file)
-
-bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
-sys.path.append(str(bloob_python_module_dir))
-
-from bloob import log, coreArgParse
-
-arguments = coreArgParse()
-
-arguments.port = int(arguments.port)
+arguments = pybloob.coreArgParse()
 
 core_id = "search_ddg"
 
@@ -57,7 +46,7 @@ intents = [{
 
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
-log("Starting up...", log_data)
+pybloob.log("Starting up...", log_data)
 
 publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
 
@@ -66,7 +55,7 @@ for intent in intents:
 
 
 ## Get device configs from central config, instantiate
-log("Getting Centralised Config from Orchestrator", log_data)
+pybloob.log("Getting Centralised Config from Orchestrator", log_data)
 central_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
 
 # Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser

@@ -11,25 +11,11 @@ import json
 import pathlib
 import signal
 
-default_temp_path = pathlib.Path("/dev/shm/bloob")
-
-bloobinfo_path = default_temp_path.joinpath("bloobinfo.txt")
-with open(bloobinfo_path, "r") as bloobinfo_file:
-  bloob_info = json.load(bloobinfo_file)
-
-bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
-sys.path.append(str(bloob_python_module_dir))
-
-from bloob import getTextMatches, coreArgParse
-
-import paho.mqtt.subscribe as subscribe
-import paho.mqtt.publish as publish
-
-arguments = coreArgParse()
-
-arguments.port = int(arguments.port)
+import pybloob
 
 core_id = "calc"
+
+c = pybloob.coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=pybloob.pahoMqttAuthFromArgs(arguments))
 
 add_words = ["add", "plus"]
 minus_words = ["minus", "take"]
@@ -49,42 +35,34 @@ core_config = {
   }
 }
 
+pybloob.publishConfig(core_config, c)
+
 intents = [{
     "id" : "calc",
     "keyphrases": [["$get"], add_words + minus_words + multiply_words + divide_words],
     "numbers": {"any": "any"},
     "core_id": core_id
   }]
-publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
 
-for intent in intents:
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/intents/{intent['id']}", payload=json.dumps(intent), retain=True, hostname=arguments.host, port=arguments.port)
-
-# Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
-def on_exit(*args):
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
-  exit()
-
-signal.signal(signal.SIGTERM, on_exit)
-signal.signal(signal.SIGINT, on_exit)
+pybloob.publishIntents(intents, c)
 
 while True:
-  request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
+  request_json = pybloob.waitForCoreCall(c)
   numbers = []
   for word in request_json["text"].split(" "):
     if word.isnumeric(): numbers.append(int(word))
 
   if len(numbers) == 2:
-    if getTextMatches(match_item=add_words, check_string=request_json["text"]):
+    if pybloob.getTextMatches(match_item=add_words, check_string=request_json["text"]):
       operator = " plus "
       result = numbers[0] + numbers[1]
-    elif getTextMatches(match_item=minus_words, check_string=request_json["text"]):
+    elif pybloob.getTextMatches(match_item=minus_words, check_string=request_json["text"]):
       operator = " minus "
       result = numbers[0] - numbers[1]
-    elif getTextMatches(match_item=divide_words, check_string=request_json["text"]):
+    elif pybloob.getTextMatches(match_item=divide_words, check_string=request_json["text"]):
       operator = " divided by "
       result = numbers[0] / numbers[1]
-    elif getTextMatches(match_item=multiply_words, check_string=request_json["text"]):
+    elif pybloob.getTextMatches(match_item=multiply_words, check_string=request_json["text"]):
       operator = " multiplied by "
       result = numbers[0] * numbers[1]
 
@@ -95,4 +73,4 @@ while True:
     to_speak = f"You didn't say 2 numbers, you said {len(numbers)}"
     explanation = f"Calculator failed, as the user didn't say the 2 required numbers, they said {len(numbers)}"
 
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "text": to_speak, "explanation": explanation}), hostname=arguments.host, port=arguments.port)
+  pybloob.publishCoreOutput(request_json["id"], to_speak, explanation, c)
