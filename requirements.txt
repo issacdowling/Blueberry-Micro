@@ -13,3 +13,6 @@ mpv
 requests
 duckduckgo_search
 paho-mqtt
+
+# The custom bloob util module
+src/pybloob
