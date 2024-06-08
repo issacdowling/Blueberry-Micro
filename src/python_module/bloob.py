@@ -68,10 +68,10 @@ def getTextMatches(match_item, check_string, whole_words_only=False):
         return(match_item)
     return("")
 
+# Bloob Cores need to take the host, port, username/password of the MQTT broker, and device-id as args, this automates that.
 def coreArgParse():
   import argparse
 
-  ## These are the args that each Core needs to accept
   arg_parser = argparse.ArgumentParser()
   arg_parser.add_argument('--host', default="localhost")
   arg_parser.add_argument('--port', default=1883)
