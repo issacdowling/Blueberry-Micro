@@ -15,6 +15,7 @@ import pybloob
 
 core_id = "calc"
 
+arguments = pybloob.coreArgParse()
 c = pybloob.coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=pybloob.pahoMqttAuthFromArgs(arguments))
 
 add_words = ["add", "plus"]
