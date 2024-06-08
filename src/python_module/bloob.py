@@ -102,3 +102,7 @@ def getCollection(collection_name: str, core_mqtt_info: coreMQTTInfo):
 
 def getCentralConfig(core_mqtt_info: coreMQTTInfo):
   return json.loads(subscribe.simple(f"bloob/{core_mqtt_info.device_id}/cores/{core_mqtt_info.core_id}/central_config", hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth).payload.decode())
+
+def publishIntents(intents: list, core_mqtt_info: coreMQTTInfo):
+  for intent in intents:
+    publish.single(topic=f"bloob/{core_mqtt_info.device_id}/cores/{core_mqtt_info.core_id}/intents/{intent['id']}", payload=json.dumps(intent), retain=True, hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth)
