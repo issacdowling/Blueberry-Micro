@@ -1,5 +1,6 @@
 import paho.mqtt.publish as publish
 import paho.mqtt.subscribe as subscribe
+import json
 
 # Logging data should be set as a tuple, logging_data = (mqtt_host: str, mqtt_port: int, device_id: str, core_id: str)
 # The point is to shorten what needs to be written and reduce duplication
@@ -82,5 +83,19 @@ def coreArgParse():
   arguments = arg_parser.parse_args()
   return arguments
 
+class coreMQTTInfo:
+  def __init__(self, device_id: str, core_id:str, mqtt_host: str, mqtt_port: int, mqtt_auth: dict):
+    self.device_id = device_id
+    self.core_id = core_id
+    self.mqtt_host = mqtt_host
+    self.mqtt_port = mqtt_port
+    self.mqtt_auth = mqtt_auth
+
+
 def pahoMqttAuthFromArgs(arguments):
   return {'username':arguments.user, 'password':arguments.__dict__.get("pass")} if arguments.user != None else None
+
+## Provide the collection_name and core_mqtt_info, and this will return a JSON decoded version of the collection.
+## IF THE COLLECTION DOES NOT EXIST, THIS WILL BLOCK FOREVER!
+def getCollection(collection_name: str, core_mqtt_info: coreMQTTInfo):
+  return json.loads(subscribe.simple(f"bloob/{core_mqtt_info.device_id}/collections/{collection_name}", hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth).payload.decode())
