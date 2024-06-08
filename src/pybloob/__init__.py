@@ -1,1 +1,1 @@
-from .pybloob import *
+from pybloob import *

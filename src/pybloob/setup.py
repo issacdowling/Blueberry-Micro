@@ -7,5 +7,6 @@ setup(
    author='Issac Dowling',
    author_email='contact@issacdowling.com',
    packages=find_packages(),
+   py_modules=["pybloob"],
    install_requires=['paho-mqtt'], #external packages as dependencies
 )
