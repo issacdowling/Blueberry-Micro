@@ -6,15 +6,21 @@ import signal
 
 import paho.mqtt.publish as publish
 
-arg_parser = argparse.ArgumentParser()
-arg_parser.add_argument('--host', default="localhost")
-arg_parser.add_argument('--port', default=1883)
-arg_parser.add_argument('--user')
-arg_parser.add_argument('--pass')
-arg_parser.add_argument('--device-id', default="test")
+import pathlib
+import sys
 
-arg_parser.add_argument('--collections', default="")
-arguments = arg_parser.parse_args()
+default_temp_path = pathlib.Path("/dev/shm/bloob")
+
+bloobinfo_path = default_temp_path.joinpath("bloobinfo.txt")
+with open(bloobinfo_path, "r") as bloobinfo_file:
+  bloob_info = json.load(bloobinfo_file)
+
+bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
+sys.path.append(str(bloob_python_module_dir))
+
+from bloob import getDeviceMatches, getTextMatches, log, coreArgParse
+
+arguments = coreArgParse()
 
 arguments.port = int(arguments.port)
 

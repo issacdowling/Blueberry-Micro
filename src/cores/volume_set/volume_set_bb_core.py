@@ -25,21 +25,14 @@ with open(bloobinfo_path, "r") as bloobinfo_file:
 bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
 sys.path.append(str(bloob_python_module_dir))
 
-from bloob import getTextMatches, log
+from bloob import getTextMatches, log, coreArgParse
 
 import paho.mqtt.subscribe as subscribe
 import paho.mqtt.publish as publish
 
 core_dir = pathlib.Path(__file__).parents[0]
 
-arg_parser = argparse.ArgumentParser()
-arg_parser.add_argument('--host', default="localhost")
-arg_parser.add_argument('--port', default=1883)
-arg_parser.add_argument('--user')
-arg_parser.add_argument('--pass')
-arg_parser.add_argument('--device-id', default="test")
-
-arguments = arg_parser.parse_args()
+arguments = coreArgParse()
 
 arguments.port = int(arguments.port)
 
