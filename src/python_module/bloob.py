@@ -106,3 +106,6 @@ def getCentralConfig(core_mqtt_info: coreMQTTInfo):
 def publishIntents(intents: list, core_mqtt_info: coreMQTTInfo):
   for intent in intents:
     publish.single(topic=f"bloob/{core_mqtt_info.device_id}/cores/{core_mqtt_info.core_id}/intents/{intent['id']}", payload=json.dumps(intent), retain=True, hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth)
+
+def publishConfig(core_config: dict, core_mqtt_info: coreMQTTInfo):
+  publish.single(topic=f"bloob/{core_mqtt_info.device_id}/cores/{core_mqtt_info.core_id}/config", payload=json.dumps(core_config), retain=True, hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth)
