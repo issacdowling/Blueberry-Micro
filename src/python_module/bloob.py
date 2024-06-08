@@ -1,4 +1,5 @@
 import paho.mqtt.publish as publish
+import paho.mqtt.subscribe as subscribe
 
 # Logging data should be set as a tuple, logging_data = (mqtt_host: str, mqtt_port: int, device_id: str, core_id: str)
 # The point is to shorten what needs to be written and reduce duplication
@@ -74,9 +75,12 @@ def coreArgParse():
 
   arg_parser = argparse.ArgumentParser()
   arg_parser.add_argument('--host', default="localhost")
-  arg_parser.add_argument('--port', default=1883)
+  arg_parser.add_argument('--port', default=1883, type=int)
   arg_parser.add_argument('--user')
   arg_parser.add_argument('--pass')
   arg_parser.add_argument('--device-id', default="test")
   arguments = arg_parser.parse_args()
   return arguments
+
+def pahoMqttAuthFromArgs(arguments):
+  return {'username':arguments.user, 'password':arguments.__dict__.get("pass")} if arguments.user != None else None
