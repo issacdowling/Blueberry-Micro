@@ -99,3 +99,6 @@ def pahoMqttAuthFromArgs(arguments):
 ## IF THE COLLECTION DOES NOT EXIST, THIS WILL BLOCK FOREVER!
 def getCollection(collection_name: str, core_mqtt_info: coreMQTTInfo):
   return json.loads(subscribe.simple(f"bloob/{core_mqtt_info.device_id}/collections/{collection_name}", hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth).payload.decode())
+
+def getCentralConfig(core_mqtt_info: coreMQTTInfo):
+  return json.loads(subscribe.simple(f"bloob/{core_mqtt_info.device_id}/cores/{core_mqtt_info.core_id}/central_config", hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth).payload.decode())
