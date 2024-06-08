@@ -112,3 +112,6 @@ def publishConfig(core_config: dict, core_mqtt_info: coreMQTTInfo):
 
 def waitForCoreCall(core_mqtt_info: coreMQTTInfo):
   return json.loads(subscribe.simple(f"bloob/{core_mqtt_info.device_id}/cores/{core_mqtt_info.core_id}/run", hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth).payload.decode())
+
+def publishCoreOutput(id: str, text: str, explanation: str, core_mqtt_info: coreMQTTInfo):
+  publish.single(topic=f"bloob/{core_mqtt_info.device_id}/cores/{core_mqtt_info.core_id}/finished", payload=json.dumps({"id": id, "text": text, "explanation": explanation}), hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth)
