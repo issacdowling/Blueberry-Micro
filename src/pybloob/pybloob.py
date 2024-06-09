@@ -194,7 +194,7 @@ class Core:
       if type(intent) == dict:
         publish.single(topic=f"bloob/{self.device_id}/cores/{self.core_id}/intents/{intent['id']}", payload=json.dumps(intent), qos=bloobQOS, retain=True, hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth)
       elif type(intent) == Intent:
-        publish.single(topic=f"bloob/{self.device_id}/cores/{self.core_id}/intents/{intent['id']}", payload=json.dumps(intent.asdict()), qos=bloobQOS, retain=True, hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth)
+        publish.single(topic=f"bloob/{self.device_id}/cores/{self.core_id}/intents/{intent.id}", payload=json.dumps(intent.asdict()), qos=bloobQOS, retain=True, hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth)
 
   def publishCollections(self, collections: list=None):
     if collections != None:
@@ -204,7 +204,7 @@ class Core:
       if type(collection) == dict:
         publish.single(f"bloob/{self.device_id}/collections/{collection['id']}", json.dumps(collection), bloobQOS, True)
       elif type(collection) == Collection:
-        publish.single(f"bloob/{self.device_id}/collections/{collection['id']}", json.dumps(collection.asdict()), bloobQOS, True)
+        publish.single(f"bloob/{self.device_id}/collections/{collection.id}", json.dumps(collection.asdict()), bloobQOS, True)
 
   def publishConfig(self, core_config: dict=None):
     if core_config != None:
