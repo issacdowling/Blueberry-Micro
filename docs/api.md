@@ -83,15 +83,37 @@ Topic: **`bloob/<device-id>/cores/<core-id>/config`**
 
 Example Output:
 ```
-{"metadata": {"core_id": "date_time_get", "friendly_name": "Date / Time Getter", "link": null, "author": null, "icon": null, "description": null, "version": 0.1, "license": "AGPLv3"}, "intents": [{"intent_id": "getDate", "keywords": ["date", "day", "time"], "type": "get", "core_id": "date_time_get", "private": true}]}
+{"metadata": {"core_id": "date_time_get", "friendly_name": "Date / Time Getter", "link": null, "author": null, "icon": null, "description": null, "version": 0.1, "license": "AGPLv3"}, "intents": [{"id": "getDate", "keyphrases": ["date", "day", "time"], "type": "get", "core_id": "date_time_get", "private": true}]}
 ```
 
 * **What:** Publishes the configuration that the Core chooses to report back to us. This is not for configuring the core itself, but for letting us know information about the Core, such as metadata and its exposed Intents
 * **When:** Currently, this is published to upon startup of the Core, and retained
 
+## Registering Intents
+
+Topic: **`bloob/<device-id>/cores/<core-id>/intents/<intent-id>`**
+
+Example Input:
+```
+{ "id" : "setWLEDBoolOrColour", "core_id": core_id, "keyphrases": [["$set"], all_device_names, ["$boolean", "$colours"]] }
+```
+
+* **What:** For every Intent that your Core wants to expose (if any), it should publish them here. They'll be picked up by the Intent Parser asynchronously (you can do this whenever, and it'll still do it, not just on startup). Send whole JSON objects.
+
+## Registering Collections
+
+Topic: **`bloob/<device-id>/collections/<collection-id>`**
+
+Example Input:
+```
+{	"id": "get", "keyphrases": ["get", "what", "whats", "is", "tell me" ] }
+```
+
+* **What:** As with Intents, this is asynchronous, and allows you to register Collections. Send whole JSON objects.
+
 ## Wakeword detected
 
-Topic: **`bloob/<device-id>/wakeword/detected`**
+Topic: **`bloob/<device-id>/cores/wakeword_util/finished`**
 
 Example Output:
 ```
@@ -105,7 +127,7 @@ Example Output:
 
 ### Whole File
 
-Topic: **`bloob/<device-id>/audio_playback/play_file`**
+Topic: **`bloob/<device-id>/cores/audio_playback_util/play_file`**
 
 Example Input:
 ```
@@ -115,7 +137,7 @@ Example Input:
 * **What:** Publish audio to this topic, and the `audio_playback` util will play it back in its entirety
 
 ### Finished
-Topic: **`bloob/<device-id>/audio_playback/finished`**
+Topic: **`bloob/<device-id>/cores/audio_playback_util/finished`**
 
 Example Output:
 ```
@@ -128,7 +150,7 @@ Example Output:
 ## Audio Recording
 
 ### Speech
-Topic: **`bloob/<device-id>/audio_recorder/record_speech`**
+Topic: **`bloob/<device-id>/cores/audio_recorder_util/record_speech`**
 
 Example Input:
 ```
@@ -138,7 +160,7 @@ Example Input:
 * **What:** Tells the `audio_recorder` to begin recording, and stop once speech is no longer being detected
 
 ### Finished
-Topic: **`bloob/<device-id>/audio_recorder/finished`**
+Topic: **`bloob/<device-id>/cores/audio_recorder_util/finished`**
 
 Example Output:
 ```
@@ -151,7 +173,7 @@ Example Output:
 ## Transcription
 
 ### Transcribe
-Topic: **`bloob/<device-id>/stt/transcribe`**
+Topic: **`bloob/<device-id>/cores/stt_util/transcribe`**
 
 Example Input:
 ```
@@ -161,7 +183,7 @@ Example Input:
 * **What:** Tells the `stt` to transcribe your audio
 
 ### Finished
-Topic: **`bloob/<device-id>/stt/finished`**
+Topic: **`bloob/<device-id>/cores/stt_util/finished`**
 
 Example Output:
 ```
@@ -174,7 +196,7 @@ Example Output:
 ## Intent Parsing
 
 ### Parse
-Topic: **`bloob/<device-id>/intent_parser/run`**
+Topic: **`bloob/<device-id>/cores/intent_parser_util/run`**
 
 Example Input:
 ```
@@ -188,7 +210,7 @@ Example Input:
 	* The intent parser learns of intents through subscribing to all cores in the `loaded_cores` key mentioned in the `List Cores` section earlier, and checking them in the received config
 
 ### Finished
-Topic: **`bloob/<device-id>/intent_parser/finished`**
+Topic: **`bloob/<device-id>/cores/intent_parser_util/finished`**
 
 Example Output:
 ```
@@ -216,7 +238,7 @@ Topic: **`bloob/<device-id>/cores/<core-id>/finished`**
 
 Example Output:
 ```
-{"id": "1640", "text": "The time is 11:09 PM", "explanation": "Got that the current time is 11:09 PM", "end_type": "finish"}
+{"id": "1640", "text": "The time is 11:09 PM", "explanation": "Got that the current time is 11:09 PM"}
 ```
 
 * **What:** Outputs the core's intended speech, an explanation of what was done (for future use), and whether to end the conversation or continue
@@ -228,7 +250,7 @@ Example Output:
 
 ## TTS
 ### Run
-Topic: **`bloob/<device-id>/tts/run`**
+Topic: **`bloob/<device-id>/cores/tts_util/run`**
 
 Example Input:
 ```
@@ -238,7 +260,7 @@ Example Input:
 * **What:** Tells the `tts` to speak the given text
 
 ### Finished
-Topic: **`bloob/<device-id>/tts/finished`**
+Topic: **`bloob/<device-id>/cores/tts_util/finished`**
 
 Example Output:
 ```

@@ -4,39 +4,17 @@ Core ID: tasmota
 
 Follows standard core protocol
 """
-import argparse
 import asyncio
-import sys
-import re
 import json
-import base64
-import pathlib
-import os
 import signal
 
 import requests
 import aiomqtt
 import paho, paho.mqtt, paho.mqtt.publish
 
-default_temp_path = pathlib.Path("/dev/shm/bloob")
+import pybloob
 
-bloobinfo_path = default_temp_path.joinpath("bloobinfo.txt")
-with open(bloobinfo_path, "r") as bloobinfo_file:
-  bloob_info = json.load(bloobinfo_file)
-
-bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
-sys.path.append(str(bloob_python_module_dir))
-
-from bloob import getDeviceMatches, getTextMatches, log
-
-arg_parser = argparse.ArgumentParser()
-arg_parser.add_argument('--host', default="localhost")
-arg_parser.add_argument('--port', default=1883)
-arg_parser.add_argument('--user')
-arg_parser.add_argument('--pass', dest="password")
-arg_parser.add_argument('--device-id', default="test")
-arg_parser.add_argument('--identify', default="")
-arguments = arg_parser.parse_args()
+arguments = pybloob.coreArgParse()
 
 state_bool_keyphrases = ["on", "off"]
 state_brightness_keyphrases = ["brightness"]
@@ -45,11 +23,6 @@ state_percentage_keyphrases = ["percent", "%", "percentage"]
 state_keyphrases = state_bool_keyphrases + state_brightness_keyphrases + state_percentage_keyphrases
 
 core_id = "tasmota"
-
-
-if arguments.identify:
-    print(json.dumps({"id": core_id, "roles": ["intent_handler"]}))
-    exit()
 
 all_device_names = []
 class TasmotaDevice:
@@ -75,9 +48,19 @@ class TasmotaDevice:
 
 loaded_tasmota_devices = []
 
+# Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
+import signal
+def on_exit(*args):
+  pybloob.log("Shutting Down...", log_data)
+  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
+  exit()
+
+signal.signal(signal.SIGTERM, on_exit)
+signal.signal(signal.SIGINT, on_exit)
+
 # connect to the broker
 async def main():
-    async with aiomqtt.Client(hostname=arguments.host, port=arguments.port, username=arguments.user, password=arguments.password) as client:
+    async with aiomqtt.Client(hostname=arguments.host, port=int(arguments.port), username=arguments.user, password=arguments.password) as client:
         print("connected")
 
         # subscribe to the topics
@@ -87,6 +70,36 @@ async def main():
 
         # intent topic
         await client.subscribe(f"bloob/{arguments.device_id}/cores/{core_id}/run")
+
+        # Publish config on startup
+        core_config = {
+            "metadata": {
+                "core_id": core_id,
+                "friendly_name": "Tasmota device control",
+                "link": None,
+                "author": None,
+                "icon": None,
+                "description": None,
+                "version": 1.0,
+                "license": "AGPLv3"
+            }
+        }
+
+        intents = [
+                {
+                    "id": "controlTasmota",
+                    "keyphrases": [["$set"], all_device_names, state_keyphrases],
+                    "core_id": core_id
+                }
+            ]
+
+        await client.publish(f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, qos=1)
+
+        for intent in intents:
+            await client.publish(f"bloob/{arguments.device_id}/cores/{core_id}/intents/{intent['id']}", payload=json.dumps(intent), retain=True, qos=1)
+
+        
+
         
         # handle messages
         async for message in client.messages:
@@ -100,41 +113,18 @@ async def handle_message(message, client):
         if device_config != None:
           print(f"Device config received: {device_config}")
           # add the devices
-          for device in device_config.get("devices"):
-              loaded_tasmota_devices.append(TasmotaDevice(names=device["names"], ip_address=device["ip"]))
+          if device_config.get("devices"):
+            for device in device_config["devices"]:
+                loaded_tasmota_devices.append(TasmotaDevice(names=device["names"], ip_address=device["ip"]))
         else:
           state_keyphrases = []
-          
-        core_config = {
-            "metadata": {
-                "core_id": core_id,
-                "friendly_name": "Tasmota device control",
-                "link": None,
-                "author": None,
-                "icon": None,
-                "description": None,
-                "version": 1.0,
-                "license": "AGPLv3"
-            },
-            "intents": [
-                {
-                    "intent_id": "controlTasmota",
-                    "keywords": [all_device_names, state_keyphrases],
-                    "collections": [["set"]],
-                    "core_id": core_id
-                }
-            ]
-        }
 
-        # send out startup messages
-
-        await client.publish(f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, qos=1)
     if(message.topic.matches(f"bloob/{arguments.device_id}/cores/{core_id}/run")):
 
         payload_json = json.loads(message.payload.decode())
 
-        spoken_devices = getDeviceMatches(device_list=loaded_tasmota_devices, check_string=payload_json["text"])
-        spoken_states = getTextMatches(match_item=state_keyphrases, check_string=payload_json["text"])
+        spoken_devices = pybloob.getDeviceMatches(device_list=loaded_tasmota_devices, check_string=payload_json["text"])
+        spoken_states = pybloob.getTextMatches(match_item=state_keyphrases, check_string=payload_json["text"])
 
         to_speak = ""
         explanation = ""
@@ -150,7 +140,7 @@ async def handle_message(message, client):
             elif spoken_state == ("off"):
                 device.off()
 
-            await client.publish(f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": payload_json["id"], "text": to_speak, "explanation": explanation, "end_type": "finish"}))
+            await client.publish(f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": payload_json["id"], "text": to_speak, "explanation": explanation}))
 
 
 
@@ -159,7 +149,7 @@ def on_exit(*args):
     auth = None
     if arguments.user != None:
         auth = {"username": arguments.user, "password": arguments.password}
-    paho.mqtt.publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host,port=arguments.port, auth=auth)
+    paho.mqtt.publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host,port=int(arguments.port), auth=auth)
     exit()
 
 signal.signal(signal.SIGTERM, on_exit)

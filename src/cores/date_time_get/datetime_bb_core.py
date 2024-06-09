@@ -6,36 +6,15 @@ Follows the Bloob Core format for input / output
 
 Returns the date if your query includes date, time if your query includes the time, and both if it includes both / neither.
 """
-import argparse
-import subprocess
-import asyncio
-import sys
-import re
-import json
-import base64
-import pathlib
-import os
-import signal
 
-import paho.mqtt.subscribe as subscribe
-import paho.mqtt.publish as publish
 
-arg_parser = argparse.ArgumentParser()
-arg_parser.add_argument('--host', default="localhost")
-arg_parser.add_argument('--port', default=1883)
-arg_parser.add_argument('--user')
-arg_parser.add_argument('--pass')
-arg_parser.add_argument('--device-id', default="test")
-arg_parser.add_argument('--identify', default="")
-arguments = arg_parser.parse_args()
 
-arguments.port = int(arguments.port)
+import pybloob
 
-core_id = "date_time_get"
+core_id = "datetime"
 
-if arguments.identify:
-  print(json.dumps({"id": core_id, "roles": ["intent_handler"]}))
-  exit()
+arguments = pybloob.coreArgParse()
+c = pybloob.coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=pybloob.pahoMqttAuthFromArgs(arguments))
 
 core_config = {
   "metadata": {
@@ -47,18 +26,18 @@ core_config = {
     "description": None,
     "version": 0.1,
     "license": "AGPLv3"
-  },
-  "intents": [{
-    "intent_id" : "getDate",
-    "keywords": [["day", "date", "time"]],
-    "collections": [["get"]],
-    "core_id": core_id
-  }]
-  
+  }  
 }
 
-publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+intents = [{
+    "id" : "getDate",
+    "keyphrases": [["$get"], ["day", "date", "time"]],
+    "core_id": core_id
+  }]
 
+pybloob.publishConfig(core_config, c)
+
+pybloob.publishIntents(intents)
 
 from datetime import datetime
 
@@ -81,16 +60,8 @@ def get_time():
   minute = now.strftime('%M') 
   return hr24, hr12, minute, apm
 
-# Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
-def on_exit(*args):
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
-  exit()
-
-signal.signal(signal.SIGTERM, on_exit)
-signal.signal(signal.SIGINT, on_exit)
-
 while True:
-  request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
+  request_json = pybloob.waitForCoreCall(c)
   if "date" in request_json["text"] and "time" not in request_json["text"]:
     dayNum, month, weekday = get_date()
     if dayNum[-1] == "1":
@@ -123,6 +94,6 @@ while True:
     to_speak = f"Right now, it's {hr12}:{minute} {apm} on {weekday} the {dayNum} of {month}"
     explanation = f"Got that the current time is {hr12}:{minute} {apm}, and the current date is {weekday} the {dayNum} of {month}"
 
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "text": to_speak, "explanation": explanation, "end_type": "finish"}), hostname=arguments.host, port=arguments.port)
+  pybloob.publishCoreOutput(request_json["id"], to_speak, explanation, c)
 
 

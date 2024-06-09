@@ -15,17 +15,21 @@
 
 ## STT (required)
 ```
-"stt_model": "Systran/faster-distil-whisper-small.en"
+"stt": {
+    "model": "Systran/faster-distil-whisper-small.en"
+},
 ```
 
-* `stt_model` is the chosen Whisper model to use for STT purposes, and should be able to be entered into the `faster-whisper` Python library
+* `model` is the chosen Whisper model to use for STT purposes, and should be able to be entered into the `faster-whisper` Python library
 
 ## TTS (required)
 ```
-"tts_model": "en_US-lessac-high"
+"tts": {
+    "model": "en_US-lessac-high"
+},
 ```
 
-* `tts_model` is the chosen Piper model to use for TTS purposes
+* `model` is the chosen Piper model to use for TTS purposes
 
 ## MQTT (required)
 ```
@@ -34,12 +38,21 @@
 
 * `host` and `port` are the hostname and port of your MQTT broker
 * `user` and `password` are the username and password to connect with
+* `port` is an integer, not a string!
 
-## External Core IDs (optional)
+## Orchestrator
 ```
-"external_core_ids": ["example_id", "example_id2"]
+"orchestrator": {
+    "show_remote_logs": true
+    "external_cores": [
+        {"id": "testcore1", "roles": ["intent_handler"]},
+        {"id": "testcore2", "roles": ["no_config"]}
+    ]
+},
 ```
 
-* These are core IDs that the Orchestrator should know about (and therefore tell downstream services about them)
-* This is useful if you're running cores as daemons, or on other machines, or just launching them with any method that is not directly through the Orchestrator
-* If these cores are not available, we can't know, and your Intent Parser will freeze up!
+* `show_remote_logs` decides whether the Orchestrator's stdout should show all other bloob logs, as opposed to just its own.
+* `external_cores` are Cores that the Orchestrator should know about (and therefore tell downstream services about them)
+    * This is useful if you're running cores as daemons, or on other machines, or just launching them with any method that is not directly through the Orchestrator
+    * They do not currently support being `collection_handler`s, due to some rearchitecting going on.
+    * If these cores are not available, we can't know, and your Intent Parser will freeze up!

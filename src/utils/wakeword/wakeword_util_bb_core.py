@@ -3,15 +3,10 @@
 
 Requires no input, will always be detecting.
 
-Will respond with {"wakeword_id": id_of_detected_wakeword: str, "confidence": confidence_of_detection: str} to "bloob/{arguments.device_id}/wakeword/detected"
+Will respond with {"wakeword_id": id_of_detected_wakeword: str, "confidence": confidence_of_detection: str} to "bloob/{arguments.device_id}/cores/wakeword_util/detected"
 """
-import argparse
-import subprocess
-import asyncio
 import sys
-import re
 import json
-import base64
 import pathlib
 import os
 import paho.mqtt.publish as publish
@@ -26,60 +21,69 @@ with open(bloobinfo_path, "r") as bloobinfo_file:
 bloob_python_module_dir = pathlib.Path(bloob_info["install_path"]).joinpath("src").joinpath("python_module")
 sys.path.append(str(bloob_python_module_dir))
 
-from bloob import getDeviceMatches, getTextMatches, log
+import pybloob
 
 default_data_path = pathlib.Path(os.environ['HOME']).joinpath(".config/bloob") 
 default_ww_path = default_data_path.joinpath("ww")
 
-
-
 if not os.path.exists(ww_temp_path):
   os.makedirs(ww_temp_path)
 
-arg_parser = argparse.ArgumentParser()
-arg_parser.add_argument('--host', default="localhost")
-arg_parser.add_argument('--port', default=1883)
-arg_parser.add_argument('--user')
-arg_parser.add_argument('--pass')
-arg_parser.add_argument('--device-id', default="test")
-arg_parser.add_argument('--ww-path', default=default_ww_path)
-arg_parser.add_argument('--identify', default="")
-arguments = arg_parser.parse_args()
+arguments = pybloob.coreArgParse()
 
-arguments.port = int(arguments.port)
+core_id = "wakeword_util"
 
-core_id = "wakeword"
-if arguments.identify:
-  print(json.dumps({"id": core_id, "roles": ["util"]}))
+core_config = {
+  "metadata": {
+    "core_id": core_id,
+    "friendly_name": "TTS",
+    "link": "https://gitlab.com/issacdowling/blueberry-micro/-/tree/main/src/utils/tts",
+    "author": None,
+    "icon": None,
+    "description": "Speaks text",
+    "version": "0.1",
+    "license": "AGPLv3"
+  }
+}
+
+publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+
+# Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
+import signal
+def on_exit(*args):
+  pybloob.log("Shutting Down...", log_data)
+  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
   exit()
+
+signal.signal(signal.SIGTERM, on_exit)
+signal.signal(signal.SIGINT, on_exit)
 
 ## Logging starts here
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
-log("Starting up...", log_data)
+pybloob.log("Starting up...", log_data)
 
 # Create Wakeword data directory if necessary
-if not os.path.exists(arguments.ww_path):
-  log(f"Creating Wakeword path: {arguments.ww_path}", log_data)
-  os.makedirs(arguments.ww_path)
+if not os.path.exists(default_ww_path):
+  pybloob.log(f"Creating Wakeword path: {default_ww_path}", log_data)
+  os.makedirs(default_ww_path)
 
 #This is turned into a str because otherwise python-mpv and faster-whisper broke
 detected_speech_wav_path = str(ww_temp_path.joinpath("detected_speech.wav"))
 ## TODO: Eventually get this list from the server
 ## TODO: Allow certain actions to be performed solely from saying certain wakewords (split into "wake"words and "action"words or something)
 ## Loads all .tflite custom models in the wakeword folder
-log(f"Found these OpenWakeWord Models: {[str(model) for model in arguments.ww_path.glob('*.tflite')]}", log_data)
-enabled_wakewords = [str(model) for model in arguments.ww_path.glob('*.tflite')]
+pybloob.log(f"Found these OpenWakeWord Models: {[str(model) for model in default_ww_path.glob('*.tflite')]}", log_data)
+enabled_wakewords = [str(model) for model in default_ww_path.glob('*.tflite')]
 ## TODO: Add automatically downloading "personal wakewords" from configuration server and enabling them
 
 if len(enabled_wakewords) == 0:
-  log(f"There are no wakewords in {arguments.ww_path}, so wakeword detection cannot continue. Exiting.", log_data)
+  pybloob.log(f"There are no wakewords in {default_ww_path}, so wakeword detection cannot continue. Exiting.", log_data)
   exit()
 
 ## Load OpenWakeword #######################
 from openwakeword import Model
 from pyaudio import PyAudio, paInt16
 import numpy as np
-import wave
 
 ## Set audio variables
 channels = 1 # Mono since stereo would be a waste of data
@@ -94,7 +98,7 @@ total_devices = audio_recording_system_info.get("deviceCount")
 for device_index in range(total_devices):
   if audio_recording_system.get_device_info_by_host_api_device_index(0, device_index).get("name") == "pipewire":
     mic_index = audio_recording_system.get_device_info_by_host_api_device_index(0, device_index).get("index")
-log(f"Found pipewire at index {mic_index}", log_data)
+pybloob.log(f"Found pipewire at index {mic_index}", log_data)
 
 ### Load OpenWakeWord model
 ## If melspectrogram not found (first launch), download then continue
@@ -108,12 +112,12 @@ except ValueError:
 speech_buffer = []
 
 ## Open Mic:
-log("Opening Mic", log_data)
+pybloob.log("Opening Mic", log_data)
 mic_stream = audio_recording_system.open(format=paInt16, channels=channels, rate=sample_rate, input=True, frames_per_buffer=frame_size, input_device_index=mic_index)
 
 
 ## Detection loop
-log("Waiting for wakeword:", log_data)
+pybloob.log("Waiting for wakeword:", log_data)
 while True:
   speech_buffer = []
   ## Begin capturing audio
@@ -124,10 +128,10 @@ while True:
   for model_name in prediction.keys():
     confidence = prediction[model_name]
     ## Upon detection:
-    if confidence >= 0.5:
+    if confidence >= 0.6:
 
-      publish.single(topic = f"bloob/{arguments.device_id}/wakeword/detected", payload = json.dumps({"wakeword_id": model_name, "confidence": str(prediction[model_name])}), hostname = arguments.host, port = arguments.port)
-      log(f"Wakeword Detected: {model_name}, with confidence of {prediction[model_name]}", log_data)
+      publish.single(topic = f"bloob/{arguments.device_id}/cores/wakeword_util/finished", payload = json.dumps({"wakeword_id": model_name, "confidence": str(prediction[model_name])}), hostname = arguments.host, port = arguments.port, qos=1)
+      pybloob.log(f"Wakeword Detected: {model_name}, with confidence of {prediction[model_name]}", log_data)
       ### Feeds silence for "4 seconds" to OpenWakeWord so that it doesn't lead to repeat activations
       ### See for yourself: https://github.com/dscripka/openWakeWord/issues/37
       ### Don't disable or it will lead to approximately 2 hours and 23 minutes of confusion.
