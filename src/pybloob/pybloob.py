@@ -5,14 +5,6 @@ import random
 
 bloobQOS = 1
 
-# Logging data should be set as a tuple, logging_data = (mqtt_host: str, mqtt_port: int, device_id: str, core_id: str)
-# The point is to shorten what needs to be written and reduce duplication
-def log(text_to_log, logging_data):
-  mqtt_host, mqtt_port, device_id, core_id = logging_data
-  message_to_log = f"[{core_id}] {text_to_log}"
-  publish.single(f"bloob/{device_id}/logs", payload=message_to_log, hostname=mqtt_host, port=mqtt_port, qos=1)
-  print(message_to_log)
-
 # Can be provided with a list, which should contain objects with .names, 
 # which is a list of potential different names for the device, where the first is
 # the preferred name. It'll search for any of the names in spoken_words
@@ -86,45 +78,46 @@ def coreArgParse():
   arguments = arg_parser.parse_args()
   return arguments
 
-class coreMQTTInfo:
-  def __init__(self, device_id: str, core_id:str, mqtt_host: str, mqtt_port: int, mqtt_auth: dict):
+class Core:
+  def __init__(self, device_id: str, core_id:str, mqtt_host: str, mqtt_port: int, mqtt_user: str=None, mqtt_pass: str=None):
     self.device_id = device_id
     self.core_id = core_id
     self.mqtt_host = mqtt_host
     self.mqtt_port = mqtt_port
-    self.mqtt_auth = mqtt_auth
+    self.mqtt_auth = {'username':mqtt_user, 'password':mqtt_pass} if mqtt_user != None else None
 
+  def log(self, text_to_log):
+    message_to_log = f"[{self.core_id}] {text_to_log}"
+    publish.single(f"bloob/{self.device_id}/logs", payload=message_to_log, hostname=self.mqtt_host, port=self.mqtt_port, qos=bloobQOS, auth=self.mqtt_auth)
+    print(message_to_log)
 
-def pahoMqttAuthFromArgs(arguments):
-  return {'username':arguments.user, 'password':arguments.__dict__.get("pass")} if arguments.user != None else None
+  ## Provide the collection_name and core_mqtt_info, and this will return a JSON decoded version of the collection.
+  ## IF THE COLLECTION DOES NOT EXIST, THIS WILL BLOCK FOREVER!
+  def getCollection(self, collection_name: str):
+    return json.loads(subscribe.simple(f"bloob/{self.device_id}/collections/{collection_name}", hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth).payload.decode())
 
-## Provide the collection_name and core_mqtt_info, and this will return a JSON decoded version of the collection.
-## IF THE COLLECTION DOES NOT EXIST, THIS WILL BLOCK FOREVER!
-def getCollection(collection_name: str, core_mqtt_info: coreMQTTInfo):
-  return json.loads(subscribe.simple(f"bloob/{core_mqtt_info.device_id}/collections/{collection_name}", hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth).payload.decode())
+  def getCentralConfig(self):
+    return json.loads(subscribe.simple(f"bloob/{self.device_id}/cores/{self.core_id}/central_config", hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth).payload.decode())
 
-def getCentralConfig(core_mqtt_info: coreMQTTInfo):
-  return json.loads(subscribe.simple(f"bloob/{core_mqtt_info.device_id}/cores/{core_mqtt_info.core_id}/central_config", hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth).payload.decode())
+  def publishIntents(self, intents: list):
+    for intent in intents:
+      publish.single(topic=f"bloob/{self.device_id}/cores/{self.core_id}/intents/{intent['id']}", payload=json.dumps(intent), qos=bloobQOS, retain=True, hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth)
 
-def publishIntents(intents: list, core_mqtt_info: coreMQTTInfo):
-  for intent in intents:
-    publish.single(topic=f"bloob/{core_mqtt_info.device_id}/cores/{core_mqtt_info.core_id}/intents/{intent['id']}", payload=json.dumps(intent), qos=bloobQOS, retain=True, hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth)
+  def publishCollections(self, collections: list):
+    for collection in collections:
+      publish.single(f"bloob/{self.device_id}/collections/{collection['id']}", json.dumps(collection), bloobQOS, True)
 
-def publishCollections(collections: list, core_mqtt_info: coreMQTTInfo):
-  for collection in collections:
-    publish.single(f"bloob/{core_mqtt_info.device_id}/collections/{collection['id']}", json.dumps(collection), bloobQOS, True)
+  def publishConfig(self, core_config: dict):
+    publish.single(topic=f"bloob/{self.device_id}/cores/{self.core_id}/config", payload=json.dumps(core_config), retain=True, hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth)
 
-def publishConfig(core_config: dict, core_mqtt_info: coreMQTTInfo):
-  publish.single(topic=f"bloob/{core_mqtt_info.device_id}/cores/{core_mqtt_info.core_id}/config", payload=json.dumps(core_config), retain=True, hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth)
+  def waitForCoreCall(self):
+    return json.loads(subscribe.simple(f"bloob/{self.device_id}/cores/{self.core_id}/run", hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth).payload.decode())
 
-def waitForCoreCall(core_mqtt_info: coreMQTTInfo):
-  return json.loads(subscribe.simple(f"bloob/{core_mqtt_info.device_id}/cores/{core_mqtt_info.core_id}/run", hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth).payload.decode())
+  def publishCoreOutput(self, id: str, text: str, explanation: str):
+    publish.single(topic=f"bloob/{self.device_id}/cores/{self.core_id}/finished", payload=json.dumps({"id": id, "text": text, "explanation": explanation}), hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth)
 
-def publishCoreOutput(id: str, text: str, explanation: str, core_mqtt_info: coreMQTTInfo):
-  publish.single(topic=f"bloob/{core_mqtt_info.device_id}/cores/{core_mqtt_info.core_id}/finished", payload=json.dumps({"id": id, "text": text, "explanation": explanation}), hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth)
-
-def playAudioFile(audio_wav_b64_str: str, core_mqtt_info: coreMQTTInfo, id=None):
-  # Allow choosing the ID, but generally use a random one if it's not the same request as the main speech (like playing the volume change sound)
-  if id == None:
-    id = str(random.randint(1,30000))
-  publish.single(topic=f"bloob/{core_mqtt_info.device_id}/cores/audio_playback_util/play_file", payload=json.dumps({"id": id, "audio": audio_wav_b64_str}), hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth)
+  def playAudioFile(self, audio_wav_b64_str: str, id: str=None):
+    # Allow choosing the ID, but generally use a random one if it's not the same request as the main speech (like playing the volume change sound)
+    if id == None:
+      id = str(random.randint(1,30000))
+    publish.single(topic=f"bloob/{self.device_id}/cores/audio_playback_util/play_file", payload=json.dumps({"id": id, "audio": audio_wav_b64_str}), hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth)
