@@ -228,11 +228,13 @@ func preCleanText(text string) string {
 	replaceValues := map[string]string{
 		"&": " and ",
 
-		"+": " plus ",
-		"*": " times ",
-		"-": " minus ",
-		"/": " over ",
-		"%": " percent ",
+		"+":   " plus ",
+		" * ": " times ",
+		// Prevent hyphens from turning into minus by adding a leading space, THEN turning other -s into spaces
+		" -": " minus ",
+		"-":  " ",
+		"/":  " over ",
+		"%":  " percent ",
 	}
 
 	for original, replacement := range replaceValues {
