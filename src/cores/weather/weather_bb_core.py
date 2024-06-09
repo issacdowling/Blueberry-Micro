@@ -14,16 +14,14 @@ import pathlib
 import os
 import signal
 
-import paho.mqtt.subscribe as subscribe
-import paho.mqtt.publish as publish
-
 import requests
 
 import pybloob
 
-arguments = pybloob.coreArgParse()
-
 core_id = "weather"
+
+arguments = pybloob.coreArgParse()
+c = pybloob.coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=pybloob.pahoMqttAuthFromArgs(arguments))
 
 core_config = {
   "metadata": {
@@ -35,8 +33,7 @@ core_config = {
     "description": "Gets the weather using Open Meteo",
     "version": 0.1,
     "license": "AGPLv3"
-  }
-  
+  } 
 }
 
 intents = [{
@@ -56,25 +53,16 @@ with open(f"{script_path}/weathercodes.json", "r") as weather_file:
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
 pybloob.log("Starting up...", log_data)
 
-publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+pybloob.publishConfig(core_config, c)
 
-for intent in intents:
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/intents/{intent['id']}", payload=json.dumps(intent), retain=True, hostname=arguments.host, port=arguments.port)
+pybloob.publishIntents(intents, c)
 
 ## Get device configs from central config, instantiate
 pybloob.log("Getting Centralised Config from Orchestrator", log_data)
-central_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
-
-# Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
-def on_exit(*args):
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
-  exit()
-
-signal.signal(signal.SIGTERM, on_exit)
-signal.signal(signal.SIGINT, on_exit)
+central_config = pybloob.getCentralConfig(c)
 
 while True:
-  request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
+  request_json = pybloob.waitForCoreCall(c)
   if central_config == {} or central_config.get("location") == None:
     pybloob.log("No location set in config", log_data)
     to_speak = "I couldn't get the weather, as you don't have a location set up in your configuration file"
@@ -97,6 +85,6 @@ while True:
       to_speak = "I couldn't get the weather, and I'm not sure why"
       explanation = "The Weather Core failed to get the weather for an unknown reason"   
 
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "text": to_speak, "explanation": explanation}), hostname=arguments.host, port=arguments.port)
+  pybloob.publishCoreOutput(request_json["id"], to_speak, explanation, c)
 
 

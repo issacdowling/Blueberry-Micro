@@ -12,13 +12,10 @@ import signal
 
 import pybloob
 
-import paho.mqtt.subscribe as subscribe
-import paho.mqtt.publish as publish
+core_id = "greet"
 
 arguments = pybloob.coreArgParse()
-
-
-core_id = "greet"
+c = pybloob.coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=pybloob.pahoMqttAuthFromArgs(arguments))
 
 core_config = {
   "metadata": {
@@ -39,20 +36,11 @@ intents = [{
     "core_id": core_id
   }]
 
-publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+pybloob.publishConfig(core_config, c)
 
-for intent in intents:
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/intents/{intent['id']}", payload=json.dumps(intent), retain=True, hostname=arguments.host, port=arguments.port)
-
-# Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
-def on_exit(*args):
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
-  exit()
-
-signal.signal(signal.SIGTERM, on_exit)
-signal.signal(signal.SIGINT, on_exit)
+pybloob.publishIntents(intents, c)
 
 while True:
   request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
   greeting = "Hello, World!"
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "text": greeting, "explanation": "The demo greeting core says " + greeting}), hostname=arguments.host, port=arguments.port)
+  pybloob.publishCoreOutput(request_json["id"], greeting, f"The Greeting Core says {greeting}", c)

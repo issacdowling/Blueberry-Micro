@@ -18,14 +18,13 @@ import random
 
 import pybloob
 
-import paho.mqtt.subscribe as subscribe
-import paho.mqtt.publish as publish
-
 core_dir = pathlib.Path(__file__).parents[0]
 
-arguments = pybloob.coreArgParse()
-
 core_id = "volume_set"
+
+arguments = pybloob.coreArgParse()
+c = pybloob.coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=pybloob.pahoMqttAuthFromArgs(arguments))
+
 
 increase_words = ["up", "increase", "higher", "more"]
 decrease_words = ["down", "decrease", "lower", "less", "decreeced"]
@@ -67,25 +66,13 @@ intents = [{
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
 pybloob.log("Starting up...", log_data)
 
-publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+pybloob.publishConfig(core_config, c)
 
-for intent in intents:
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/intents/{intent['id']}", payload=json.dumps(intent), retain=True, hostname=arguments.host, port=arguments.port)
-
-
-# Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
-import signal
-def on_exit(*args):
-  pybloob.log("Shutting Down...", log_data)
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
-  exit()
-
-signal.signal(signal.SIGTERM, on_exit)
-signal.signal(signal.SIGINT, on_exit)
+pybloob.publishIntents(intents, c)
 
 ## Get device configs from central config, instantiate
 pybloob.log("Getting Centralised Config from Orchestrator", log_data)
-central_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
+central_config = pybloob.getCentralConfig(c)
 
 if central_config == {}:
   min_bound = 0
@@ -99,20 +86,12 @@ else:
   audio_device = central_config["device_name"]
   pybloob.log(f"Config found, device name ({audio_device}) and bounds ({min_bound}-{max_bound})", log_data)
 
-# Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
-def on_exit(*args):
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
-  exit()
-
-signal.signal(signal.SIGTERM, on_exit)
-signal.signal(signal.SIGINT, on_exit)
-
 with open(core_dir.joinpath("volume_change.wav"), "rb") as audio_file:
 	volume_change_audio = base64.b64encode(audio_file.read()).decode()
 
 while True:
   pybloob.log("Waiting for input...", log_data)
-  request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
+  request_json = pybloob.waitForCoreCall(c)
   numbers = []
   for word in request_json["text"].split(" "):
     if word.isnumeric(): numbers.append(int(word))
@@ -140,11 +119,11 @@ while True:
       
       subprocess.call(["amixer", "sset", audio_device, str(percentage) + "%" + plus_minus])
 
-    publish.single(topic=f"bloob/{arguments.device_id}/audio_playback/play_file", payload=json.dumps({"id": random.randint(1,1000), "audio": volume_change_audio}), hostname=arguments.host, port=arguments.port)
+    pybloob.playAudioFile(volume_change_audio, c)
 
   else:
     pybloob.log(f"Got {len(numbers)} instead of 1", log_data)
     to_speak = f"You didn't say 1 number to set the volume to, you said {len(numbers)}"
     explanation = f"Setting the volume failed, as the user said {len(numbers)} volume numbers instead of 1"
 
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "text": to_speak, "explanation": explanation}), hostname=arguments.host, port=arguments.port)
+  pybloob.publishCoreOutput(request_json["id"], to_speak, explanation, c)

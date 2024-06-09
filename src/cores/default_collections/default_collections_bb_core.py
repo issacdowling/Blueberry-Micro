@@ -11,9 +11,10 @@ import sys
 
 import pybloob
 
-arguments = pybloob.coreArgParse()
-
 core_id = "default_collections"
+
+arguments = pybloob.coreArgParse()
+c = pybloob.coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=pybloob.pahoMqttAuthFromArgs(arguments))
 
 core_config = {
 	"metadata": {
@@ -28,18 +29,7 @@ core_config = {
 	}
 }
 
-# Clears the published Collections and Config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
-def on_exit(*args):
-	pybloob.log("Shutting Down...", log_data)
-	publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/collections", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
-	publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
-
-	exit()
-
-signal.signal(signal.SIGTERM, on_exit)
-signal.signal(signal.SIGINT, on_exit)
-
-publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+pybloob.publishConfig(core_config, c)
 
 colour_collection = {
 	"id": "colours",
@@ -212,5 +202,4 @@ get_collection = {
 
 collections_list = [colour_collection, boolean_collection, set_collection, get_collection]
 
-for collection in collections_list:
-	publish.single(f"bloob/{arguments.device_id}/collections/{collection['id']}", json.dumps(collection), 2, True)
+pybloob.publishCollections(collections_list, c)

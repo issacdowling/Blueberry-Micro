@@ -13,17 +13,14 @@ import json
 import pathlib
 import signal
 
-import paho.mqtt.subscribe as subscribe
-import paho.mqtt.publish as publish
-
-
 from duckduckgo_search import DDGS
 
 import pybloob
 
-arguments = pybloob.coreArgParse()
-
 core_id = "search_ddg"
+
+arguments = pybloob.coreArgParse()
+c = pybloob.coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=pybloob.pahoMqttAuthFromArgs(arguments))
 
 core_config = {
   "metadata": {
@@ -48,26 +45,17 @@ intents = [{
 log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
 pybloob.log("Starting up...", log_data)
 
-publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+pybloob.publishConfig(core_config, c)
 
-for intent in intents:
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/intents/{intent['id']}", payload=json.dumps(intent), retain=True, hostname=arguments.host, port=arguments.port)
-
+pybloob.publishIntents(intents, c)
 
 ## Get device configs from central config, instantiate
 pybloob.log("Getting Centralised Config from Orchestrator", log_data)
-central_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
-
-# Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
-def on_exit(*args):
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
-  exit()
-
-signal.signal(signal.SIGTERM, on_exit)
-signal.signal(signal.SIGINT, on_exit)
+central_config = pybloob.getCentralConfig(c)
 
 ## TODO: Add (option?) sending a link to the search and results through ntfy for getting more info
 while True:
-  request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
+  request_json = pybloob.waitForCoreCall(c)
   text_to_speak = DDGS().text(request_json["text"][1:], max_results=1)[0]["body"]
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "text": text_to_speak, "explanation": "A DuckDuckGo search returned: " + text_to_speak}), hostname=arguments.host, port=arguments.port)
+  explanation = "A DuckDuckGo search returned: " + text_to_speak
+  pybloob.publishCoreOutput(request_json["id"], text_to_speak, explanation, c)

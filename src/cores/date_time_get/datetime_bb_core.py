@@ -18,9 +18,10 @@ import sys
 
 import pybloob
 
-arguments = pybloob.coreArgParse()
-
 core_id = "datetime"
+
+arguments = pybloob.coreArgParse()
+c = pybloob.coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=pybloob.pahoMqttAuthFromArgs(arguments))
 
 core_config = {
   "metadata": {
@@ -41,11 +42,9 @@ intents = [{
     "core_id": core_id
   }]
 
-publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+pybloob.publishConfig(core_config, c)
 
-for intent in intents:
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/intents/{intent['id']}", payload=json.dumps(intent), retain=True, hostname=arguments.host, port=arguments.port)
-
+pybloob.publishIntents(intents)
 
 from datetime import datetime
 
@@ -68,16 +67,8 @@ def get_time():
   minute = now.strftime('%M') 
   return hr24, hr12, minute, apm
 
-# Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
-def on_exit(*args):
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
-  exit()
-
-signal.signal(signal.SIGTERM, on_exit)
-signal.signal(signal.SIGINT, on_exit)
-
 while True:
-  request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
+  request_json = pybloob.waitForCoreCall(c)
   if "date" in request_json["text"] and "time" not in request_json["text"]:
     dayNum, month, weekday = get_date()
     if dayNum[-1] == "1":
@@ -110,6 +101,6 @@ while True:
     to_speak = f"Right now, it's {hr12}:{minute} {apm} on {weekday} the {dayNum} of {month}"
     explanation = f"Got that the current time is {hr12}:{minute} {apm}, and the current date is {weekday} the {dayNum} of {month}"
 
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/finished", payload=json.dumps({"id": request_json['id'], "text": to_speak, "explanation": explanation}), hostname=arguments.host, port=arguments.port)
+  pybloob.publishCoreOutput(request_json["id"], to_speak, explanation, c)
 
 
