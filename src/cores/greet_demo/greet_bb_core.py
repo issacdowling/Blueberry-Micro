@@ -11,7 +11,7 @@ import pybloob
 core_id = "greet"
 
 arguments = pybloob.coreArgParse()
-c = pybloob.coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=pybloob.pahoMqttAuthFromArgs(arguments))
+c = pybloob.Core(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_user=arguments.user, mqtt_pass=arguments.__dict__.get("pass"))
 
 core_config = {
   "metadata": {
@@ -32,11 +32,11 @@ intents = [{
     "core_id": core_id
   }]
 
-pybloob.publishConfig(core_config, c)
+c.publishConfig(core_config)
 
-pybloob.publishIntents(intents, c)
+c.publishIntents(intents)
 
 while True:
   request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
   greeting = "Hello, World!"
-  pybloob.publishCoreOutput(request_json["id"], greeting, f"The Greeting Core says {greeting}", c)
+  c.publishCoreOutput(request_json["id"], greeting, f"The Greeting Core says {greeting}")

@@ -14,7 +14,7 @@ import pybloob
 core_id = "datetime"
 
 arguments = pybloob.coreArgParse()
-c = pybloob.coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=pybloob.pahoMqttAuthFromArgs(arguments))
+c = pybloob.Core(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_user=arguments.user, mqtt_pass=arguments.__dict__.get("pass"))
 
 core_config = {
   "metadata": {
@@ -35,9 +35,9 @@ intents = [{
     "core_id": core_id
   }]
 
-pybloob.publishConfig(core_config, c)
+c.publishConfig(core_config)
 
-pybloob.publishIntents(intents)
+c.publishIntents(intents)
 
 from datetime import datetime
 
@@ -61,7 +61,7 @@ def get_time():
   return hr24, hr12, minute, apm
 
 while True:
-  request_json = pybloob.waitForCoreCall(c)
+  request_json = c.waitForCoreCall()
   if "date" in request_json["text"] and "time" not in request_json["text"]:
     dayNum, month, weekday = get_date()
     if dayNum[-1] == "1":
@@ -94,6 +94,6 @@ while True:
     to_speak = f"Right now, it's {hr12}:{minute} {apm} on {weekday} the {dayNum} of {month}"
     explanation = f"Got that the current time is {hr12}:{minute} {apm}, and the current date is {weekday} the {dayNum} of {month}"
 
-  pybloob.publishCoreOutput(request_json["id"], to_speak, explanation, c)
+  c.publishCoreOutput(request_json["id"], to_speak, explanation)
 
 

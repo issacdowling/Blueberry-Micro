@@ -32,12 +32,10 @@ transcribed_audio_path = stt_temp_path.joinpath("transcribed_audio.wav")
 if not os.path.exists(stt_temp_path):
   os.makedirs(stt_temp_path)
 
-arguments = pybloob.coreArgParse()
-
-
-
-
 core_id = "stt_util"
+
+arguments = pybloob.coreArgParse()
+c = pybloob.Core(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_user=arguments.user, mqtt_pass=arguments.__dict__.get("pass"))
 
 core_config = {
   "metadata": {
@@ -52,42 +50,30 @@ core_config = {
   }
 }
 
-publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+c.publishConfig(core_config)
 
-# Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
-import signal
-def on_exit(*args):
-  pybloob.log("Shutting Down...", log_data)
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
-  exit()
-
-signal.signal(signal.SIGTERM, on_exit)
-signal.signal(signal.SIGINT, on_exit)
-
-## Logging starts here
-log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
-pybloob.log("Starting up...", log_data)
+c.log("Starting up...")
 
 ## Get device configs from central config, instantiate
-pybloob.log("Getting Centralised Config from Orchestrator", log_data)
+c.log("Getting Centralised Config from Orchestrator")
 print(f"bloob/{arguments.device_id}/{core_id}/central_config")
-central_config = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/central_config", hostname=arguments.host, port=arguments.port).payload.decode())
+central_config = c.getCentralConfig()
 
 if not os.path.exists(default_data_path):
-  pybloob.log("Creating STT path", log_data)
+  c.log("Creating STT path")
   os.makedirs(default_data_path)
 
-pybloob.log(f"Loading Model: {central_config['model']}", log_data)
+c.log(f"Loading Model: {central_config['model']}")
 
 # Do this so that unfound models are automatically downloaded, but by default we aren't checking remotely at all, and the
 # STT directory doesn't need to be deleted just to automatically download other models
 try:
   model = WhisperModel(model_size_or_path=central_config['model'], device="cpu", download_root=default_stt_path, local_files_only = True)
 except: #huggingface_hub.utils._errors.LocalEntryNotFoundError (but can't do that here since huggingfacehub not directly imported)
-  pybloob.log(f"Downloading Model: {central_config['model']}", log_data)
+  c.log(f"Downloading Model: {central_config['model']}")
   model = WhisperModel(model_size_or_path=central_config['model'], device="cpu", download_root=default_stt_path)
 
-pybloob.log(f"Loaded Model: {central_config['model']}", log_data)
+c.log(f"Loaded Model: {central_config['model']}")
 
 
 def transcribe(audio): 
@@ -96,18 +82,18 @@ def transcribe(audio):
   # across significantly different tiers of hardware
   segments, info = model.transcribe(audio, beam_size=5, condition_on_previous_text=False) #condition_on_previous_text=False reduces hallucinations and inference time with no downsides for our short text.
 
-  pybloob.log("Transcribing...", log_data)
+  c.log("Transcribing...")
   
   raw_spoken_words = ""
   for segment in segments:
     raw_spoken_words += segment.text
-  pybloob.log(f"Transcribed words: {raw_spoken_words}", log_data)
+  c.log(f"Transcribed words: {raw_spoken_words}")
 
   return raw_spoken_words
 
 def on_message(client, _, message):
   try:
-    pybloob.log("Waiting for input...", log_data)
+    c.log("Waiting for input...")
     msg_json = json.loads(message.payload.decode())
     with open(transcribed_audio_path,'wb+') as audio_file:
       #Encoding is like this because the string must first be encoded back into the base64 bytes format, then decoded again, this time as b64, into the original bytes.
@@ -115,8 +101,8 @@ def on_message(client, _, message):
     
     transcription = transcribe(str(transcribed_audio_path))
   except KeyError:
-    pybloob.log("Couldn't find the correct keys in recieved JSON", log_data)
-  pybloob.log("Publishing output", log_data)
+    c.log("Couldn't find the correct keys in recieved JSON")
+  c.log("Publishing output")
   stt_mqtt.publish(f"bloob/{arguments.device_id}/cores/stt_util/finished", json.dumps({"id": msg_json["id"], "text": transcription}), qos=1)
 
 stt_mqtt = mqtt.Client()

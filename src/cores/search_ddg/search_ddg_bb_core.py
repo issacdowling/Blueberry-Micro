@@ -15,7 +15,7 @@ import pybloob
 core_id = "search_ddg"
 
 arguments = pybloob.coreArgParse()
-c = pybloob.coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=pybloob.pahoMqttAuthFromArgs(arguments))
+c = pybloob.Core(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_user=arguments.user, mqtt_pass=arguments.__dict__.get("pass"))
 
 core_config = {
   "metadata": {
@@ -36,21 +36,19 @@ intents = [{
     "prefixes": ["search"]
   }]
 
-## Logging starts here
-log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
-pybloob.log("Starting up...", log_data)
+c.log("Starting up...")
 
-pybloob.publishConfig(core_config, c)
+c.publishConfig(core_config)
 
-pybloob.publishIntents(intents, c)
+c.publishIntents(intents)
 
 ## Get device configs from central config, instantiate
-pybloob.log("Getting Centralised Config from Orchestrator", log_data)
-central_config = pybloob.getCentralConfig(c)
+c.log("Getting Centralised Config from Orchestrator")
+central_config = c.getCentralConfig()
 
 ## TODO: Add (option?) sending a link to the search and results through ntfy for getting more info
 while True:
-  request_json = pybloob.waitForCoreCall(c)
+  request_json = c.waitForCoreCall()
   text_to_speak = DDGS().text(request_json["text"][1:], max_results=1)[0]["body"]
   explanation = "A DuckDuckGo search returned: " + text_to_speak
-  pybloob.publishCoreOutput(request_json["id"], text_to_speak, explanation, c)
+  c.publishCoreOutput(request_json["id"], text_to_speak, explanation)

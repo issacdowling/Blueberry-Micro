@@ -16,7 +16,7 @@ core_dir = pathlib.Path(__file__).parents[0]
 core_id = "greet"
 
 arguments = pybloob.coreArgParse()
-c = pybloob.coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=pybloob.pahoMqttAuthFromArgs(arguments))
+c = pybloob.Core(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_user=arguments.user, mqtt_pass=arguments.__dict__.get("pass"))
 
 core_config = {
   "metadata": {
@@ -40,20 +40,18 @@ intents = [{
   }  
   ]
 
-## Logging starts here
-log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
-pybloob.log("Starting up...", log_data)
+c.log("Starting up...")
 
-pybloob.publishConfig(core_config, c)
+c.publishConfig(core_config)
 
-pybloob.publishIntents(intents, c)
+c.publishIntents(intents)
 
 while True:
-  pybloob.log("Waiting for input", log_data)
-  requestJson = pybloob.waitForCoreCall(c)
+  c.log("Waiting for input")
+  requestJson = c.waitForCoreCall()
   repeatText = requestJson["text"]
   for parrot_word in parrot_words:
     if repeatText.startswith(parrot_word):
       repeatText = repeatText[len(parrot_word):]
-  pybloob.log(f"Parroting: {repeatText}", log_data)
-  pybloob.publishCoreOutput(requestJson["id"], repeatText, f"The Parrot Core only wants you to output the following text, as the user asked for it to be repeated: {repeatText}", c)
+  c.log(f"Parroting: {repeatText}")
+  c.publishCoreOutput(requestJson["id"], repeatText, f"The Parrot Core only wants you to output the following text, as the user asked for it to be repeated: {repeatText}")

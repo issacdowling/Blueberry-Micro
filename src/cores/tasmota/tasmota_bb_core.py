@@ -14,15 +14,16 @@ import paho, paho.mqtt, paho.mqtt.publish
 
 import pybloob
 
+core_id = "tasmota"
+
 arguments = pybloob.coreArgParse()
+c = pybloob.Core(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_user=arguments.user, mqtt_pass=arguments.__dict__.get("pass"))
 
 state_bool_keyphrases = ["on", "off"]
 state_brightness_keyphrases = ["brightness"]
 state_percentage_keyphrases = ["percent", "%", "percentage"]
 
 state_keyphrases = state_bool_keyphrases + state_brightness_keyphrases + state_percentage_keyphrases
-
-core_id = "tasmota"
 
 all_device_names = []
 class TasmotaDevice:
@@ -51,7 +52,7 @@ loaded_tasmota_devices = []
 # Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
 import signal
 def on_exit(*args):
-  pybloob.log("Shutting Down...", log_data)
+  c.log("Shutting Down...")
   publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
   exit()
 

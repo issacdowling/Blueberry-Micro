@@ -30,9 +30,10 @@ if not os.path.exists(audio_playback_temp_path):
 
 audio_playback_system = mpv.MPV()
 
-arguments = pybloob.coreArgParse()
-
 core_id = "audio_playback_util"
+
+arguments = pybloob.coreArgParse()
+c = pybloob.Core(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_user=arguments.user, mqtt_pass=arguments.__dict__.get("pass"))
 
 core_config = {
   "metadata": {
@@ -47,20 +48,9 @@ core_config = {
   }
 }
 
-publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+c.publishConfig(core_config)
 
-# Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
-def on_exit(*args):
-  pybloob.log("Shutting Down...", log_data)
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
-  exit()
-
-signal.signal(signal.SIGTERM, on_exit)
-signal.signal(signal.SIGINT, on_exit)
-
-## Logging starts here
-log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
-pybloob.log("Starting up...", log_data)
+c.log("Starting up...")
 
 def play(audio):
 	## Save last played audio to tmp for debugging
@@ -68,14 +58,14 @@ def play(audio):
 		#Encoding is like this because the string must first be encoded back into the base64 bytes format, then decoded again, this time as b64, into the original bytes.
 		audio_file.write(base64.b64decode(audio.encode()))
 
-	pybloob.log("Playing received audio", log_data)
+	c.log("Playing received audio")
 	audio_playback_system.play(last_audio_file_path)
 
 async def connect():
 	
 	async with aiomqtt.Client(arguments.host) as client:
 		# await client.subscribe(f"bloob/{arguments.device_id}/audio_recorder/finished") # This is for testing, it'll automatically play what the TTS says
-		pybloob.log("Waiting for input...", log_data)
+		c.log("Waiting for input...")
 		await client.subscribe(f"bloob/{arguments.device_id}/cores/audio_playback_util/play_file")
 		async for message in client.messages:
 			try:
@@ -85,7 +75,7 @@ async def connect():
 
 					await client.publish(f"bloob/{arguments.device_id}/cores/audio_playback_util/finished", json.dumps({"id": message_payload.get('id')}), qos=1)
 			except:
-				pybloob.log("Error with payload.", log_data)
+				c.log("Error with payload.")
 
 if __name__ == "__main__":
 	try:

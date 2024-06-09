@@ -8,7 +8,7 @@ import pybloob
 core_id = "default_collections"
 
 arguments = pybloob.coreArgParse()
-c = pybloob.coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=pybloob.pahoMqttAuthFromArgs(arguments))
+c = pybloob.Core(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_user=arguments.user, mqtt_pass=arguments.__dict__.get("pass"))
 
 core_config = {
 	"metadata": {
@@ -23,7 +23,7 @@ core_config = {
 	}
 }
 
-pybloob.publishConfig(core_config, c)
+c.publishConfig(core_config)
 
 colour_collection = {
 	"id": "colours",
@@ -196,4 +196,4 @@ get_collection = {
 
 collections_list = [colour_collection, boolean_collection, set_collection, get_collection]
 
-pybloob.publishCollections(collections_list, c)
+c.publishCollections(collections_list)

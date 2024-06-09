@@ -10,7 +10,6 @@ import subprocess
 import base64
 import pathlib
 
-
 import pybloob
 
 core_dir = pathlib.Path(__file__).parents[0]
@@ -18,8 +17,7 @@ core_dir = pathlib.Path(__file__).parents[0]
 core_id = "volume_set"
 
 arguments = pybloob.coreArgParse()
-c = pybloob.coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=pybloob.pahoMqttAuthFromArgs(arguments))
-
+c = pybloob.Core(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_user=arguments.user, mqtt_pass=arguments.__dict__.get("pass"))
 
 increase_words = ["up", "increase", "higher", "more"]
 decrease_words = ["down", "decrease", "lower", "less", "decreeced"]
@@ -57,36 +55,34 @@ intents = [{
   
   ]
 
-## Logging starts here
-log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
-pybloob.log("Starting up...", log_data)
+c.log("Starting up...")
 
-pybloob.publishConfig(core_config, c)
+c.publishConfig(core_config)
 
-pybloob.publishIntents(intents, c)
+c.publishIntents(intents)
 
 ## Get device configs from central config, instantiate
-pybloob.log("Getting Centralised Config from Orchestrator", log_data)
-central_config = pybloob.getCentralConfig(c)
+c.log("Getting Centralised Config from Orchestrator")
+central_config = c.getCentralConfig()
 
 if central_config == {}:
   min_bound = 0
   max_bound = 100
   audio_device = "Master"
-  pybloob.log(f"No config found, assuming default audio device name ({audio_device}) and bounds ({min_bound}-{max_bound})", log_data)
+  c.log(f"No config found, assuming default audio device name ({audio_device}) and bounds ({min_bound}-{max_bound})")
 
 else:
   min_bound = int(central_config["min_bound"])
   max_bound = int(central_config["max_bound"])
   audio_device = central_config["device_name"]
-  pybloob.log(f"Config found, device name ({audio_device}) and bounds ({min_bound}-{max_bound})", log_data)
+  c.log(f"Config found, device name ({audio_device}) and bounds ({min_bound}-{max_bound})")
 
 with open(core_dir.joinpath("volume_change.wav"), "rb") as audio_file:
 	volume_change_audio = base64.b64encode(audio_file.read()).decode()
 
 while True:
-  pybloob.log("Waiting for input...", log_data)
-  request_json = pybloob.waitForCoreCall(c)
+  c.log("Waiting for input...")
+  request_json = c.waitForCoreCall()
   numbers = []
   for word in request_json["text"].split(" "):
     if word.isnumeric(): numbers.append(int(word))
@@ -95,7 +91,7 @@ while True:
     percentage = int(min_bound+(numbers[0]*((max_bound-min_bound)/100)))
 
     if request_json["intent"] == "set_volume":
-      pybloob.log(f"Setting volume to {percentage}%", log_data)
+      c.log(f"Setting volume to {percentage}%")
       subprocess.call(["amixer", "sset", audio_device, str(percentage) + "%"])
 
       to_speak = f"Setting the volume to {percentage} percent"
@@ -114,11 +110,11 @@ while True:
       
       subprocess.call(["amixer", "sset", audio_device, str(percentage) + "%" + plus_minus])
 
-    pybloob.playAudioFile(volume_change_audio, c)
+    c.playAudioFile(volume_change_audio)
 
   else:
-    pybloob.log(f"Got {len(numbers)} instead of 1", log_data)
+    c.log(f"Got {len(numbers)} instead of 1")
     to_speak = f"You didn't say 1 number to set the volume to, you said {len(numbers)}"
     explanation = f"Setting the volume failed, as the user said {len(numbers)} volume numbers instead of 1"
 
-  pybloob.publishCoreOutput(request_json["id"], to_speak, explanation, c)
+  c.publishCoreOutput(request_json["id"], to_speak, explanation)

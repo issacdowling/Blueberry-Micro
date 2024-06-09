@@ -23,11 +23,10 @@ default_audio_recorder_path = default_data_path.joinpath("audio_recorder")
 if not os.path.exists(audio_recorder_temp_path):
   os.makedirs(audio_recorder_temp_path)
 
-arguments = pybloob.coreArgParse()
-
-
-
 core_id = "audio_recorder_util"
+
+arguments = pybloob.coreArgParse()
+c = pybloob.Core(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_user=arguments.user, mqtt_pass=arguments.__dict__.get("pass"))
 
 core_config = {
   "metadata": {
@@ -42,21 +41,9 @@ core_config = {
   }
 }
 
-publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+c.publishConfig(core_config)
 
-# Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
-import signal
-def on_exit(*args):
-  pybloob.log("Shutting Down...", log_data)
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
-  exit()
-
-signal.signal(signal.SIGTERM, on_exit)
-signal.signal(signal.SIGINT, on_exit)
-
-## Logging starts here
-log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
-pybloob.log("Starting up...", log_data)
+c.log("Starting up...")
 
 #This is turned into a str because otherwise python-mpv and faster-whisper broke
 recorded_audio_wav_path = str(audio_recorder_temp_path.joinpath("recorded_audio.wav"))
@@ -83,10 +70,10 @@ total_devices = audio_recording_system_info.get("deviceCount")
 for device_index in range(total_devices):
   if audio_recording_system.get_device_info_by_host_api_device_index(0, device_index).get("name") == "pipewire":
     mic_index = audio_recording_system.get_device_info_by_host_api_device_index(0, device_index).get("index")
-pybloob.log(f"Found pipewire at index {mic_index}", log_data)
+c.log(f"Found pipewire at index {mic_index}")
 
 ## Open Mic:
-pybloob.log("Opening Mic", log_data)
+c.log("Opening Mic")
 mic_stream = audio_recording_system.open(format=paInt16, channels=channels, rate=sample_rate, input=True, frames_per_buffer=frame_size, input_device_index=mic_index)
 
 import paho.mqtt.subscribe as mqtt_subscribe
@@ -97,14 +84,14 @@ while True:
     request_id = json.loads(mqtt_subscribe.simple(f"bloob/{arguments.device_id}/cores/audio_recorder_util/record_speech", hostname = arguments.host, port = arguments.port ).payload.decode())["id"]
     speech_buffer = []
   except json.decoder.JSONDecodeError:
-    pybloob.log("Recieved invalid JSON", log_data)
+    c.log("Recieved invalid JSON")
   while True:
 
     ## Begin capturing audio
     current_frame = np.frombuffer(mic_stream.read(frame_size), dtype=np.int16)
 
     # Record, stopping when no speech detected
-    pybloob.log("Recording: waiting for 1s of silence", log_data)
+    c.log("Recording: waiting for 1s of silence")
     vad_speech_margin = vad_speech_margin_init
     while vad_speech_margin > 0:
       current_frame = np.frombuffer(mic_stream.read(frame_size), dtype=np.int16)
@@ -118,7 +105,7 @@ while True:
         else:
           vad_speech_margin -= 320
 
-    pybloob.log(f"Finished recording, saving audio to {recorded_audio_wav_path}", log_data)
+    c.log(f"Finished recording, saving audio to {recorded_audio_wav_path}")
 
     with wave.open(recorded_audio_wav_path, 'wb') as wf:
       wf.setnchannels(channels)
@@ -129,6 +116,6 @@ while True:
     with open(recorded_audio_wav_path, 'rb') as wf:
       audio_to_send = base64.b64encode(wf.read()).decode()
 
-    pybloob.log("Saved audio", log_data)
+    c.log("Saved audio")
     publish.single(topic = f"bloob/{arguments.device_id}/cores/audio_recorder_util/finished", payload= json.dumps({"id": request_id, "audio" : audio_to_send}), hostname = arguments.host, port = arguments.port, qos=1)
     break

@@ -29,9 +29,10 @@ default_ww_path = default_data_path.joinpath("ww")
 if not os.path.exists(ww_temp_path):
   os.makedirs(ww_temp_path)
 
-arguments = pybloob.coreArgParse()
-
 core_id = "wakeword_util"
+
+arguments = pybloob.coreArgParse()
+c = pybloob.Core(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_user=arguments.user, mqtt_pass=arguments.__dict__.get("pass"))
 
 core_config = {
   "metadata": {
@@ -46,25 +47,13 @@ core_config = {
   }
 }
 
-publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=json.dumps(core_config), retain=True, hostname=arguments.host, port=arguments.port)
+c.publishConfig(core_config)
 
-# Clears the published config on exit, representing that the core is shut down, and shouldn't be picked up by the intent parser
-import signal
-def on_exit(*args):
-  pybloob.log("Shutting Down...", log_data)
-  publish.single(topic=f"bloob/{arguments.device_id}/cores/{core_id}/config", payload=None, retain=True, hostname=arguments.host, port=arguments.port)
-  exit()
-
-signal.signal(signal.SIGTERM, on_exit)
-signal.signal(signal.SIGINT, on_exit)
-
-## Logging starts here
-log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
-pybloob.log("Starting up...", log_data)
+c.log("Starting up...")
 
 # Create Wakeword data directory if necessary
 if not os.path.exists(default_ww_path):
-  pybloob.log(f"Creating Wakeword path: {default_ww_path}", log_data)
+  c.log(f"Creating Wakeword path: {default_ww_path}")
   os.makedirs(default_ww_path)
 
 #This is turned into a str because otherwise python-mpv and faster-whisper broke
@@ -72,12 +61,12 @@ detected_speech_wav_path = str(ww_temp_path.joinpath("detected_speech.wav"))
 ## TODO: Eventually get this list from the server
 ## TODO: Allow certain actions to be performed solely from saying certain wakewords (split into "wake"words and "action"words or something)
 ## Loads all .tflite custom models in the wakeword folder
-pybloob.log(f"Found these OpenWakeWord Models: {[str(model) for model in default_ww_path.glob('*.tflite')]}", log_data)
+c.log(f"Found these OpenWakeWord Models: {[str(model) for model in default_ww_path.glob('*.tflite')]}")
 enabled_wakewords = [str(model) for model in default_ww_path.glob('*.tflite')]
 ## TODO: Add automatically downloading "personal wakewords" from configuration server and enabling them
 
 if len(enabled_wakewords) == 0:
-  pybloob.log(f"There are no wakewords in {default_ww_path}, so wakeword detection cannot continue. Exiting.", log_data)
+  c.log(f"There are no wakewords in {default_ww_path}, so wakeword detection cannot continue. Exiting.")
   exit()
 
 ## Load OpenWakeword #######################
@@ -98,7 +87,7 @@ total_devices = audio_recording_system_info.get("deviceCount")
 for device_index in range(total_devices):
   if audio_recording_system.get_device_info_by_host_api_device_index(0, device_index).get("name") == "pipewire":
     mic_index = audio_recording_system.get_device_info_by_host_api_device_index(0, device_index).get("index")
-pybloob.log(f"Found pipewire at index {mic_index}", log_data)
+c.log(f"Found pipewire at index {mic_index}")
 
 ### Load OpenWakeWord model
 ## If melspectrogram not found (first launch), download then continue
@@ -112,12 +101,12 @@ except ValueError:
 speech_buffer = []
 
 ## Open Mic:
-pybloob.log("Opening Mic", log_data)
+c.log("Opening Mic")
 mic_stream = audio_recording_system.open(format=paInt16, channels=channels, rate=sample_rate, input=True, frames_per_buffer=frame_size, input_device_index=mic_index)
 
 
 ## Detection loop
-pybloob.log("Waiting for wakeword:", log_data)
+c.log("Waiting for wakeword:")
 while True:
   speech_buffer = []
   ## Begin capturing audio
@@ -131,7 +120,7 @@ while True:
     if confidence >= 0.6:
 
       publish.single(topic = f"bloob/{arguments.device_id}/cores/wakeword_util/finished", payload = json.dumps({"wakeword_id": model_name, "confidence": str(prediction[model_name])}), hostname = arguments.host, port = arguments.port, qos=1)
-      pybloob.log(f"Wakeword Detected: {model_name}, with confidence of {prediction[model_name]}", log_data)
+      c.log(f"Wakeword Detected: {model_name}, with confidence of {prediction[model_name]}")
       ### Feeds silence for "4 seconds" to OpenWakeWord so that it doesn't lead to repeat activations
       ### See for yourself: https://github.com/dscripka/openWakeWord/issues/37
       ### Don't disable or it will lead to approximately 2 hours and 23 minutes of confusion.

@@ -12,7 +12,7 @@ import pybloob
 core_id = "calc"
 
 arguments = pybloob.coreArgParse()
-c = pybloob.coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=pybloob.pahoMqttAuthFromArgs(arguments))
+c = pybloob.Core(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_user=arguments.user, mqtt_pass=arguments.__dict__.get("pass"))
 
 add_words = ["add", "plus"]
 minus_words = ["minus", "take"]
@@ -32,7 +32,7 @@ core_config = {
   }
 }
 
-pybloob.publishConfig(core_config, c)
+c.publishConfig(core_config)
 
 intents = [{
     "id" : "calc",
@@ -41,10 +41,10 @@ intents = [{
     "core_id": core_id
   }]
 
-pybloob.publishIntents(intents, c)
+c.publishIntents(intents)
 
 while True:
-  request_json = pybloob.waitForCoreCall(c)
+  request_json = c.waitForCoreCall()
   numbers = []
   for word in request_json["text"].split(" "):
     if word.isnumeric(): numbers.append(int(word))
@@ -70,4 +70,4 @@ while True:
     to_speak = f"You didn't say 2 numbers, you said {len(numbers)}"
     explanation = f"Calculator failed, as the user didn't say the 2 required numbers, they said {len(numbers)}"
 
-  pybloob.publishCoreOutput(request_json["id"], to_speak, explanation, c)
+  c.publishCoreOutput(request_json["id"], to_speak, explanation)

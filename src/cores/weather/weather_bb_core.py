@@ -17,7 +17,7 @@ import pybloob
 core_id = "weather"
 
 arguments = pybloob.coreArgParse()
-c = pybloob.coreMQTTInfo(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_auth=pybloob.pahoMqttAuthFromArgs(arguments))
+c = pybloob.Core(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_user=arguments.user, mqtt_pass=arguments.__dict__.get("pass"))
 
 core_config = {
   "metadata": {
@@ -45,27 +45,25 @@ with open(f"{script_path}/weathercodes.json", "r") as weather_file:
   # File by Stellasphere, modified / shrunken to fit my needs
   wmo_codes = json.load(weather_file)
 
-## Logging starts here
-log_data = arguments.host, int(arguments.port), arguments.device_id, core_id
-pybloob.log("Starting up...", log_data)
+c.log("Starting up...")
 
-pybloob.publishConfig(core_config, c)
+c.publishConfig(core_config)
 
-pybloob.publishIntents(intents, c)
+c.publishIntents(intents)
 
 ## Get device configs from central config, instantiate
-pybloob.log("Getting Centralised Config from Orchestrator", log_data)
-central_config = pybloob.getCentralConfig(c)
+c.log("Getting Centralised Config from Orchestrator")
+central_config = c.getCentralConfig()
 
 while True:
-  request_json = pybloob.waitForCoreCall(c)
+  request_json = c.waitForCoreCall()
   if central_config == {} or central_config.get("location") == None:
-    pybloob.log("No location set in config", log_data)
+    c.log("No location set in config")
     to_speak = "I couldn't get the weather, as you don't have a location set up in your configuration file"
     explanation = "The Weather Core could not get the weather, as the user has not configured their location"
   else:
     if central_config.get("temperature_unit") == None:
-      pybloob.log("No temperature unit set, defaulting to Celsius", log_data)
+      c.log("No temperature unit set, defaulting to Celsius")
       temperature_unit = "celsius"
     else:
       temperature_unit = central_config["temperature_unit"]
@@ -81,6 +79,6 @@ while True:
       to_speak = "I couldn't get the weather, and I'm not sure why"
       explanation = "The Weather Core failed to get the weather for an unknown reason"   
 
-  pybloob.publishCoreOutput(request_json["id"], to_speak, explanation, c)
+  c.publishCoreOutput(request_json["id"], to_speak, explanation)
 
 
