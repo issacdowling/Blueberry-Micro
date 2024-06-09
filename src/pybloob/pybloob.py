@@ -112,12 +112,62 @@ class Intent:
 
     return intent_dict
 
+class CoreConfig:
+  def __init__(self, core_id: str, friendly_name: str=None, link: str=None, author: str=None, icon: str=None, description: str=None, version: str=None, license: str=None, example_config: dict=None):
+    self.core_id = core_id
+    self.friendly_name = friendly_name
+    self.link = link
+    self.author = author
+    self.icon = icon
+    self.description = description
+    self.version = version
+    self.license = license
+    self.example_config = example_config
 
+    self.metadata = {
+      "core_id": self.core_id,
+      "friendly_name": self.friendly_name,
+      "link": self.link,
+      "author": self.author,
+      "icon": self.icon,
+      "description": self.description,
+      "version": self.version,
+      "license": self.license,
+      "example_config": self.example_config
+    }
+
+  def asdict(self):
+    return {
+      "metadata": self.metadata
+    }
+
+class Collection:
+  def __init__(self, id: str, advanced_keyphrases: list=None, keyphrases: list=None, variables: dict=None):
+    self.id = id
+    self.advanced_keyphrases = advanced_keyphrases
+    self.keyphrases = keyphrases
+    self.variables = variables
+
+  def asdict(self):
+    collection_dict = {
+      "id": self.id
+    }
+    if self.advanced_keyphrases != None:
+      collection_dict["advanced_keyphrases"] = self.advanced_keyphrases
+    if self.keyphrases != None:
+      collection_dict["keyphrases"] = self.keyphrases
+    if self.variables != None:
+      collection_dict["variables"] = self.variables
+
+    return collection_dict
 
 class Core:
-  def __init__(self, device_id: str, core_id:str, mqtt_host: str, mqtt_port: int, mqtt_user: str=None, mqtt_pass: str=None):
+  def __init__(self, device_id: str, core_id:str, mqtt_host: str, mqtt_port: int, mqtt_user: str=None, mqtt_pass: str=None, core_config: CoreConfig=None, intents: list=None, collections: list=None):
     self.device_id = device_id
     self.core_id = core_id
+    self.core_config = core_config
+    self.intents = intents
+    self.collections = intents
     self.mqtt_host = mqtt_host
     self.mqtt_port = mqtt_port
     self.mqtt_auth = {'username':mqtt_user, 'password':mqtt_pass} if mqtt_user != None else None
@@ -136,19 +186,47 @@ class Core:
     return json.loads(subscribe.simple(f"bloob/{self.device_id}/cores/{self.core_id}/central_config", hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth).payload.decode())
 
   ## Takes either a list of dicts or a list of Intents which will be turned into dicts
-  def publishIntents(self, intents: list):
-    for intent in intents:
+  def publishIntents(self, intents: list=None):
+    if intents != None:
+      self.intents = intents
+
+    for intent in self.intents:
       if type(intent) == dict:
         publish.single(topic=f"bloob/{self.device_id}/cores/{self.core_id}/intents/{intent['id']}", payload=json.dumps(intent), qos=bloobQOS, retain=True, hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth)
       elif type(intent) == Intent:
         publish.single(topic=f"bloob/{self.device_id}/cores/{self.core_id}/intents/{intent['id']}", payload=json.dumps(intent.asdict()), qos=bloobQOS, retain=True, hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth)
 
-  def publishCollections(self, collections: list):
-    for collection in collections:
-      publish.single(f"bloob/{self.device_id}/collections/{collection['id']}", json.dumps(collection), bloobQOS, True)
+  def publishCollections(self, collections: list=None):
+    if collections != None:
+      self.collections = collections
 
-  def publishConfig(self, core_config: dict):
-    publish.single(topic=f"bloob/{self.device_id}/cores/{self.core_id}/config", payload=json.dumps(core_config), retain=True, hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth)
+    for collection in self.collections:
+      if type(collection) == dict:
+        publish.single(f"bloob/{self.device_id}/collections/{collection['id']}", json.dumps(collection), bloobQOS, True)
+      elif type(collection) == Collection:
+        publish.single(f"bloob/{self.device_id}/collections/{collection['id']}", json.dumps(collection.asdict()), bloobQOS, True)
+
+  def publishConfig(self, core_config: dict=None):
+    if core_config != None:
+      self.core_config = core_config
+    if type(self.core_config) == dict:
+      publish.single(topic=f"bloob/{self.device_id}/cores/{self.core_id}/config", payload=json.dumps(self.core_config), retain=True, hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth)
+    elif type(self.core_config) == CoreConfig:
+      publish.single(topic=f"bloob/{self.device_id}/cores/{self.core_id}/config", payload=json.dumps(self.core_config.asdict()), retain=True, hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth)
+
+  def publishAll(self):
+    if self.core_config == None:
+      self.log("No Core Config, can't publish")
+    else:
+      self.publishConfig()
+
+      if self.intents != None:
+        self.log("Publishing Intents")
+        self.publishIntents()
+
+      if self.collections != None:
+        self.log("Publishing Collections")
+        self.publishCollections()
 
   def waitForCoreCall(self):
     return json.loads(subscribe.simple(f"bloob/{self.device_id}/cores/{self.core_id}/run", hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth).payload.decode())
