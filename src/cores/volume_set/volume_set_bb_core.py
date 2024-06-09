@@ -6,15 +6,10 @@ Follows the Bloob Core format for input / output
 
 Sets the volume to - or increments it by - whatever percentage you say
 """
-import argparse
 import subprocess
-import sys
 import base64
-import json
 import pathlib
-import signal
 
-import random
 
 import pybloob
 

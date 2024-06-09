@@ -5,7 +5,6 @@ Requires no input, will always be detecting.
 
 Will respond with {"wakeword_id": id_of_detected_wakeword: str, "confidence": confidence_of_detection: str} to "bloob/{arguments.device_id}/cores/wakeword_util/detected"
 """
-import argparse
 import sys
 import json
 import pathlib

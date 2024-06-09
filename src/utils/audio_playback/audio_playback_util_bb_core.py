@@ -5,9 +5,7 @@ Wishes to be provided with {"id", id: str, "audio": audio: str}, where audio is 
 
 Will respond with {"id": received_id: str}. To "bloob/{arguments.device_id}/cores/audio_playback_util/finished"
 """
-import argparse
 import asyncio
-import sys
 import aiomqtt
 import json
 import base64

@@ -5,8 +5,6 @@ Wishes to be provided with {"id": identifier_of_this_audio_recorder_request: str
 
 Will respond with {"id": received_id: str, "audio": audio: str}, where audio is a WAV file, encoded as b64 bytes, then decoded into a string. To "bloob/{arguments.device_id}/cores/audio_recorder_util/finished"
 """
-import argparse
-import sys
 import json
 import base64
 import pathlib

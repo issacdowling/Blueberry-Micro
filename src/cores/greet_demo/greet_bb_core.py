@@ -4,11 +4,7 @@ Core ID: greet_demo
 
 Says hi back to you.
 """
-import argparse
-import sys
 import json
-import pathlib
-import signal
 
 import pybloob
 

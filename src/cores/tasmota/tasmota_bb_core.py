@@ -4,11 +4,8 @@ Core ID: tasmota
 
 Follows standard core protocol
 """
-import argparse
 import asyncio
-import sys
 import json
-import pathlib
 import signal
 
 import requests

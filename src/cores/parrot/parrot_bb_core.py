@@ -6,16 +6,8 @@ Follows the Bloob Core format for input / output
 
 Repeats your speech
 """
-import argparse
-import subprocess
-import sys
-import base64
-import json
 import pathlib
-import signal
-import signal
 
-import random
 
 import pybloob
 

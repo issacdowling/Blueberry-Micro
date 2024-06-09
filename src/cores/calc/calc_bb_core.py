@@ -6,10 +6,6 @@ Follows the Bloob Core format for input / output
 
 Returns the date if your query includes date, time if your query includes the time, and both if it includes both / neither.
 """
-import sys
-import json
-import pathlib
-import signal
 
 import pybloob
 

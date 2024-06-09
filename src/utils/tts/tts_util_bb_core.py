@@ -5,7 +5,6 @@ Wishes to be provided with {"id": identifier_of_this_tts_request: str, "text": t
 
 Will respond with {"id": received_id: str, "audio": audio: str}, where audio is a WAV file, encoded as b64 bytes, then decoded into a string, to "bloob/{arguments.device_id}/cores/tts_util/finished"
 """
-import argparse
 import subprocess
 import asyncio
 import aiomqtt

@@ -5,9 +5,7 @@ Wishes to be provided with {"id": identifier_of_this_tts_request: str, "audio": 
 
 Will respond with {"id", id: str, "text": transcript} to "bloob/{arguments.device_id}/cores/stt_util/finished"
 """
-import argparse
 import paho.mqtt.client as mqtt
-import sys
 import json
 import base64
 import pathlib

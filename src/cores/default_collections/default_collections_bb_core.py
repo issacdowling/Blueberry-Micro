@@ -1,13 +1,7 @@
 #!/bin/env python3
-import json
-import argparse
 
-import signal
 
-import paho.mqtt.publish as publish
 
-import pathlib
-import sys
 
 import pybloob
 
