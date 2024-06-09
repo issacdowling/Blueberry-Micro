@@ -49,6 +49,11 @@ intents = [
     id="prevTrack",
     core_id=core_id,
     keyphrases=[["previous", "last", "back"], music_words]
+  ),
+  pybloob.Intent(
+    id="playTrack",
+    core_id=core_id,
+    prefixes=["play"]
   )
 ]
 
@@ -106,3 +111,24 @@ while True:
           c.publishCoreOutput(request_json["id"], f"I'll go back a track", f"The Music (Mopidy) Core went back to the previous track")
         case _:
           c.publishCoreOutput(request_json["id"], f"Nothing is playing right now", f"The Music (Mopidy) Core was asked to go back a track, but nothing is playing")
+
+    case "playTrack":
+      query_text = request_json["text"].replace("play", "")
+      # Query _is_ supposed to be a list of strings... even if it's just one string.
+      query_json = {"jsonrpc": "2.0", "id": 1, "method": "core.library.search", "params": {"query": {"track_name": [query_text]}}}
+      mopidy_response_json = json.loads(requests.post(f"http://{url}:{port}/mopidy/rpc", json=query_json).text)
+      if mopidy_response_json['result'][0].get("tracks") == None:
+        c.publishCoreOutput(request_json["id"], f"I couldn't find any song by the name {query_text}", f"The Music (Mopidy) Core couldn't find a song named {query_text}")
+      else:
+        found_track = mopidy_response_json['result'][0]['tracks'][0]
+        c.publishCoreOutput(request_json["id"], f"I'll play {found_track['name']} by {found_track['artists'][0]['name']}", f"The Music (Mopidy) Core was asked to go back a track, but nothing is playing")
+
+        ## Add track to the tracklist
+        query_json = {"jsonrpc": "2.0", "id": 1, "method": "core.tracklist.add", "params": {"uris": [found_track["uri"]]}}
+        track_add_response = json.loads(requests.post(f"http://{url}:{port}/mopidy/rpc", json=query_json).text)
+
+        ## Play the song at the tlid (tracklist ID?) of the song(s) we just added
+        query_json = {"jsonrpc": "2.0", "id": 1, "method": "core.playback.play", "params": {"tlid": track_add_response["result"][0]["tlid"]}}
+        play_tlid_response = json.loads(requests.post(f"http://{url}:{port}/mopidy/rpc", json=query_json).text)
+
+
