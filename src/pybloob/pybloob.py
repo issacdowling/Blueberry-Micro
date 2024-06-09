@@ -78,6 +78,42 @@ def coreArgParse():
   arguments = arg_parser.parse_args()
   return arguments
 
+class Intent:
+  def __init__(self, id: str, core_id: str, advanced_keyphrases: list=None, keyphrases: list=None, prefixes: list=None, suffixes: list=None, variables: dict=None, numbers: dict=None, wakewords: list=None):
+    self.id = id
+    self.core_id = core_id
+    self.advanced_keyphrases = advanced_keyphrases
+    self.keyphrases = keyphrases
+    self.prefixes = prefixes
+    self.suffixes = suffixes
+    self.variables = variables
+    self.numbers = numbers
+    self.wakewords = wakewords
+
+  def asdict(self):
+    intent_dict = {
+      "id": self.id,
+      "core_id": self.core_id,
+    }
+    if self.advanced_keyphrases != None:
+      intent_dict["advanced_keyphrases"] = self.advanced_keyphrases
+    if self.keyphrases != None:
+      intent_dict["keyphrases"] = self.keyphrases
+    if self.prefixes != None:
+      intent_dict["prefixes"] = self.prefixes
+    if self.suffixes != None:
+      intent_dict["suffixes"] = self.suffixes
+    if self.variables != None:
+      intent_dict["variables"] = self.variables
+    if self.numbers != None:
+      intent_dict["numbers"] = self.numbers
+    if self.wakewords != None:
+      intent_dict["wakewords"] = self.wakewords
+
+    return intent_dict
+
+
+
 class Core:
   def __init__(self, device_id: str, core_id:str, mqtt_host: str, mqtt_port: int, mqtt_user: str=None, mqtt_pass: str=None):
     self.device_id = device_id
@@ -99,9 +135,13 @@ class Core:
   def getCentralConfig(self):
     return json.loads(subscribe.simple(f"bloob/{self.device_id}/cores/{self.core_id}/central_config", hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth).payload.decode())
 
+  ## Takes either a list of dicts or a list of Intents which will be turned into dicts
   def publishIntents(self, intents: list):
     for intent in intents:
-      publish.single(topic=f"bloob/{self.device_id}/cores/{self.core_id}/intents/{intent['id']}", payload=json.dumps(intent), qos=bloobQOS, retain=True, hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth)
+      if type(intent) == dict:
+        publish.single(topic=f"bloob/{self.device_id}/cores/{self.core_id}/intents/{intent['id']}", payload=json.dumps(intent), qos=bloobQOS, retain=True, hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth)
+      elif type(intent) == Intent:
+        publish.single(topic=f"bloob/{self.device_id}/cores/{self.core_id}/intents/{intent['id']}", payload=json.dumps(intent.asdict()), qos=bloobQOS, retain=True, hostname=self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth)
 
   def publishCollections(self, collections: list):
     for collection in collections:
