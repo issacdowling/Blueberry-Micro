@@ -1,6 +1,9 @@
 import paho.mqtt.publish as publish
 import paho.mqtt.subscribe as subscribe
 import json
+import random
+
+bloobQOS = 1
 
 # Logging data should be set as a tuple, logging_data = (mqtt_host: str, mqtt_port: int, device_id: str, core_id: str)
 # The point is to shorten what needs to be written and reduce duplication
@@ -105,7 +108,11 @@ def getCentralConfig(core_mqtt_info: coreMQTTInfo):
 
 def publishIntents(intents: list, core_mqtt_info: coreMQTTInfo):
   for intent in intents:
-    publish.single(topic=f"bloob/{core_mqtt_info.device_id}/cores/{core_mqtt_info.core_id}/intents/{intent['id']}", payload=json.dumps(intent), retain=True, hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth)
+    publish.single(topic=f"bloob/{core_mqtt_info.device_id}/cores/{core_mqtt_info.core_id}/intents/{intent['id']}", payload=json.dumps(intent), qos=bloobQOS, retain=True, hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth)
+
+def publishCollections(collections: list, core_mqtt_info: coreMQTTInfo):
+  for collection in collections:
+    publish.single(f"bloob/{core_mqtt_info.device_id}/collections/{collection['id']}", json.dumps(collection), bloobQOS, True)
 
 def publishConfig(core_config: dict, core_mqtt_info: coreMQTTInfo):
   publish.single(topic=f"bloob/{core_mqtt_info.device_id}/cores/{core_mqtt_info.core_id}/config", payload=json.dumps(core_config), retain=True, hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth)
@@ -115,3 +122,9 @@ def waitForCoreCall(core_mqtt_info: coreMQTTInfo):
 
 def publishCoreOutput(id: str, text: str, explanation: str, core_mqtt_info: coreMQTTInfo):
   publish.single(topic=f"bloob/{core_mqtt_info.device_id}/cores/{core_mqtt_info.core_id}/finished", payload=json.dumps({"id": id, "text": text, "explanation": explanation}), hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth)
+
+def playAudioFile(audio_wav_b64_str: str, core_mqtt_info: coreMQTTInfo, id=None):
+  # Allow choosing the ID, but generally use a random one if it's not the same request as the main speech (like playing the volume change sound)
+  if id == None:
+    id = str(random.randint(1,30000))
+  publish.single(topic=f"bloob/{core_mqtt_info.device_id}/cores/audio_playback_util/play_file", payload=json.dumps({"id": id, "audio": audio_wav_b64_str}), hostname=core_mqtt_info.mqtt_host, port=core_mqtt_info.mqtt_port, auth=core_mqtt_info.mqtt_auth)
