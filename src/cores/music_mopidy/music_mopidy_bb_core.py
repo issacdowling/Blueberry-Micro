@@ -81,8 +81,8 @@ if central_config != {} and central_config != None:
     c.log(f"Custom search source in use: {search_source}")
 
 if search_source == "jf":
-  from fuzzywuzzy import process
-  from fuzzywuzzy import fuzz
+  # Wishes to be provided with "url" (http://something:something), "auth" token, and user id "uid" (can be gotten from devtools in web UI)
+  from fuzzywuzzy import process, fuzz
 
   # Define Server Info
   jfurl = search_source_details["url"]
@@ -106,6 +106,26 @@ if search_source == "jf":
     jf_songs[f"{song['Name']} by {artist}"] = song
     jf_songs[f"{song['Name']} from {album}"] = song
 
+elif search_source == "local":
+  import glob
+  from fuzzywuzzy import process, fuzz
+  import os
+  import urllib.parse
+
+  # Wishes to be provided with "base_dir" (directory of songs)
+  base_dir = search_source_details["base_dir"]
+
+  # Scan provided directory for things ending in music-related extensions,
+  # URL encode them and put into mopidy-local URI format. Save for later searching.
+  local_songs = {}
+
+  for root, _, files_in_directory in os.walk(base_dir):
+    root = root.replace(base_dir+"/", "")
+    for file in files_in_directory:
+
+      if file.endswith(".flac") or file.endswith(".wav") or file.endswith(".mp3"):
+        # Maybe in future, remove the extension first too
+        local_songs[file] = f"local:track:{urllib.parse.quote(root+'/'+file)}"
 
 c.publishAll()
   
@@ -182,6 +202,14 @@ while True:
           track_artist = "Unknown Artist" if jf_songs[track_index].get("AlbumArtist") == None else jf_songs[track_index]["AlbumArtist"]
           track_uri = f"jellyfin:track:{jf_songs[track_index]['Id']}"
           c.log(f"Found track {track_name} by {track_artist} with a match of {fuzzy_confidence}%")
+
+        case "local":
+          fuzzy_result = process.extractOne(query_text, list(local_songs.keys()), scorer=fuzz.token_sort_ratio)
+          track_index, fuzzy_confidence = fuzzy_result[0], fuzzy_result[1]      
+          track_uri = local_songs[track_index]
+          # Search mopidy for metadata later
+          track_name = "test"
+          track_artist = "test"
 
       ## Add track to the tracklist
       query_json = {"jsonrpc": "2.0", "id": 1, "method": "core.tracklist.add", "params": {"uris": [track_uri]}}
