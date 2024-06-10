@@ -1,0 +1,4 @@
+requests
+
+fuzzywuzzy
+python-Levenshtein #Makes fuzzy faster

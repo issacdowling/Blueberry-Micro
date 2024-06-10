@@ -13,6 +13,8 @@ mpv
 requests
 duckduckgo_search
 paho-mqtt
+fuzzywuzzy
+python-Levenshtein 
 
 # The custom bloob util module
 src/pybloob
