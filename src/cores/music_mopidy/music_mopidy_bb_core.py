@@ -209,9 +209,12 @@ while True:
             fuzzy_result = process.extractOne(query_text, list(local_songs.keys()), scorer=fuzz.token_sort_ratio)
             track_index, fuzzy_confidence = fuzzy_result[0], fuzzy_result[1]      
             track_uri = local_songs[track_index]
-            # Search mopidy for metadata later
-            track_name = "test"
-            track_artist = "test"
+            # Search mopidy for metadata, as it's not guaranteed to be gleamable easily from the file itself
+            query_json = {"jsonrpc": "2.0", "id": 1, "method": "core.library.lookup", "params": {"uris": [track_uri]}}
+            mopidy_response_json = json.loads(requests.post(f"{base_url}/mopidy/rpc", json=query_json).text)
+            mopidy_response_track = mopidy_response_json["result"][track_uri][0]
+            track_name = "Unknown Track" if mopidy_response_track.get("name") == None else mopidy_response_track["name"]
+            track_artist = "Unknown artist" if mopidy_response_track.get("album") == None or mopidy_response_track["album"].get("artists") == None else mopidy_response_track["album"]["artists"][0]["name"]
 
         ## Add track to the tracklist
         query_json = {"jsonrpc": "2.0", "id": 1, "method": "core.tracklist.add", "params": {"uris": [track_uri]}}
