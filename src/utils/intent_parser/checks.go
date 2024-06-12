@@ -70,11 +70,13 @@ func prefixCheck(text string, intent Intent) (bool, int, string) {
 		if len(splitPrefix) == 1 {
 			// If the single-word checked prefix is the first word
 			if prefix == strings.Split(text, " ")[0] {
-				return true, 1, fmt.Sprintf("%s's prefix check passed, \"%v\" found", intent.Id, prefix)
+				return true, len(prefix), fmt.Sprintf("%s's prefix check passed, \"%v\" found", intent.Id, prefix)
 			}
 		} else {
 			if strings.HasPrefix(text, prefix) {
-				return true, 1, fmt.Sprintf("%s's prefix check passed, \"%v\" found", intent.Id, prefix)
+				// len(prefix) as the depth attempts to resolve matches where a check starts with the same word as another
+				// e.g "play" vs "play the album", where "play the album" should be considered more detailed)
+				return true, len(prefix), fmt.Sprintf("%s's prefix check passed, \"%v\" found", intent.Id, prefix)
 			}
 		}
 
@@ -89,11 +91,11 @@ func suffixCheck(text string, intent Intent) (bool, int, string) {
 		if len(splitSuffix) == 1 {
 			// If the single-word checked prefix is the first word
 			if suffix == splitText[len(splitText)-1] {
-				return true, 1, fmt.Sprintf("%s's suffix check passed, \"%v\" found", intent.Id, suffix)
+				return true, len(suffix), fmt.Sprintf("%s's suffix check passed, \"%v\" found", intent.Id, suffix)
 			}
 		} else {
 			if strings.HasPrefix(text, suffix) {
-				return true, 1, fmt.Sprintf("%s's suffix check passed, \"%v\" found", intent.Id, suffix)
+				return true, len(suffix), fmt.Sprintf("%s's suffix check passed, \"%v\" found", intent.Id, suffix)
 			}
 		}
 
