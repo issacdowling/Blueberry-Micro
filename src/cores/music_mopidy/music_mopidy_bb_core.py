@@ -59,6 +59,11 @@ intents = [
     id="playAlbum",
     core_id=core_id,
     prefixes=["play the album"]
+  ),
+  pybloob.Intent(
+    id="playArtist",
+    core_id=core_id,
+    prefixes=["play the artist", "play songs by", "play tracks by", "play music by"]
   )
 ]
 
@@ -125,6 +130,16 @@ if search_source == "jf":
       if album.get("AlbumArtist"):
         jf_albums[f"{album['Name']} by {album['AlbumArtist']}"] = album
 
+  c.log(f"Downloading Artist index for {search_source}")
+  jf_artists = {}
+  # Send get request to AlbumArtists API endpoint on the Jellyfin server with authentication
+  remote_artists_request = requests.get(jfurl+"/Artists/AlbumArtists", headers = headers)
+  received_json = json.loads(remote_artists_request.text)
+  # Opens "Items" key in JSON file
+  album_artists = received_json["Items"]
+  for album_artist in album_artists:
+    if album_artist.get("Name"):
+      jf_artists[album_artist["Name"]] = album_artist
 
 elif search_source == "local":
   import glob
@@ -274,7 +289,7 @@ while True:
             album_name = jf_albums[album_index]["Name"]
             album_artist = "Unknown Artist" if jf_albums[album_index].get("AlbumArtist") == None else jf_albums[album_index]["AlbumArtist"]
             album_uri = f"jellyfin:album:{jf_albums[album_index]['Id']}"
-            c.log(f"Found track {album_name} by {album_artist} with a match of {fuzzy_confidence}%")
+            c.log(f"Found album {album_name} by {album_artist} with a match of {fuzzy_confidence}%")
 
         ## Add tracks to the tracklist
         query_json = {"jsonrpc": "2.0", "id": 1, "method": "core.tracklist.add", "params": {"uris": [album_uri]}}
@@ -286,11 +301,53 @@ while True:
 
         c.publishCoreOutput(request_json["id"], f"I'll play the album {album_name} by {album_artist}", f"The Music (Mopidy) Core started playing the album {album_name} by {album_artist}")
 
+      case "playArtist":
+        if request_json["text"].startswith("play the artist"):
+          query_text = request_json["text"].replace("play the artist", "")
+        elif request_json["text"].startswith("play songs by"):
+          query_text = request_json["text"].replace("play songs by", "")
+        elif request_json["text"].startswith("play tracks by"):
+          query_text = request_json["text"].replace("play tracks by", "")
+        elif request_json["text"].startswith("play music by"):
+          query_text = request_json["text"].replace("play music by", "")
+
+        c.log(f"Searching for the artist \"{query_text}\" to play")
+        match search_source:
+          case None:
+            # Query _is_ supposed to be a list of strings... even if it's just one string.
+            query_json = {"jsonrpc": "2.0", "id": 1, "method": "core.library.search", "params": {"query": {"artist": [query_text]}}}
+            mopidy_response_json = json.loads(requests.post(f"{base_url}/mopidy/rpc", json=query_json).text)
+            if mopidy_response_json['result'][0].get("artists") == None:
+              c.publishCoreOutput(request_json["id"], f"I couldn't find any artist by the name {query_text}", f"The Music (Mopidy) Core couldn't find an artist named {query_text}")
+            else:
+              found_artist = mopidy_response_json['result'][0]['artists'][0]
+              artist_name = found_artist['name']
+              artist_uri = found_artist["uri"]
+
+          case "jf":
+            ## Use fuzzywuzzy to search the complete artist list, set the URI to match what Mopidy is expecting
+            fuzzy_result = process.extractOne(query_text, list(jf_artists.keys()), scorer=fuzz.token_sort_ratio)
+            artist_index, fuzzy_confidence = fuzzy_result[0], fuzzy_result[1]
+            artist_name = jf_artists[artist_index]["Name"]
+            artist_uri = f"jellyfin:artist:{jf_artists[artist_index]['Id']}"
+            c.log(f"Found artist {artist_name} with a match of {fuzzy_confidence}%")
+
+        ## Add tracks to the tracklist
+        query_json = {"jsonrpc": "2.0", "id": 1, "method": "core.tracklist.add", "params": {"uris": [artist_uri]}}
+        artist_add_response = json.loads(requests.post(f"{base_url}/mopidy/rpc", json=query_json).text)
+
+        ## Play the song at the tlid (tracklist ID?) of the song(s) we just added
+        query_json = {"jsonrpc": "2.0", "id": 1, "method": "core.playback.play", "params": {"tlid": artist_add_response["result"][0]["tlid"]}}
+        play_tlid_response = json.loads(requests.post(f"{base_url}/mopidy/rpc", json=query_json).text)
+
+        c.publishCoreOutput(request_json["id"], f"I'll play the artist {artist_name}", f"The Music (Mopidy) Core started playing the artist {artist_name}")
+
   except (TimeoutError, ConnectionError):
     to_speak = "I couldn't contact the music service, check your internet connection"
     explanation = "The Music Core failed to access the mopidy server. The user's internet connection may be down, or the Mopidy server may be down"
     c.publishCoreOutput(request_json["id"], to_speak, explanation)
-  except:
+  except Exception as e:
+    c.log(e)
     to_speak = "I couldn't access your music, and I'm not sure why"
     explanation = "The Music Core failed to access the music for an unknown reason"   
     c.publishCoreOutput(request_json["id"], to_speak, explanation)
