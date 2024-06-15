@@ -11,20 +11,22 @@ import (
 	"strings"
 	"syscall"
 
+	bloob "blueberry/gobloob"
+
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-var intents map[string]Intent = make(map[string]Intent)
-var collections map[string]Collection = make(map[string]Collection)
+var intents map[string]bloob.Intent = make(map[string]bloob.Intent)
+var collections map[string]bloob.Collection = make(map[string]bloob.Collection)
 
 var broker *mqtt.ClientOptions
 
 var deviceId *string
 var friendlyName string = "Intent Parser"
 
-var instantIntents map[string]Intent = make(map[string]Intent)
+var instantIntents map[string]bloob.Intent = make(map[string]bloob.Intent)
 
-var l logData
+var c bloob.Core = bloob.Core{FriendlyName: friendlyName}
 
 func main() {
 
@@ -38,43 +40,43 @@ func main() {
 	deviceId = flag.String("device-id", "test", "the hostname/IP of the MQTT broker")
 	flag.Parse()
 
-	l.uuid = *deviceId
-	l.name = friendlyName
+	c.DeviceId = *deviceId
+	c.FriendlyName = friendlyName
 
 	//// Set up MQTT
-	bLog("Setting up MQTT", l)
+	c.Log("Setting up MQTT")
 	broker = mqtt.NewClientOptions()
 	broker.AddBroker(fmt.Sprintf("tcp://%s:%v", *mqttHost, *mqttPort))
 
-	bLog(fmt.Sprintf("Broker at: tcp://%s:%v\n", *mqttHost, *mqttPort), l)
+	c.Log(fmt.Sprintf("Broker at: tcp://%s:%v\n", *mqttHost, *mqttPort))
 
 	broker.SetClientID(fmt.Sprintf("%v - %s", *deviceId, friendlyName))
 
-	bLog(fmt.Sprintf("MQTT client name: %v - %s\n", *deviceId, friendlyName), l)
+	c.Log(fmt.Sprintf("MQTT client name: %v - %s\n", *deviceId, friendlyName))
 
 	broker.OnConnect = onConnect
 	if *mqttPass != "" && *mqttUser != "" {
 		broker.SetPassword(*mqttPass)
 		broker.SetUsername(*mqttUser)
-		bLog("Using MQTT authenticated", l)
+		c.Log("Using MQTT authenticated")
 	} else {
-		bLog("Using MQTT unauthenticated", l)
+		c.Log("Using MQTT unauthenticated")
 	}
 	client := mqtt.NewClient(broker)
 
-	l.client = client
+	c.MqttClient = client
 
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		bLogFatal(token.Error().Error(), l)
+		c.LogFatal(token.Error().Error())
 	}
-	if token := client.Subscribe(fmt.Sprintf("bloob/%s/collections/+", *deviceId), bloobQOS, collectionHandler); token.Wait() && token.Error() != nil {
-		bLogFatal(token.Error().Error(), l)
+	if token := client.Subscribe(fmt.Sprintf("bloob/%s/collections/+", *deviceId), bloob.BloobQOS, collectionHandler); token.Wait() && token.Error() != nil {
+		c.LogFatal(token.Error().Error())
 	}
-	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/+/intents/+", *deviceId), bloobQOS, intentHandler); token.Wait() && token.Error() != nil {
-		bLogFatal(token.Error().Error(), l)
+	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/+/intents/+", *deviceId), bloob.BloobQOS, intentHandler); token.Wait() && token.Error() != nil {
+		c.LogFatal(token.Error().Error())
 	}
-	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/intent_parser_util/run", *deviceId), bloobQOS, parseHandler); token.Wait() && token.Error() != nil {
-		bLogFatal(token.Error().Error(), l)
+	if token := client.Subscribe(fmt.Sprintf("bloob/%s/cores/intent_parser_util/run", *deviceId), bloob.BloobQOS, parseHandler); token.Wait() && token.Error() != nil {
+		c.LogFatal(token.Error().Error())
 	}
 
 	coreId := "intent_parser_util"
@@ -95,11 +97,11 @@ func main() {
 
 	coreConfigJson, err := json.Marshal(coreConfig)
 	if err != nil {
-		bLogFatal(fmt.Sprintf("Failed to JSON encode the core config: %s", err.Error()), l)
+		c.LogFatal(fmt.Sprintf("Failed to JSON encode the core config: %s", err.Error()))
 	}
 
-	if token := client.Publish(fmt.Sprintf("bloob/%s/cores/%s/config", *deviceId, coreId), bloobQOS, true, coreConfigJson); token.Wait() && token.Error() != nil {
-		bLogFatal(token.Error().Error(), l)
+	if token := client.Publish(fmt.Sprintf("bloob/%s/cores/%s/config", *deviceId, coreId), bloob.BloobQOS, true, coreConfigJson); token.Wait() && token.Error() != nil {
+		c.LogFatal(token.Error().Error())
 	}
 
 	// Block until CTRL+C'd
@@ -109,30 +111,30 @@ func main() {
 	<-doneChannel
 }
 
-func parseIntent(text string) IntentParse {
-	var potentialIntents []IntentParse
+func parseIntent(text string) bloob.IntentParse {
+	var potentialIntents []bloob.IntentParse
 
-	bLog(fmt.Sprintf("Received request to parse \"%s\"", text), l)
+	c.Log(fmt.Sprintf("Received request to parse \"%s\"", text))
 
 	// Handle Instant Intents
 	if strings.HasPrefix(text, "$instant:") {
 		if intent, ok := instantIntents[text[9:]]; ok {
-			return IntentParse{IntentId: intent.Id, CoreId: intent.CoreId, ParsedText: text}
+			return bloob.IntentParse{IntentId: intent.Id, CoreId: intent.CoreId, ParsedText: text}
 		} else {
-			bLog(fmt.Sprintf("Instant Intent word \"%s\" called for, but not registered", text[9:]), l)
-			return IntentParse{}
+			c.Log(fmt.Sprintf("Instant Intent word \"%s\" called for, but not registered", text[9:]))
+			return bloob.IntentParse{}
 		}
 	}
 	textToParse := preCleanText(text)
-	bLog(fmt.Sprintf("Cleaned text to: \"%s\"", textToParse), l)
+	c.Log(fmt.Sprintf("Cleaned text to: \"%s\"", textToParse))
 	for _, intent := range intents {
 
 		var intentCheckDepth int = 0
 		// Clean the text, inline mentioned Collections, complete all necessary substitutions
-		bLog(intent.Id, l)
+		c.Log(intent.Id)
 		collectionKeyphraseUnwrap(intent)
 		textToParse = preProcessText(textToParse, intent)
-		bLog(fmt.Sprintf("Performed substitutions for %s: \"%s\"", intent.Id, textToParse), l)
+		c.Log(fmt.Sprintf("Performed substitutions for %s: \"%s\"", intent.Id, textToParse))
 
 		intentPass := true
 
@@ -144,7 +146,7 @@ func parseIntent(text string) IntentParse {
 				intentPass = false
 			}
 			intentCheckDepth += checkDepth
-			bLog(checkLog, l)
+			c.Log(checkLog)
 		}
 
 		if intent.Prefixes != nil {
@@ -153,7 +155,7 @@ func parseIntent(text string) IntentParse {
 				intentPass = false
 			}
 			intentCheckDepth += checkDepth
-			bLog(checkLog, l)
+			c.Log(checkLog)
 		}
 
 		if intent.Suffixes != nil {
@@ -162,7 +164,7 @@ func parseIntent(text string) IntentParse {
 				intentPass = false
 			}
 			intentCheckDepth += checkDepth
-			bLog(checkLog, l)
+			c.Log(checkLog)
 		}
 
 		if intent.Numbers != nil {
@@ -171,11 +173,11 @@ func parseIntent(text string) IntentParse {
 				intentPass = false
 			}
 			intentCheckDepth += checkDepth
-			bLog(checkLog, l)
+			c.Log(checkLog)
 		}
 
 		if intentPass {
-			potentialIntents = append(potentialIntents, IntentParse{IntentId: intent.Id, CheckDepth: intentCheckDepth, ParsedText: textToParse, CoreId: intent.CoreId})
+			potentialIntents = append(potentialIntents, bloob.IntentParse{IntentId: intent.Id, CheckDepth: intentCheckDepth, ParsedText: textToParse, CoreId: intent.CoreId})
 		}
 
 	}
@@ -183,17 +185,17 @@ func parseIntent(text string) IntentParse {
 	if len(potentialIntents) != 1 {
 		// Check through the intents to see if one has more detailed checks than the others. If so,
 		// it's likely that this was the intended intent.
-		bLog(fmt.Sprintf("Attempting to resolve detection of multiple Intents: %v", potentialIntents), l)
+		c.Log(fmt.Sprintf("Attempting to resolve detection of multiple Intents: %v", potentialIntents))
 		var highestDepth int = 0
-		var mostLikelyIntentParse IntentParse
+		var mostLikelyIntentParse bloob.IntentParse
 		var resolved bool = true
 		for _, intentParse := range potentialIntents {
-			bLog(fmt.Sprintf("%s with depth %d", intentParse.IntentId, intentParse.CheckDepth), l)
+			c.Log(fmt.Sprintf("%s with depth %d", intentParse.IntentId, intentParse.CheckDepth))
 			if intentParse.CheckDepth > highestDepth {
 				mostLikelyIntentParse = intentParse
 				highestDepth = intentParse.CheckDepth
 			} else if intentParse.CheckDepth == highestDepth {
-				bLog("Multiple Intents with the same check depth found, can't resolve Intent.", l)
+				c.Log("Multiple Intents with the same check depth found, can't resolve Intent.")
 				resolved = false
 				break
 			}
@@ -201,7 +203,7 @@ func parseIntent(text string) IntentParse {
 		if resolved {
 			return mostLikelyIntentParse
 		} else {
-			return IntentParse{}
+			return bloob.IntentParse{}
 		}
 
 	}
@@ -209,12 +211,12 @@ func parseIntent(text string) IntentParse {
 	return potentialIntents[0]
 }
 
-func preProcessText(text string, intent Intent) string {
+func preProcessText(text string, intent bloob.Intent) string {
 	if intent.AdvancedKeyphrases != nil {
 		for _, setOfKeyphrases := range intent.AdvancedKeyphrases {
 			for keyphrase, newphrase := range setOfKeyphrases {
 				if newphrase != "" {
-					text, _ = bTextReplace(text, keyphrase, newphrase)
+					text, _ = bloob.TextReplace(text, keyphrase, newphrase)
 				}
 			}
 		}
@@ -248,7 +250,7 @@ func preCleanText(text string) string {
 }
 
 // intent needs to be a pointer because collectionUnwrap will modify the Intent
-func collectionKeyphraseUnwrap(intent Intent) {
+func collectionKeyphraseUnwrap(intent bloob.Intent) {
 	// For each set of keyphrases, for each keyphrase, if it's a Collection ($),
 	// check that this Collection exists, then go through it and add each of its keyphrases and substitute
 	// values (keys and values) to the keyphraseSet of the Intent. Each Collection essentially just has one
@@ -259,7 +261,7 @@ func collectionKeyphraseUnwrap(intent Intent) {
 				if keyphrase[0] == '$' {
 					// keyphrase[1:] is used to remove the $ and just get the Collection name
 					if collection, ok := collections[keyphrase[1:]]; ok {
-						bLog(fmt.Sprintf("Inlining the Collection \"%s\" with the intent \"%s\"", keyphrase[1:], intent.Id), l)
+						c.Log(fmt.Sprintf("Inlining the Collection \"%s\" with the intent \"%s\"", keyphrase[1:], intent.Id))
 						// If the newphrase next to the Collection is blank, set the newphrases to their original values in the Collection
 						// If it's not blank, set the newphrases from the Collection equal to the original newphrase.
 
@@ -286,7 +288,7 @@ func collectionKeyphraseUnwrap(intent Intent) {
 						delete(keyphraseSet, keyphrase)
 
 					} else {
-						bLog(fmt.Sprintf("The Collection \"%s\" doesn't exist, but was called for by \"%s\"", keyphrase[1:], intent.Id), l)
+						c.Log(fmt.Sprintf("The Collection \"%s\" doesn't exist, but was called for by \"%s\"", keyphrase[1:], intent.Id))
 					}
 				}
 			}
@@ -298,7 +300,7 @@ func collectionKeyphraseUnwrap(intent Intent) {
 			for _, keyphrase := range intent.Keyphrases[keyphraseSetIndex] {
 				if keyphrase[0] == '$' {
 					if collection, ok := collections[keyphrase[1:]]; ok {
-						bLog(fmt.Sprintf("Inlining the Collection \"%s\" with the intent \"%s\"", keyphrase[1:], intent.Id), l)
+						c.Log(fmt.Sprintf("Inlining the Collection \"%s\" with the intent \"%s\"", keyphrase[1:], intent.Id))
 
 						if collection.Keyphrases != nil {
 							intent.Keyphrases[keyphraseSetIndex] = append(intent.Keyphrases[keyphraseSetIndex], collection.Keyphrases...)
@@ -319,7 +321,7 @@ func collectionKeyphraseUnwrap(intent Intent) {
 						indexOfKeyphrase := slices.Index(intent.Keyphrases[keyphraseSetIndex], keyphrase)
 						intent.Keyphrases[keyphraseSetIndex] = append(intent.Keyphrases[keyphraseSetIndex][:indexOfKeyphrase], intent.Keyphrases[keyphraseSetIndex][indexOfKeyphrase+1:]...)
 					} else {
-						bLog(fmt.Sprintf("The Collection \"%s\" doesn't exist, but was called for by \"%s\"", keyphrase[1:], intent.Id), l)
+						c.Log(fmt.Sprintf("The Collection \"%s\" doesn't exist, but was called for by \"%s\"", keyphrase[1:], intent.Id))
 					}
 				}
 			}

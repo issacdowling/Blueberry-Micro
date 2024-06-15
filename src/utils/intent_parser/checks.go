@@ -1,6 +1,7 @@
 package main
 
 import (
+	bloob "blueberry/gobloob"
 	"fmt"
 	"maps"
 	"strconv"
@@ -8,7 +9,7 @@ import (
 )
 
 // We can assume that all words have been swapped if needed, so we only check for the swapped versions.
-func keyphraseCheck(text string, intent Intent) (bool, int, string) {
+func keyphraseCheck(text string, intent bloob.Intent) (bool, int, string) {
 	var setsPassed int = 0
 	var setsNeeded int = 0
 
@@ -31,7 +32,7 @@ func keyphraseCheck(text string, intent Intent) (bool, int, string) {
 			}
 
 			// Check that slice, save results.
-			setKeyphraseMatches := bTextMatches(text, keyphrasesToCheck)
+			setKeyphraseMatches := bloob.TextMatches(text, keyphrasesToCheck)
 			if len(setKeyphraseMatches) != 0 {
 				setsPassed++
 				maps.Copy(allKeyphraseMatches, setKeyphraseMatches)
@@ -48,7 +49,7 @@ func keyphraseCheck(text string, intent Intent) (bool, int, string) {
 			keyphrasesToCheck = append(keyphrasesToCheck, keyphraseSet...)
 
 			// Check that slice, save results.
-			setKeyphraseMatches := bTextMatches(text, keyphrasesToCheck)
+			setKeyphraseMatches := bloob.TextMatches(text, keyphrasesToCheck)
 			if len(setKeyphraseMatches) != 0 {
 				setsPassed++
 				maps.Copy(allKeyphraseMatches, setKeyphraseMatches)
@@ -64,7 +65,7 @@ func keyphraseCheck(text string, intent Intent) (bool, int, string) {
 
 }
 
-func prefixCheck(text string, intent Intent) (bool, int, string) {
+func prefixCheck(text string, intent bloob.Intent) (bool, int, string) {
 	for _, prefix := range intent.Prefixes {
 		splitPrefix := strings.Split(prefix, " ")
 		if len(splitPrefix) == 1 {
@@ -84,7 +85,7 @@ func prefixCheck(text string, intent Intent) (bool, int, string) {
 	return false, 0, fmt.Sprintf("%s's prefix check failed, none of \"%v\" found", intent.Id, intent.Prefixes)
 }
 
-func suffixCheck(text string, intent Intent) (bool, int, string) {
+func suffixCheck(text string, intent bloob.Intent) (bool, int, string) {
 	for _, suffix := range intent.Suffixes {
 		splitSuffix := strings.Split(suffix, " ")
 		splitText := strings.Split(text, " ")
@@ -103,7 +104,7 @@ func suffixCheck(text string, intent Intent) (bool, int, string) {
 	return false, 1, fmt.Sprintf("%s's suffix check passed, none of %v found", intent.Id, intent.Suffixes)
 }
 
-func numberCheck(text string, intent Intent) (bool, int, string) {
+func numberCheck(text string, _ bloob.Intent) (bool, int, string) {
 	for _, word := range strings.Split(text, " ") {
 		_, err := strconv.Atoi(word)
 		if err == nil {
