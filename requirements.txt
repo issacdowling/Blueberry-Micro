@@ -7,6 +7,7 @@ openwakeword
 pyaudio
 webrtcvad
 aiomqtt
+onnxruntime==1.17.0
 piper-tts
 faster-whisper
 mpv

@@ -2,4 +2,5 @@
 aiomqtt
 
 #TTS
+onnxruntime==1.17.0
 piper-tts

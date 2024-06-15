@@ -14,7 +14,9 @@ import json
 import base64
 import pathlib
 import os
-from piper import download
+
+from piper import download, PiperVoice
+import wave
 
 import paho.mqtt.subscribe as subscribe
 import paho.mqtt.publish as publish
@@ -64,6 +66,8 @@ tts_path = default_tts_path
 tts_model_path = f"{tts_path}/{central_config['model']}.onnx"
 output_audio_path = f"{tts_temp_path}/out.wav"
 
+voice = PiperVoice.load(tts_model_path)
+
 if not os.path.exists(tts_model_path):
 	c.log(f"Couldn't find voice ({central_config['model']}) locally, trying to download it.")
 	try:
@@ -75,7 +79,16 @@ if not os.path.exists(tts_model_path):
 def speak(text):
 	speech_text = re.sub(r"^\W+|\W+$",'', text)
 	c.log(f"Inputted text - {text} - sanitised into - {speech_text}. Generating speech.")
-	subprocess.call(f'echo "{speech_text}" | {sys.executable} -m piper --data-dir {tts_path} --download-dir {tts_path} --model {tts_model_path} --output_file {output_audio_path}', stdout=subprocess.PIPE, shell=True)
+
+	with wave.open(output_audio_path, 'wb') as speech_wav:
+		speech_wav.setsampwidth(2) # 2 bytes, 16-bit audio
+		speech_wav.setnchannels(1)
+
+		speech_wav.setframerate(voice.config.sample_rate)
+
+		for frame in voice.synthesize_stream_raw(speech_text):
+			speech_wav.writeframes(frame)
+
 	c.log(f"Spoken: {speech_text}")
 
 async def connect():
