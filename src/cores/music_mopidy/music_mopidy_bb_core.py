@@ -66,6 +66,11 @@ intents = [
     prefixes=["play the artist", "play songs by", "play tracks by", "play music by"]
   ),
   pybloob.Intent(
+    id="shuffleArtist",
+    core_id=core_id,
+    prefixes=["shuffle the artist", "shuffle songs by", "shuffle tracks by", "shuffle music by"]
+  ),
+  pybloob.Intent(
     id="shuffleAlbum",
     core_id=core_id,
     prefixes=["shuffle the album"]
@@ -337,7 +342,7 @@ while True:
 
           c.publishCoreOutput(request_json["id"], f"I'll {speech_play_type} the album {album_name} by {album_artist}", f"The Music (Mopidy) Core started {speech_play_type}ing the album {album_name} by {album_artist}")
 
-      case "playArtist":
+      case "playArtist" | "shuffleArtist":
         query_success = True
         if request_json["text"].startswith("play the artist"):
           query_text = request_json["text"].replace("play the artist", "")
@@ -347,6 +352,14 @@ while True:
           query_text = request_json["text"].replace("play tracks by", "")
         elif request_json["text"].startswith("play music by"):
           query_text = request_json["text"].replace("play music by", "")
+        elif request_json["text"].startswith("shuffle the artist"):
+          query_text = request_json["text"].replace("shuffle the artist", "")
+        elif request_json["text"].startswith("shuffle songs by"):
+          query_text = request_json["text"].replace("shuffle songs by", "")
+        elif request_json["text"].startswith("shuffle tracks by"):
+          query_text = request_json["text"].replace("shuffle tracks by", "")
+        elif request_json["text"].startswith("shuffle music by"):
+          query_text = request_json["text"].replace("shuffle music by", "")
 
         c.log(f"Searching for the artist \"{query_text}\" to play")
         match search_source:
@@ -374,15 +387,34 @@ while True:
             c.log(f"Found artist {artist_name} with a match of {fuzzy_confidence}%")
 
         if query_success:
+
+          # If shuffling, we first clear the tracklist before adding tracks so that we don't shuffle into previous tracks
+          if request_json["intent"] == "shuffleArtist":
+            query_json = {"jsonrpc": "2.0", "id": 1, "method": "core.tracklist.clear"}
+            requests.post(f"{base_url}/mopidy/rpc", json=query_json)
+
           ## Add tracks to the tracklist
           query_json = {"jsonrpc": "2.0", "id": 1, "method": "core.tracklist.add", "params": {"uris": [artist_uri]}}
           artist_add_response = json.loads(requests.post(f"{base_url}/mopidy/rpc", json=query_json).text)
 
-          ## Play the song at the tlid (tracklist ID?) of the song(s) we just added
-          query_json = {"jsonrpc": "2.0", "id": 1, "method": "core.playback.play", "params": {"tlid": artist_add_response["result"][0]["tlid"]}}
-          play_tlid_response = json.loads(requests.post(f"{base_url}/mopidy/rpc", json=query_json).text)
+          # If shuffling, shuffle before playing, then play track id 1 (as we earlier cleared the tracklist), else play at the ID of the added and non-shuffled songs
+          if request_json["intent"] == "shuffleArtist":
+            query_json = {"jsonrpc": "2.0", "id": 1, "method": "core.tracklist.shuffle"}
+            requests.post(f"{base_url}/mopidy/rpc", json=query_json)            
 
-          c.publishCoreOutput(request_json["id"], f"I'll play the artist {artist_name}", f"The Music (Mopidy) Core started playing the artist {artist_name}")
+            ## Play the song at the tlid (tracklist ID?) of the song(s) we just added
+            query_json = {"jsonrpc": "2.0", "id": 1, "method": "core.playback.play", "params": {"tlid": 1}}
+            play_tlid_response = json.loads(requests.post(f"{base_url}/mopidy/rpc", json=query_json).text)
+            speech_play_type = "shuffle"
+          else:
+            ## Play the song at the tlid (tracklist ID?) of the song(s) we just added
+            query_json = {"jsonrpc": "2.0", "id": 1, "method": "core.playback.play", "params": {"tlid": artist_add_response["result"][0]["tlid"]}}
+            play_tlid_response = json.loads(requests.post(f"{base_url}/mopidy/rpc", json=query_json).text)
+            speech_play_type = "play"
+
+          c.publishCoreOutput(request_json["id"], f"I'll {speech_play_type} the artist {artist_name}", f"The Music (Mopidy) Core started {speech_play_type}ing the artist {artist_name}")
+
+
 
   except (TimeoutError, ConnectionError):
     to_speak = "I couldn't contact the music service, check your internet connection"
