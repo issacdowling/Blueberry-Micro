@@ -67,10 +67,10 @@ type ParseResponse struct {
 }
 
 type IntentParse struct {
-	IntentId   string
-	CoreId     string
-	CheckDepth int
-	ParsedText string
+	IntentId   string `json:"intent_id"`
+	CoreId     string `json:"core_id"`
+	CheckDepth int    `json:"check_depth"`
+	ParsedText string `json:"parsed_text"`
 }
 
 type MqttConfig struct {
