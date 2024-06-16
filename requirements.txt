@@ -3,6 +3,7 @@
 # Fedora: portaudio-devel, pipewire-devel, pipewire-pulseaudio, mpv-devel
 # Arch: portaudio, pipewire, pipewire-pulse, mpv
 # Debian: portaudio19-dev, pipewire-audio, mpv
+numpy<2
 openwakeword
 pyaudio
 webrtcvad
