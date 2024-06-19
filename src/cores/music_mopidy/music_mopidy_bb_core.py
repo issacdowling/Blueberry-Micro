@@ -165,12 +165,20 @@ elif search_source == "local":
   local_songs = {}
 
   for root, _, files_in_directory in os.walk(base_dir):
-    root = root.replace(base_dir+"/", "")
+
+    # Handles the root being the base_dir, allowing songs directly at the root
+    if root == base_dir:
+      root = ""
+    else:
+      root = root.replace(base_dir + "/", "")
     for file in files_in_directory:
 
       if file.endswith(".flac") or file.endswith(".wav") or file.endswith(".mp3"):
         # Maybe in future, remove the extension first too
-        local_songs[file] = f"local:track:{urllib.parse.quote(root+'/'+file)}"
+        if root != "":
+          local_songs[file] = f"local:track:{urllib.parse.quote(root+'/'+file)}"
+        else:
+          local_songs[file] = f"local:track:{urllib.parse.quote(file)}"
 
 c.publishAll()
   
@@ -265,6 +273,7 @@ while True:
             query_json = {"jsonrpc": "2.0", "id": 1, "method": "core.library.lookup", "params": {"uris": [track_uri]}}
             mopidy_response_json = json.loads(requests.post(f"{base_url}/mopidy/rpc", json=query_json).text)
             mopidy_response_track = mopidy_response_json["result"][track_uri][0]
+
             track_name = "Unknown Track" if mopidy_response_track.get("name") == None else mopidy_response_track["name"]
             track_artist = "Unknown artist" if mopidy_response_track.get("album") == None or mopidy_response_track["album"].get("artists") == None else mopidy_response_track["album"]["artists"][0]["name"]
             track_album = "Unknown album" if mopidy_response_track.get("album") == None or mopidy_response_track["album"].get("name") == None else mopidy_response_track["album"]["name"]
@@ -413,8 +422,6 @@ while True:
             speech_play_type = "play"
 
           c.publishCoreOutput(request_json["id"], f"I'll {speech_play_type} the artist {artist_name}", f"The Music (Mopidy) Core started {speech_play_type}ing the artist {artist_name}")
-
-
 
   except (TimeoutError, ConnectionError):
     to_speak = "I couldn't contact the music service, check your internet connection"
