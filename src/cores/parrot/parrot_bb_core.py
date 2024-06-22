@@ -13,7 +13,7 @@ import pybloob
 
 core_dir = pathlib.Path(__file__).parents[0]
 
-core_id = "greet"
+core_id = "parrot"
 
 arguments = pybloob.coreArgParse()
 c = pybloob.Core(device_id=arguments.device_id, core_id=core_id, mqtt_host=arguments.host, mqtt_port=arguments.port, mqtt_user=arguments.user, mqtt_pass=arguments.__dict__.get("pass"))
