@@ -5,7 +5,9 @@
 **If you're on Windows, just use WSL, this is not presently maintained for Windows.**
 
 ## Python
-Presently, you need to use Python 3.11, due to `piper-tts` [issues](https://github.com/rhasspy/piper/issues/384).
+Presently, you need to use Python 3.11, due to `piper-tts` [issues](https://github.com/rhasspy/piper/issues/384). **Install Python AND the Python dev package**
+
+Check `requirements.txt` and look for the other packages you may need.
 
 I suggest that you create a virtual environment to keep the packages needed to make this work separate from the rest of your OS.
 
