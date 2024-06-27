@@ -1,6 +1,6 @@
 module blueberry/gobloob
 
-go 1.22.4
+go 1.19.0
 
 require github.com/eclipse/paho.mqtt.golang v1.4.3
 
