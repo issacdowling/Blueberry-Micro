@@ -96,6 +96,7 @@ func main() {
 				"instance_name": "Default Name",
 				"uuid":          "test",
 				"stt_util": map[string]interface{}{
+					"mode":  "local",
 					"model": "base.en",
 				},
 				"tts_util": map[string]interface{}{
