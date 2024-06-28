@@ -1,8 +1,8 @@
 # Global requirements.txt for all of the blueberry deps
 # You must install some system packages before those can install:
-# Fedora: portaudio-devel, pipewire-devel, pipewire-pulseaudio, mpv-devel
-# Arch: portaudio, pipewire, pipewire-pulse, mpv
-# Debian: portaudio19-dev, pipewire-audio, mpv
+# Fedora: portaudio-devel pipewire-devel pipewire-pulseaudio mpv-devel
+# Arch: portaudio pipewire pipewire-pulse mpv
+# Debian: portaudio19-dev pipewire-audio mpv libmpv2
 numpy<2
 openwakeword
 pyaudio
