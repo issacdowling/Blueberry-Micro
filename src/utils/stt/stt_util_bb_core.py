@@ -99,7 +99,7 @@ def remote_transcribe(message_json: dict):
   remote_stt_device = central_config["mode"].split(":")[1]
   remote_stt_publish = f"bloob/{remote_stt_device}/cores/stt_util/transcribe"
   remote_stt_subscribe = f"bloob/{remote_stt_device}/cores/stt_util/finished"
-  publish.single(remote_stt_publish, json.dumps(message_json))
+  publish.single(remote_stt_publish, json.dumps(message_json), hostname=c.mqtt_host, port=c.mqtt_port, auth=c.mqtt_auth)
 
   # This section to make sure it ignores other potential requests being dealt with by the remote STT
   received_id = "?"

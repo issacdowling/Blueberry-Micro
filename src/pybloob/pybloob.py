@@ -202,9 +202,9 @@ class Core:
 
     for collection in self.collections:
       if type(collection) == dict:
-        publish.single(f"bloob/{self.device_id}/collections/{collection['id']}", json.dumps(collection), bloobQOS, True)
+        publish.single(f"bloob/{self.device_id}/collections/{collection['id']}", json.dumps(collection), bloobQOS, True, self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth)
       elif type(collection) == Collection:
-        publish.single(f"bloob/{self.device_id}/collections/{collection.id}", json.dumps(collection.asdict()), bloobQOS, True)
+        publish.single(f"bloob/{self.device_id}/collections/{collection.id}", json.dumps(collection.asdict()), bloobQOS, True, self.mqtt_host, port=self.mqtt_port, auth=self.mqtt_auth)
 
   def publishConfig(self, core_config: dict=None):
     if core_config != None:

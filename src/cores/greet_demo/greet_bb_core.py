@@ -37,6 +37,6 @@ c.publishConfig(core_config)
 c.publishIntents(intents)
 
 while True:
-  request_json = json.loads(subscribe.simple(f"bloob/{arguments.device_id}/cores/{core_id}/run", hostname=arguments.host, port=arguments.port).payload.decode())
+  request_json = c.waitForCoreCall()
   greeting = "Hello, World!"
   c.publishCoreOutput(request_json["id"], greeting, f"The Greeting Core says {greeting}")
