@@ -104,7 +104,7 @@ def remote_transcribe(message_json: dict):
   # This section to make sure it ignores other potential requests being dealt with by the remote STT
   received_id = "?"
   while received_id != message_json["id"]:
-    print(received_id)
+    c.log(f"Waiting for response from \"{remote_stt_device}\"'s remote STT")
     received_remote_tts = json.loads(subscribe.simple(remote_stt_subscribe, hostname=c.mqtt_host, port=c.mqtt_port, auth=c.mqtt_auth).payload)
     received_id = received_remote_tts["id"]
 
