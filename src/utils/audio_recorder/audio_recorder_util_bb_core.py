@@ -81,7 +81,7 @@ import paho.mqtt.publish as publish
 
 while True:
   try:
-    request_id = c.waitForCoreCall()["id"]
+    request_id = json.loads(mqtt_subscribe.simple(f"bloob/{arguments.device_id}/cores/audio_recorder_util/record_speech", hostname = arguments.host, port = arguments.port ).payload.decode())["id"]
     speech_buffer = []
   except json.decoder.JSONDecodeError:
     c.log("Recieved invalid JSON")
