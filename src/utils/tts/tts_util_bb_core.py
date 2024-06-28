@@ -73,6 +73,8 @@ if not os.path.exists(tts_model_path):
 	except download.VoiceNotFoundError:
 		c.log(f"The requested voice ({central_config['model']}) was not found locally or able to be downloaded. The list of officially available Piper voices is {list(download.get_voices(tts_path, True).keys())}  Exiting.")
 		exit()
+	else:
+		c.log("Voice downloaded")
 
 voice = PiperVoice.load(tts_model_path)
 
