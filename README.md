@@ -27,7 +27,23 @@ Fedora: `sudo dnf install mosquitto`
 Debian/Ubuntu: `sudo apt install mosquitto`
 etc etc, it's `mosquitto` basically everywhere.
 
-No configuration is necessary, however I expect to later find some configs that may be useful.
+No configuration is _necessary_ for a single-device setup, however I expect to later find some configs that may be useful.
+
+For a multi-device setup, you'll need to make sure that your broke is accessible from other machines on the local network (where the default only permits connections from localhost). To do this with `mosquitto`, in a default and with no-added-security setup, add
+```
+listener 1883 0.0.0.0
+allow_anonymous true
+```
+to your `/etc/mosquitto/mosquitto.conf` file.
+
+If mosquitto is launched as a daemon (which seems to happen automatically on Debian, as it did on my Pi), I believe that it uses this configuration file by default, but launching it manually through your terminal will require `mosquitto -c /etc/mosquitto/mosquitto.conf` to specify that you want to use the config.
+
+Even this may not work, and that's because the system running it may have a firewall running. If you use `firewalld`, here's how you can add the default port.
+
+```
+sudo firewall-cmd --add-port=1883/tcp --permanent
+sudo firewall-cmd --reload
+```
 
 ## Wakewords
 While STT and TTS models can be downloaded automatically, Wakeword / Instant Intent words cannot, presently. Therefore, I suggest you go to the [OpenWakeWord Releases](https://github.com/dscripka/openWakeWord/releases/tag/v0.5.1) and download some models (specifically the ones ending in `.tflite`), which you'll put into `~/.config/bloob/ww/`. This directory is created automatically on first run (but remember, it won't pick up your voice without these models and a restart).
